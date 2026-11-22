@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { BigAmount } from '../../components/Bits';
 import { useDeleteFlow } from '../../components/DeleteFlow';
+import { Chip, IconButton, SegmentedButton } from '../../components/m3';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../../components/Overlays';
 import { TransactionRow } from '../../components/TransactionRow';
 import { groupByDay, logPeriodStart, totalsSince, upcoming } from '../../lib/calc';
@@ -15,6 +16,7 @@ import { Haptics } from '../../lib/haptics';
 import { useStore } from '../../lib/store';
 import { useNow } from '../../lib/useNow';
 import type { Transaction } from '../../lib/types';
+import { shape, typeScale } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
 type FilterType = 'all' | 'type' | 'day' | 'week' | 'month' | 'category' | 'recurring' | 'upcoming';
@@ -38,7 +40,7 @@ type Row =
   | { kind: 'item'; key: string; t: Transaction; future?: boolean; futureDate?: number };
 
 export default function LogScreen() {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const transactions = useStore((s) => s.transactions);
   const categories = useStore((s) => s.categories);
@@ -100,13 +102,15 @@ export default function LogScreen() {
 
   if (transactions.length === 0) {
     return (
-      <View style={[styles.empty, { backgroundColor: c.PrimaryBackground }]}>
-        <Ionicons name="file-tray-outline" size={75} color={c.GreyIcon} style={{ marginBottom: 20 }} />
-        <AppText size={25} weight="medium" color="PrimaryText" style={{ opacity: 0.8, textAlign: 'center' }}>
+      <View style={[styles.empty, { backgroundColor: m3.surface }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
+          <Ionicons name="file-tray-outline" size={44} color={m3.onSurfaceVariant} />
+        </View>
+        <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ textAlign: 'center', marginTop: 24 }}>
           Your Log is Empty
         </AppText>
-        <AppText size={19} weight="medium" color="SubtitleText" style={{ opacity: 0.8, textAlign: 'center', marginTop: 4 }}>
-          {'Press the plus button\nto add your first entry'}
+        <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 8, letterSpacing: typeScale.bodyLarge.tracking }}>
+          {'Tap Add entry to log your\nfirst expense or income'}
         </AppText>
       </View>
     );
@@ -116,22 +120,22 @@ export default function LogScreen() {
   const filterTag = FILTERS.find((f) => f.key === filter)?.label ?? '';
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.PrimaryBackground }}>
-      <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
-        <IconBox onPress={() => router.push('/search')} label="Search">
-          <Ionicons name="search" size={26} color={c.DarkIcon} />
-        </IconBox>
-        {filter !== 'all' ? (
-          <AppText size={16} weight="semibold" color="SubtitleText">
-            {filterTag}
-          </AppText>
-        ) : null}
+    <View style={{ flex: 1, backgroundColor: m3.surface }}>
+      {/* M3 small top app bar: title on the left, action icons on the right. */}
+      <View style={[styles.topBar, { paddingTop: insets.top }]}>
+        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ flex: 1, marginLeft: 16 }}>
+          Log
+        </AppText>
+        <IconButton icon="search" onPress={() => router.push('/search')} label="Search" />
         <View {...anchorProps(filterMenu)}>
-          <IconBox onPress={filterMenu.open} label="Filter" active={filterMenu.visible}>
-            <Ionicons name={filter === 'all' ? 'triangle-outline' : 'triangle'} size={24} color={c.DarkIcon} style={{ transform: [{ rotate: '180deg' }] }} />
-          </IconBox>
+          <IconButton icon={filter === 'all' ? 'options-outline' : 'options'} onPress={filterMenu.open} label="Filter" tint={filter === 'all' ? undefined : m3.primary} />
         </View>
       </View>
+      {filter !== 'all' ? (
+        <View style={styles.activeFilter}>
+          <Chip label={filterTag} icon="checkmark" tint={m3.secondaryContainer} onTint={m3.onSecondaryContainer} onPress={() => setFilter('all')} accessibilityLabel={`Clear filter ${filterTag}`} trailing={<Ionicons name="close" size={18} color={m3.onSecondaryContainer} />} />
+        </View>
+      ) : null}
 
       <Popover visible={filterMenu.visible} anchor={filterMenu.anchor} onClose={filterMenu.close} align="right" width={210}>
         {FILTERS.map((f) => (
@@ -175,12 +179,12 @@ export default function LogScreen() {
         ListHeaderComponent={showHeader ? <LogHeader /> : <View style={{ height: 8 }} />}
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <AppText size={19} weight="medium" color="SubtitleText">
+            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant}>
               No entries found.
             </AppText>
           </View>
         }
-        contentContainerStyle={{ paddingHorizontal: 25, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
         renderItem={({ item }) =>
           item.kind === 'header' ? (
             <DayHeader label={item.label} net={item.net} />
@@ -197,7 +201,7 @@ export default function LogScreen() {
 // MARK: Header (heading, timeframe pill, total)
 
 function LogHeader() {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const transactions = useStore((s) => s.transactions);
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
@@ -210,42 +214,44 @@ function LogHeader() {
   const bothSides = totals.spent !== 0 && totals.income !== 0 && settings.logHeading === 1;
 
   return (
-    <View style={{ alignItems: 'center', paddingTop: 36, paddingBottom: 40 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+    // A tonal "summary" card (28dp corners) holding the heading, the period chip and the total.
+    <View style={[styles.summary, { backgroundColor: m3.surfaceContainerLow, borderColor: m3.outlineVariant }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View {...anchorProps(headingMenu)}>
-          <Pressable onLongPress={headingMenu.open} delayLongPress={300}>
-            <AppText size={18} weight="medium" style={{ opacity: 0.9 }}>
+          <Pressable onLongPress={headingMenu.open} delayLongPress={300} onPress={headingMenu.open} accessibilityLabel="Change what the total shows">
+            <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.titleMedium.tracking }}>
               {HEADINGS[settings.logHeading]}
             </AppText>
           </Pressable>
         </View>
         <View {...anchorProps(pill)}>
-          <Pressable onPress={pill.open} style={[styles.pill, { borderColor: c.Outline }]} accessibilityLabel="Change time frame">
-            <AppText size={18} weight="medium">
-              {TIMEFRAMES[settings.logTimeFrame - 1]}
-            </AppText>
-          </Pressable>
+          <Chip
+            label={TIMEFRAMES[settings.logTimeFrame - 1]}
+            accessibilityLabel="Change time frame"
+            onPress={pill.open}
+            trailing={<Ionicons name="chevron-down" size={18} color={m3.onSurfaceVariant} />}
+          />
         </View>
       </View>
 
-      <View style={{ marginTop: 6 }}>
-        <BigAmount value={fmtSmart(Math.abs(value), settings.showCents)} sign={sign as '+' | '-' | ''} currency={settings.currency} size={72} />
+      <View style={{ marginTop: 12, alignItems: 'flex-start' }}>
+        <BigAmount value={fmtSmart(Math.abs(value), settings.showCents)} sign={sign as '+' | '-' | ''} currency={settings.currency} size={57} align="flex-start" />
       </View>
 
       {bothSides ? (
-        <View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}>
-          <AppText size={17} weight="medium" color="IncomeGreen">
+        <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
+          <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.success}>
             +{currencySymbol(settings.currency)}
             {fmtSmart(totals.income, settings.showCents)}
           </AppText>
-          <AppText size={17} weight="medium" color="SubtitleText">
+          <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant}>
             -{currencySymbol(settings.currency)}
             {fmtSmart(totals.spent, settings.showCents)}
           </AppText>
         </View>
       ) : null}
 
-      <Popover visible={pill.visible} anchor={pill.anchor} onClose={pill.close} align="center" width={170}>
+      <Popover visible={pill.visible} anchor={pill.anchor} onClose={pill.close} align="right" width={190}>
         {TIMEFRAMES.map((label, i) => (
           <PopoverItem
             key={label}
@@ -260,7 +266,7 @@ function LogHeader() {
         ))}
       </Popover>
 
-      <Popover visible={headingMenu.visible} anchor={headingMenu.anchor} onClose={headingMenu.close} align="left" width={190}>
+      <Popover visible={headingMenu.visible} anchor={headingMenu.anchor} onClose={headingMenu.close} align="left" width={200}>
         {([3, 2, 1] as const).map((h) => (
           <PopoverItem
             key={h}
@@ -278,87 +284,56 @@ function LogHeader() {
   );
 }
 
+/** An M3 list subheader: label on the left, the day's total on the right. */
 function DayHeader({ label, net }: { label: string; net: number | null }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const showSign = useStore((s) => s.settings.showSign);
   const currency = useStore((s) => s.settings.currency);
   return (
-    <View style={{ marginTop: 18, marginBottom: 6 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: 6 }}>
-        <AppText size={20} weight="semibold" color="SubtitleText">
-          {label}
+    <View style={styles.subheader}>
+      <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+        {label}
+      </AppText>
+      {net !== null ? (
+        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+          {showSign ? (net >= 0 ? '+' : '-') : ''}
+          {currencySymbol(currency)}
+          {fmtFull(Math.abs(net))}
         </AppText>
-        {net !== null ? (
-          <AppText size={20} weight="semibold" color="SubtitleText">
-            {showSign ? (net >= 0 ? '+' : '-') : ''}
-            {currencySymbol(currency)}
-            {fmtFull(Math.abs(net))}
-          </AppText>
-        ) : null}
-      </View>
-      <View style={{ height: 2, borderRadius: 1, backgroundColor: c.Outline }} />
+      ) : null}
     </View>
   );
 }
 
 // MARK: Small pieces
 
-function IconBox({ children, onPress, label, active }: { children: React.ReactNode; onPress: () => void; label: string; active?: boolean }) {
-  const { c } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityLabel={label}
-      style={{ padding: 6, borderRadius: 8, backgroundColor: active ? c.SecondaryBackground : 'transparent' }}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
 function Stepper({ label, onPrev, onNext }: { label: string; onPrev: () => void; onNext: () => void }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   return (
     <View style={styles.stepper}>
-      <Pressable onPress={onPrev} hitSlop={12} style={[styles.stepButton, { backgroundColor: c.SecondaryBackground }]} accessibilityLabel="Previous">
-        <Ionicons name="chevron-back" size={20} color={c.DarkIcon} />
-      </Pressable>
-      <AppText size={20} weight="semibold">
+      <IconButton icon="chevron-back" onPress={onPrev} label="Previous" />
+      <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface}>
         {label}
       </AppText>
-      <Pressable onPress={onNext} hitSlop={12} style={[styles.stepButton, { backgroundColor: c.SecondaryBackground }]} accessibilityLabel="Next">
-        <Ionicons name="chevron-forward" size={20} color={c.DarkIcon} />
-      </Pressable>
+      <IconButton icon="chevron-forward" onPress={onNext} label="Next" />
     </View>
   );
 }
 
 function TypeToggle({ income, onChange }: { income: boolean; onChange: (v: boolean) => void }) {
-  const { c } = useTheme();
-  const seg = (label: string, active: boolean, value: boolean) => (
-    <Pressable
-      onPress={() => onChange(value)}
-      style={[styles.seg, active && { backgroundColor: c.SecondaryBackground }]}
-    >
-      <AppText size={18} weight="semibold" color={active ? 'PrimaryText' : 'SubtitleText'}>
-        {label}
-      </AppText>
-    </Pressable>
-  );
   return (
-    <View style={[styles.segWrap, { borderColor: c.Outline }]}>
-      {seg('Expense', !income, false)}
-      {seg('Income', income, true)}
+    <View style={{ alignSelf: 'center', marginTop: 8 }}>
+      <SegmentedButton options={['Expense', 'Income']} index={income ? 1 : 0} onChange={(i) => onChange(i === 1)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30, paddingBottom: 140 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 25, minHeight: 50 },
-  pill: { paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1.3, borderRadius: 100 },
-  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 25, paddingTop: 8, paddingBottom: 4 },
-  stepButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  segWrap: { flexDirection: 'row', alignSelf: 'center', borderWidth: 1.5, borderRadius: 100, padding: 3, marginTop: 8 },
-  seg: { paddingHorizontal: 22, paddingVertical: 7, borderRadius: 100 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 120 },
+  emptyIcon: { width: 96, height: 96, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingRight: 4 },
+  activeFilter: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 8 },
+  summary: { marginHorizontal: 16, marginTop: 8, marginBottom: 8, padding: 24, borderRadius: shape.extraLarge, borderWidth: 1 },
+  subheader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingTop: 4 },
 });

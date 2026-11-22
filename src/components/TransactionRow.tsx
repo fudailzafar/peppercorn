@@ -10,10 +10,11 @@ import { currencySymbol, fmtFull } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
 import type { Transaction } from '../lib/types';
+import { shape, typeScale } from '../theme/material';
 import { springs } from '../theme/motion';
 import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
-import { EmojiTile } from './Bits';
+import { StateLayer } from './m3';
 import { Popover, PopoverItem, useAnchor, anchorProps } from './Overlays';
 
 // Dime's swipe-to-delete: past 20% of the screen a confirmation card opens on release; past 42% the row flies off and deletes.
@@ -34,7 +35,7 @@ interface Props {
 
 /** One log entry: emoji tile, note, time and amount. Swipe left to delete, long-press for a menu. */
 export function TransactionRow({ transaction: t, future = false, futureDate, onDelete, onQuickDelete }: Props) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const { width } = useWindowDimensions();
   const category = useStore((s) => s.categories.find((x) => x.id === t.categoryId));
   const showSign = useStore((s) => s.settings.showSign);
@@ -98,73 +99,80 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
   });
 
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
-  // The X circle slides in from the right edge as the row is dragged, then turns red past the delete point.
+  // Material swipe-to-dismiss: a container reveals behind the row, turns solid red past the delete point,
+  // and its trash icon grows. Colours are read here, not inside the worklets (they are plain JS values).
   const armed = useDerivedValue(() => withTiming(-x.get() > width * CONFIRM ? 1 : 0, { duration: 150 }));
-  const xWrapStyle = useAnimatedStyle(() => ({ transform: [{ translateX: interpolate(x.get(), [-80, 0], [0, 80], Extrapolation.CLAMP) }] }));
-  // Computed here, not inside the worklet: withAlpha is a normal JS function and cannot run on the UI thread.
-  const redTint = withAlpha(c.AlertRed, 0.23);
-  const calmTint = c.SecondaryBackground;
-  const xCircleStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(armed.get(), [0, 1], [calmTint, redTint]),
-    transform: [{ scale: interpolate(armed.get(), [0, 1], [1, 1.1]) }],
+  const calm = m3.errorContainer;
+  const hot = m3.error;
+  const revealStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(armed.get(), [0, 1], [calm, hot]) }));
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(armed.get(), [0, 1], [1, 1.25]) }, { translateX: interpolate(x.get(), [-96, 0], [0, 24], Extrapolation.CLAMP) }],
   }));
-  const greyIconStyle = useAnimatedStyle(() => ({ opacity: 1 - armed.get() }));
-  const redIconStyle = useAnimatedStyle(() => ({ opacity: armed.get() }));
+  const calmIcon = useAnimatedStyle(() => ({ opacity: 1 - armed.get() }));
+  const hotIcon = useAnimatedStyle(() => ({ opacity: armed.get() }));
 
   const sign = !showSign ? '' : t.income ? '+' : '-';
-  const amountColor = future ? 'SubtitleText' : t.income ? 'IncomeGreen' : 'PrimaryText';
+  const amountColor = future ? m3.onSurfaceVariant : t.income ? m3.success : m3.onSurface;
   const subtitle = future ? dayLabel(new Date(futureDate ?? t.date)) : timeLabel(t.date);
+  const tint = category?.colour ?? '#A6A6A6';
 
   return (
     <View>
-      <Animated.View pointerEvents="none" style={[styles.xWrap, xWrapStyle]}>
-        <Animated.View style={[styles.xCircle, xCircleStyle]}>
-          <Animated.View style={[StyleSheet.absoluteFill, styles.xIcon, greyIconStyle]}>
-            <Ionicons name="close" size={14} color={c.SubtitleText} />
+      <Animated.View pointerEvents="none" style={[styles.reveal, revealStyle]}>
+        <Animated.View style={[styles.revealIcon, iconStyle]}>
+          <Animated.View style={calmIcon}>
+            <Ionicons name="trash-outline" size={24} color={m3.onErrorContainer} />
           </Animated.View>
-          <Animated.View style={[StyleSheet.absoluteFill, styles.xIcon, redIconStyle]}>
-            <Ionicons name="close" size={14} color={c.AlertRed} />
+          <Animated.View style={[StyleSheet.absoluteFill, hotIcon]}>
+            <Ionicons name="trash-outline" size={24} color={m3.onError} />
           </Animated.View>
         </Animated.View>
       </Animated.View>
 
       <GestureDetector gesture={pan}>
-      <Animated.View style={[{ backgroundColor: c.PrimaryBackground }, rowStyle]}>
-        <View {...anchorProps(menu)}>
-          <Pressable
-            onPress={() => router.push({ pathname: '/transaction', params: { id: t.id } })}
-            onLongPress={() => {
-              Haptics.light();
-              menu.open();
-            }}
-            delayLongPress={350}
-            style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.SecondaryBackground }]}
-            accessibilityLabel={`${t.note}, ${currencySymbol(currency)}${fmtFull(t.amount)}`}
-          >
-            <View>
-              <EmojiTile emoji={category?.emoji ?? '❓'} colour={category?.colour ?? '#A6A6A6'} future={future} />
-              {t.recurringType > 0 ? (
-                <View style={[styles.recurBadge, { backgroundColor: c.SecondaryBackground }]}>
-                  <Ionicons name="refresh" size={11} color={c.DarkIcon} />
-                </View>
-              ) : null}
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <AppText size={17} weight="medium" color={future ? 'SubtitleText' : 'PrimaryText'} numberOfLines={1}>
-                {t.note}
-              </AppText>
-              <AppText size={15} weight="medium" color={future ? 'EvenLighterText' : 'SubtitleText'} numberOfLines={1}>
-                {subtitle}
-              </AppText>
-            </View>
-            <AppText size={20} weight="medium" color={amountColor} numberOfLines={1} style={{ marginLeft: 8 }}>
-              {sign}
-              {currencySymbol(currency)}
-              {fmtFull(t.amount)}
-            </AppText>
-          </Pressable>
-        </View>
-      </Animated.View>
+        <Animated.View style={[{ backgroundColor: m3.surface }, rowStyle]}>
+          <View {...anchorProps(menu)}>
+            {/* An M3 two-line list item: 40dp avatar, headline, supporting text, trailing amount. */}
+            <Pressable
+              onPress={() => router.push({ pathname: '/transaction', params: { id: t.id } })}
+              onLongPress={() => {
+                Haptics.light();
+                menu.open();
+              }}
+              delayLongPress={350}
+              android_ripple={{ color: `${m3.onSurface}1F` }}
+              style={styles.row}
+              accessibilityLabel={`${t.note}, ${currencySymbol(currency)}${fmtFull(t.amount)}`}
+            >
+              {({ pressed }) => (
+                <>
+                  <StateLayer pressed={pressed} color={m3.onSurface} />
+                  <View style={[styles.avatar, { backgroundColor: withAlpha(tint, future ? 0.16 : 0.3) }]}>
+                    <AppText size={20} style={{ includeFontPadding: false }}>
+                      {category?.emoji ?? '❓'}
+                    </AppText>
+                  </View>
+                  <View style={styles.texts}>
+                    <AppText size={typeScale.bodyLarge.size} color={future ? m3.onSurfaceVariant : m3.onSurface} numberOfLines={1} style={{ letterSpacing: typeScale.bodyLarge.tracking }}>
+                      {t.note}
+                    </AppText>
+                    <View style={styles.supporting}>
+                      {t.recurringType > 0 ? <Ionicons name="repeat" size={14} color={m3.onSurfaceVariant} /> : null}
+                      <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} numberOfLines={1} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
+                        {subtitle}
+                      </AppText>
+                    </View>
+                  </View>
+                  <AppText size={typeScale.titleMedium.size} weight="semibold" color={amountColor} numberOfLines={1} style={{ marginLeft: 12, letterSpacing: typeScale.titleMedium.tracking }}>
+                    {sign}
+                    {currencySymbol(currency)}
+                    {fmtFull(t.amount)}
+                  </AppText>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </Animated.View>
       </GestureDetector>
 
       <Popover visible={menu.visible} anchor={menu.anchor} onClose={menu.close} align="center" width={200}>
@@ -203,9 +211,10 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12 },
-  recurBadge: { position: 'absolute', right: -5, bottom: -5, borderRadius: 6, padding: 3 },
-  xWrap: { ...StyleSheet.absoluteFill, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 10 },
-  xCircle: { width: 28, height: 28, borderRadius: 14 },
-  xIcon: { alignItems: 'center', justifyContent: 'center' },
+  row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, overflow: 'hidden' },
+  avatar: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
+  texts: { flex: 1, marginLeft: 16 },
+  supporting: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  reveal: { ...StyleSheet.absoluteFill, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 24 },
+  revealIcon: { width: 24, height: 24 },
 });

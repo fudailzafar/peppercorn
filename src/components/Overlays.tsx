@@ -3,6 +3,7 @@ import { Animated, Modal, Pressable, StyleSheet, useWindowDimensions, View, type
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUi } from '../lib/store';
+import { elevation, shape, stateLayer, typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 
@@ -52,7 +53,7 @@ export function Popover({
   width?: number;
   children: ReactNode;
 }) {
-  const { c, dark } = useTheme();
+  const { m3 } = useTheme();
   const win = useWindowDimensions();
   if (!anchor) return null;
 
@@ -62,18 +63,8 @@ export function Popover({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss menu" />
-      <View
-        style={[
-          styles.popover,
-          {
-            top: anchor.y + anchor.height + 8,
-            left,
-            width,
-            backgroundColor: dark ? c.TertiaryBackground : '#FFFFFF',
-            shadowColor: '#000',
-          },
-        ]}
-      >
+      {/* An M3 menu: a 4dp-cornered surface at elevation 2, positioned under its anchor. */}
+      <View style={[styles.popover, elevation(2), { top: anchor.y + anchor.height + 4, left, width, backgroundColor: m3.surfaceContainer }]}>
         {children}
       </View>
     </Modal>
@@ -93,17 +84,20 @@ export function PopoverItem({
   destructive?: boolean;
   onPress: () => void;
 }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
+  const ink = destructive ? m3.error : m3.onSurface;
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.item, (selected || pressed) && { backgroundColor: c.SecondaryBackground }]}
-    >
-      {icon ? <Ionicons name={icon} size={18} color={destructive ? c.AlertRed : c.DarkIcon} style={{ marginRight: 10 }} /> : null}
-      <AppText size={19} weight="medium" color={destructive ? 'AlertRed' : 'PrimaryText'} style={{ flex: 1 }}>
-        {label}
-      </AppText>
-      {selected ? <Ionicons name="checkmark" size={20} color={c.PrimaryText} /> : null}
+    <Pressable onPress={onPress} android_ripple={{ color: `${ink}1F` }} style={styles.item}>
+      {({ pressed }) => (
+        <>
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: ink, opacity: pressed ? stateLayer.pressed : selected ? 0.06 : 0 }]} />
+          {icon ? <Ionicons name={icon} size={24} color={destructive ? m3.error : m3.onSurfaceVariant} style={{ marginRight: 12 }} /> : null}
+          <AppText size={typeScale.bodyLarge.size} color={ink} style={{ flex: 1, letterSpacing: typeScale.bodyLarge.tracking }}>
+            {label}
+          </AppText>
+          {selected ? <Ionicons name="checkmark" size={20} color={m3.onSurfaceVariant} /> : null}
+        </>
+      )}
     </Pressable>
   );
 }
@@ -207,16 +201,8 @@ export function ToastHost() {
 }
 
 const styles = StyleSheet.create({
-  popover: {
-    position: 'absolute',
-    borderRadius: 18,
-    padding: 6,
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
-  },
-  item: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, borderRadius: 12 },
+  popover: { position: 'absolute', borderRadius: shape.extraSmall, paddingVertical: 8, overflow: 'hidden' },
+  item: { minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, overflow: 'hidden' },
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 24, paddingTop: 28 },
   bigButton: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
