@@ -9,7 +9,7 @@ interface Props extends TextProps {
   color?: ColorName | (string & {});
 }
 
-/** Text in Dime's rounded typeface (Nunito stands in for SF Rounded). */
+/** Text in Roboto (Material's typeface). Sizes are Dime's; see theme/material.ts for the M3 type roles. */
 export function AppText({ size = 17, weight = 'medium', color = 'PrimaryText', style, ...rest }: Props) {
   const { c } = useTheme();
   const resolved = color in c ? c[color as keyof Palette] : color;

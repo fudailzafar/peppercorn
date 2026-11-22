@@ -171,7 +171,7 @@ export function Gauge({ fraction, elapsed, caption, size = 330 }: GaugeProps) {
       </Defs>
       <Path d={arc(180, 360)} stroke={c.SecondaryBackground} strokeWidth={stroke} strokeLinecap="round" fill="none" />
       {drawn > 0.001 ? <Path d={arc(180, spentEnd)} stroke={c.DarkIcon} strokeWidth={stroke} strokeLinecap="round" fill="none" /> : null}
-      <SvgText fill={c.SubtitleText} fontSize={20} fontFamily="Nunito_600SemiBold" letterSpacing={2}>
+      <SvgText fill={c.SubtitleText} fontSize={20} fontFamily="Roboto_500Medium" letterSpacing={2}>
         <TextPath href="#gauge-text" startOffset="50%" textAnchor="middle">
           {caption.toUpperCase()}
         </TextPath>
