@@ -192,24 +192,24 @@ export function Gauge({ fraction, elapsed, caption, size = 330 }: GaugeProps) {
 // MARK: Capsule progress (budget cards)
 
 /** A progress capsule in the category colour with a small pace marker above it. */
-export function CapsuleProgress({ fraction, elapsed, colour, height = 26 }: { fraction: number; elapsed: number; colour: string; height?: number }) {
-  const { c } = useTheme();
+export function CapsuleProgress({ fraction, elapsed, colour, height = 8 }: { fraction: number; elapsed: number; colour: string; height?: number }) {
+  const { m3 } = useTheme();
   const clamped = Math.min(Math.max(fraction, 0), 1);
   const behind = fraction > elapsed;
   const animated = useStore((st) => st.settings.animatedCharts);
   const grow = useAnimatedNumber(1, animated);
+  const pace = Math.min(Math.max(elapsed, 0), 1);
+  // M3 linear progress: a rounded track, an indicator that grows in, and a pace tick
+  // (a thin vertical mark showing how far through the period we are).
   return (
-    <View>
-      <View style={{ height: 12, marginHorizontal: -4 }}>
-        <View style={{ position: 'absolute', left: `${Math.min(Math.max(elapsed, 0), 1) * 100}%`, top: 0 }}>
-          <Svg width={16} height={10} style={{ marginLeft: -8 }}>
-            <Path d="M1 1 H15 L8 9 Z" fill={behind ? c.BudgetRed : c.DarkIcon} strokeLinejoin="round" stroke={behind ? c.BudgetRed : c.DarkIcon} strokeWidth={2} />
-          </Svg>
-        </View>
+    <View style={{ height: height + 12, justifyContent: 'center' }}>
+      <View style={{ height, borderRadius: height / 2, backgroundColor: m3.surfaceContainerHighest, overflow: 'hidden' }}>
+        <View style={{ width: `${Math.max(clamped * 100, height > 6 ? 4 : 0) * grow}%`, height, borderRadius: height / 2, backgroundColor: colour }} />
       </View>
-      <View style={{ height, borderRadius: height / 2, backgroundColor: c.SecondaryBackground, overflow: 'hidden' }}>
-        <View style={{ width: `${Math.max(clamped * 100, 10) * grow}%`, height, borderRadius: height / 2, backgroundColor: colour }} />
-      </View>
+      <View
+        pointerEvents="none"
+        style={{ position: 'absolute', left: `${pace * 100}%`, marginLeft: -1, width: 2, height: height + 12, borderRadius: 1, backgroundColor: behind ? m3.error : m3.onSurfaceVariant }}
+      />
     </View>
   );
 }

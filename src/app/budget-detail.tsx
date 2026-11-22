@@ -70,7 +70,7 @@ export default function BudgetDetail() {
         <AppText size={22} weight="medium" color="SubtitleText" style={{ marginBottom: 10 }}>
           {p.over ? 'over' : 'left'} {BUDGET_PERIOD_PHRASE[source.type]}
         </AppText>
-        <CapsuleProgress fraction={p.fraction} elapsed={p.elapsed} colour={colour} height={30} />
+        <CapsuleProgress fraction={p.fraction} elapsed={p.elapsed} colour={colour} height={12} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
           <AppText size={17} weight="semibold" color="SubtitleText">
             {sym}
