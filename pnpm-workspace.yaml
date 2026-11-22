@@ -1,0 +1,4 @@
+# One copy of each, at the versions Expo SDK 58 ships in Expo Go (the Babel plugin and the JS runtime must match).
+overrides:
+  react-native-worklets: 0.13.0
+  react-native-reanimated: 4.7.1
