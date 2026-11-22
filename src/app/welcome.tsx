@@ -1,11 +1,13 @@
 import { goBack } from '../lib/nav';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Icon, type IconName } from '../components/Icon';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
+import { Icon, type IconName } from '../components/Icon';
+import { FilledButton } from '../components/m3';
 import { IconTile } from '../components/SettingsBits';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
+import { shape, typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
 const FEATURES: { icon: IconName; colour: string; title: string; text: string }[] = [
@@ -15,33 +17,33 @@ const FEATURES: { icon: IconName; colour: string; title: string; text: string }[
 ];
 
 export default function Welcome() {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const update = useStore((s) => s.updateSettings);
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: insets.top + 50, paddingHorizontal: 30, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
+    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 48, paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
       <View style={{ alignItems: 'center' }}>
-        <View style={[styles.logo, { backgroundColor: c.DarkBackground }]}>
-          <Icon name="cash" size={42} color={c.LightIcon} />
+        <View style={[styles.logo, { backgroundColor: m3.primary }]}>
+          <Icon name="cash" size={44} color={m3.onPrimary} />
         </View>
-        <AppText size={14} weight="semibold" color="SubtitleText" style={{ marginTop: 22, letterSpacing: 1.5 }}>
+        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ marginTop: 24, letterSpacing: 1.5 }}>
           WELCOME TO
         </AppText>
-        <AppText size={52} weight="bold">
+        <AppText size={typeScale.displayMedium.size} color={m3.onSurface}>
           Dime
         </AppText>
       </View>
 
-      <View style={{ flex: 1, justifyContent: 'center', gap: 26 }}>
+      <View style={{ flex: 1, justifyContent: 'center', gap: 24 }}>
         {FEATURES.map((f) => (
-          <View key={f.title} style={{ flexDirection: 'row', gap: 16 }}>
+          <View key={f.title} style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
             <IconTile name={f.icon} colour={f.colour} />
             <View style={{ flex: 1 }}>
-              <AppText size={21} weight="semibold">
+              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface}>
                 {f.title}
               </AppText>
-              <AppText size={17} weight="medium" color="SubtitleText">
+              <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
                 {f.text}
               </AppText>
             </View>
@@ -49,24 +51,18 @@ export default function Welcome() {
         ))}
       </View>
 
-      <Pressable
+      <FilledButton
+        label="Get started"
         onPress={() => {
           Haptics.light();
           update({ welcomed: true });
           goBack();
         }}
-        style={[styles.button, { backgroundColor: c.DarkBackground }]}
-        accessibilityLabel="Get started"
-      >
-        <AppText size={21} weight="semibold" color="LightIcon">
-          Get Started
-        </AppText>
-      </Pressable>
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  logo: { width: 88, height: 88, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  button: { height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 96, height: 96, borderRadius: shape.extraLarge, alignItems: 'center', justifyContent: 'center' },
 });

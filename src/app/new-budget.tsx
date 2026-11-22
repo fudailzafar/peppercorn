@@ -1,17 +1,18 @@
 import { goBack } from '../lib/nav';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Icon } from '../components/Icon';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
-import { BigAmount, CircleButton } from '../components/Bits';
+import { BigAmount } from '../components/Bits';
+import { Chip, IconButton, SegmentedButton } from '../components/m3';
 import { NumberPad } from '../components/NumberPad';
 import { display, fromNumber, toNumber, type EntryType } from '../lib/amount';
 import { startOfCustomMonth, startOfDay, startOfWeek, startOfYear } from '../lib/dates';
 import { Haptics } from '../lib/haptics';
 import { useStore, useUi } from '../lib/store';
 import { BUDGET_LABELS, type BudgetType } from '../lib/types';
+import { typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 
 function periodStart(type: BudgetType, firstWeekday: number, firstDayOfMonth: number, now = new Date()): number {
@@ -26,7 +27,7 @@ function periodStart(type: BudgetType, firstWeekday: number, firstDayOfMonth: nu
 /** Create or edit a budget: overall or per category, with a period and an amount. */
 export default function NewBudget() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const settings = useStore((s) => s.settings);
   const categories = useStore((s) => s.categories);
@@ -70,60 +71,48 @@ export default function NewBudget() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: 16 }}>
+    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top }}>
+      {/* M3 full-screen dialog app bar: close, title */}
       <View style={styles.top}>
-        <CircleButton onPress={() => goBack()} label="Close" size={42}>
-          <Icon name="close" size={22} color={c.SubtitleText} />
-        </CircleButton>
-        <AppText size={22} weight="semibold">
-          {editing ? 'Edit Budget' : 'New Budget'}
+        <IconButton icon="close" onPress={() => goBack()} label="Close" tint={m3.onSurface} />
+        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 8 }}>
+          {editing ? 'Edit budget' : 'New budget'}
         </AppText>
-        <View style={{ width: 42 }} />
       </View>
 
       {!editing ? (
-        <View style={[styles.segWrap, { borderColor: c.Outline }]}>
-          {[
-            { label: 'Overall Budget', value: true },
-            { label: 'Category Budget', value: false },
-          ].map((o) => (
-            <Pressable key={o.label} onPress={() => setOverall(o.value)} style={[styles.seg, overall === o.value && { backgroundColor: c.SecondaryBackground }]}>
-              <AppText size={17} weight="semibold" color={overall === o.value ? 'PrimaryText' : 'SubtitleText'}>
-                {o.label}
-              </AppText>
-            </Pressable>
-          ))}
+        <View style={styles.padded}>
+          <SegmentedButton fullWidth options={['Overall budget', 'Category budget']} index={overall ? 0 : 1} onChange={(i) => setOverall(i === 0)} />
         </View>
       ) : null}
 
       <View style={styles.amountArea}>
-        <BigAmount value={display(raw, entryType)} currency={settings.currency} size={60} />
+        <BigAmount value={display(raw, entryType)} currency={settings.currency} size={57} />
       </View>
 
       {!overall ? (
         <View style={{ marginBottom: 12 }}>
           {available.length === 0 ? (
-            <AppText size={18} weight="medium" color="SubtitleText" style={{ textAlign: 'center' }}>
+            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
               {'No remaining\ncategories.'}
             </AppText>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15, gap: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
               {available.map((cat) => {
                 const selected = cat.id === categoryId;
                 return (
-                  <Pressable
+                  <Chip
                     key={cat.id}
-                    disabled={editing}
+                    icon={selected ? 'checkmark' : undefined}
+                    label={`${cat.emoji}  ${cat.name}`}
+                    tint={selected ? withAlpha(cat.colour, 0.3) : undefined}
+                    onTint={selected ? cat.colour : undefined}
                     onPress={() => {
+                      if (editing) return;
                       Haptics.selection();
                       setCategoryId(cat.id);
                     }}
-                    style={[styles.catChip, { backgroundColor: withAlpha(cat.colour, selected ? 0.35 : 0.15), borderColor: selected ? cat.colour : 'transparent' }]}
-                  >
-                    <AppText size={18} weight="semibold" style={{ color: cat.colour }}>
-                      {cat.emoji} {cat.name}
-                    </AppText>
-                  </Pressable>
+                  />
                 );
               })}
             </ScrollView>
@@ -131,14 +120,8 @@ export default function NewBudget() {
         </View>
       ) : null}
 
-      <View style={[styles.segWrap, { borderColor: c.Outline, marginBottom: 12 }]}>
-        {([1, 2, 3, 4] as BudgetType[]).map((t) => (
-          <Pressable key={t} onPress={() => setType(t)} style={[styles.seg, type === t && { backgroundColor: c.SecondaryBackground }]}>
-            <AppText size={16} weight="semibold" color={type === t ? 'PrimaryText' : 'SubtitleText'}>
-              {BUDGET_LABELS[t]}
-            </AppText>
-          </Pressable>
-        ))}
+      <View style={[styles.padded, { marginBottom: 12 }]}>
+        <SegmentedButton fullWidth options={([1, 2, 3, 4] as BudgetType[]).map((t) => BUDGET_LABELS[t])} index={type - 1} onChange={(i) => setType((i + 1) as BudgetType)} />
       </View>
 
       <View style={{ paddingBottom: Math.max(insets.bottom, 12) + 4 }}>
@@ -149,9 +132,7 @@ export default function NewBudget() {
 }
 
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, marginBottom: 14 },
-  segWrap: { flexDirection: 'row', alignSelf: 'center', borderWidth: 1.5, borderRadius: 100, padding: 3 },
-  seg: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100 },
+  top: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
+  padded: { paddingHorizontal: 16 },
   amountArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  catChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, borderWidth: 1.5 },
 });

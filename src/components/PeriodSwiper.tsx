@@ -27,7 +27,7 @@ interface Props {
  * of the screen, a light haptic marks that point, and on release the new period slides in from the opposite side.
  */
 export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel, onChange, children }: Props) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const { width } = useWindowDimensions();
 
   const offset = useSharedValue(0);
@@ -95,20 +95,20 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
     <Animated.View style={[styles.edge, left ? { left: 25 } : { right: 25 }, style]}>
       <View style={styles.stack}>
         <Animated.View style={dim}>
-          <Icon name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={c.SecondaryBackground} />
+          <Icon name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={m3.outlineVariant} />
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, bright]}>
-          <Icon name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={c.PrimaryText} />
+          <Icon name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={m3.onSurface} />
         </Animated.View>
       </View>
       <View>
         <Animated.View style={dim}>
-          <AppText size={15} weight="semibold" color="SecondaryBackground" style={styles.label}>
+          <AppText size={15} weight="semibold" color={m3.outlineVariant} style={styles.label}>
             {label}
           </AppText>
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, bright]}>
-          <AppText size={15} weight="semibold" color="PrimaryText" style={styles.label}>
+          <AppText size={15} weight="semibold" color={m3.onSurface} style={styles.label}>
             {label}
           </AppText>
         </Animated.View>
@@ -118,8 +118,8 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
 
   const end = (left: boolean, label: string, style: object) => (
     <Animated.View style={[styles.edge, left ? { left: 25 } : { right: 25 }, style, { opacity: 0.8 }]}>
-      <Icon name={left ? 'glasses' : 'partly-sunny'} size={26} color={c.SubtitleText} />
-      <AppText size={15} weight="semibold" color="SubtitleText" style={{ width: 90, textAlign: 'center' }}>
+      <Icon name={left ? 'glasses' : 'partly-sunny'} size={26} color={m3.onSurfaceVariant} />
+      <AppText size={15} weight="semibold" color={m3.onSurfaceVariant} style={{ width: 90, textAlign: 'center' }}>
         {label}
       </AppText>
     </Animated.View>

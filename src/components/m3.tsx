@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { Modal, Pressable, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import Animated, { Easing, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { m3Duration, m3Easing, shape, stateLayer, typeScale } from '../theme/material';
@@ -121,6 +121,93 @@ export function Chip({
   );
 }
 
+// MARK: Search bar and filled button
+
+/** M3 search bar: a full-width 56dp pill with a leading icon button, the input, and a clear action. */
+export function SearchBar({
+  value,
+  onChangeText,
+  placeholder,
+  leading,
+  autoFocus,
+  autoCapitalize,
+}: {
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder: string;
+  /** A leading control, usually a back arrow; defaults to a search glyph. */
+  leading?: ReactNode;
+  autoFocus?: boolean;
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+}) {
+  const { m3 } = useTheme();
+  return (
+    <View style={[styles.searchBar, { backgroundColor: m3.surfaceContainerHigh }]}>
+      <View style={{ marginLeft: 4 }}>{leading ?? <Icon name="search" size={24} color={m3.onSurfaceVariant} style={{ marginHorizontal: 12 }} />}</View>
+      <TextInput
+        autoFocus={autoFocus}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={m3.onSurfaceVariant}
+        returnKeyType="search"
+        autoCorrect={false}
+        autoComplete="off"
+        autoCapitalize={autoCapitalize}
+        selectionColor={m3.primary}
+        cursorColor={m3.primary}
+        style={[styles.searchInput, { color: m3.onSurface }]}
+      />
+      {value ? (
+        <Pressable onPress={() => onChangeText('')} accessibilityLabel="Clear" style={styles.touch}>
+          <Icon name="close" size={24} color={m3.onSurfaceVariant} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** M3 filled button (primary): 56dp tall for the main call to action on a screen. */
+export function FilledButton({ label, onPress, accessibilityLabel }: { label: string; onPress: () => void; accessibilityLabel?: string }) {
+  const { m3 } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      android_ripple={{ color: `${m3.onPrimary}33` }}
+      style={[styles.filled, { backgroundColor: m3.primary }]}
+    >
+      {({ pressed }) => (
+        <>
+          <StateLayer pressed={pressed} color={m3.onPrimary} radius={shape.full} />
+          <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onPrimary} style={{ letterSpacing: typeScale.titleMedium.tracking }}>
+            {label}
+          </AppText>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+// MARK: Bottom sheet
+
+/** M3 modal bottom sheet: a scrim, a 28dp-cornered surface with a drag handle, anchored to the bottom. */
+export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { visible: boolean; onClose: () => void; children: ReactNode; bottomInset?: number }) {
+  const { m3 } = useTheme();
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }]} onPress={onClose} accessibilityLabel="Dismiss" />
+      <View style={styles.sheetWrap} pointerEvents="box-none">
+        <View style={[styles.sheet, { backgroundColor: m3.surfaceContainerLow, paddingBottom: Math.max(bottomInset, 16) + 8 }]}>
+          <View style={[styles.handle, { backgroundColor: m3.onSurfaceVariant }]} />
+          {children}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // MARK: Switch
 
 /** M3 switch: 52x32 track; a small outlined thumb when off, a larger one with a check when on. */
@@ -201,6 +288,7 @@ export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width =
           selectionColor={m3.primary}
           cursorColor={m3.primary}
           placeholder=""
+          autoComplete="off"
           style={[styles.fieldInput, { color: m3.onSurface }]}
           {...rest}
         />
@@ -218,6 +306,12 @@ export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width =
 }
 
 const styles = StyleSheet.create({
+  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: shape.extraLarge, borderTopRightRadius: shape.extraLarge, paddingHorizontal: 24, paddingTop: 12 },
+  handle: { width: 32, height: 4, borderRadius: 2, alignSelf: 'center', opacity: 0.4, marginBottom: 16 },
+  searchBar: { height: 56, flexDirection: 'row', alignItems: 'center', borderRadius: shape.full, marginHorizontal: 16 },
+  searchInput: { flex: 1, fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, height: 56, outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  filled: { height: 56, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   switchTrack: { width: 52, height: 32, borderRadius: 16, borderWidth: 2, justifyContent: 'center' },
   switchThumb: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   touch: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },

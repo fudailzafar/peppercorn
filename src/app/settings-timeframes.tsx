@@ -1,17 +1,17 @@
-import { View } from 'react-native';
-import { Icon } from '../components/Icon';
+import { StyleSheet, View } from 'react-native';
 import { AppText } from '../components/AppText';
-import { CircleButton } from '../components/Bits';
+import { IconButton } from '../components/m3';
 import { OptionRow, PageScaffold } from '../components/SettingsBits';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
+import { shape, typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 /** Which day a week starts on and which day of the month a "month" starts on. */
 export default function TimeFrames() {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const settings = useStore((s) => s.settings);
   const update = useStore((s) => s.updateSettings);
 
@@ -19,8 +19,8 @@ export default function TimeFrames() {
 
   return (
     <PageScaffold title="Time Frames">
-      <AppText size={17} weight="semibold" color="SubtitleText" style={{ marginLeft: 6, marginBottom: 8 }}>
-        WEEK STARTS ON
+      <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
+        Week starts on
       </AppText>
       {DAYS.map((day, i) => (
         <OptionRow
@@ -34,23 +34,24 @@ export default function TimeFrames() {
         />
       ))}
 
-      <AppText size={17} weight="semibold" color="SubtitleText" style={{ marginLeft: 6, marginTop: 18, marginBottom: 8 }}>
-        MONTH STARTS ON
+      <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={[styles.subheader, { marginTop: 8 }]}>
+        Month starts on
       </AppText>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.Settings, padding: 14, borderRadius: 16 }}>
-        <CircleButton onPress={() => update({ firstDayOfMonth: Math.max(1, settings.firstDayOfMonth - 1) })} label="Earlier">
-          <Icon name="remove" size={22} color={c.DarkIcon} />
-        </CircleButton>
-        <AppText size={22} weight="semibold">
+      <View style={[styles.stepper, { backgroundColor: m3.surfaceContainerHigh }]}>
+        <IconButton icon="remove" onPress={() => update({ firstDayOfMonth: Math.max(1, settings.firstDayOfMonth - 1) })} label="Earlier" tint={m3.onSurface} />
+        <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface}>
           {ordinal(settings.firstDayOfMonth)}
         </AppText>
-        <CircleButton onPress={() => update({ firstDayOfMonth: Math.min(28, settings.firstDayOfMonth + 1) })} label="Later">
-          <Icon name="add" size={22} color={c.DarkIcon} />
-        </CircleButton>
+        <IconButton icon="add" onPress={() => update({ firstDayOfMonth: Math.min(28, settings.firstDayOfMonth + 1) })} label="Later" tint={m3.onSurface} />
       </View>
-      <AppText size={15} weight="medium" color="SubtitleText" style={{ marginTop: 10, marginLeft: 6 }}>
+      <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ marginTop: 12, marginHorizontal: 16 }}>
         Useful if you are paid mid-month. “This month” on the Log and new monthly budgets start on this day.
       </AppText>
     </PageScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  subheader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, letterSpacing: 0.1 },
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, padding: 8, borderRadius: shape.large },
+});

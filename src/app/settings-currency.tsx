@@ -1,15 +1,17 @@
 import { goBack } from '../lib/nav';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, TextInput, View } from 'react-native';
-import { Icon } from '../components/Icon';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
+import { Icon } from '../components/Icon';
+import { SearchBar, StateLayer } from '../components/m3';
 import { PageScaffold } from '../components/SettingsBits';
 import { currencyCodes } from '../lib/currencies';
 import { currencySymbol } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
-import { fontFamily, useTheme } from '../theme/theme';
+import { typeScale } from '../theme/material';
+import { useTheme } from '../theme/theme';
 
 function currencyName(code: string): string {
   try {
@@ -20,7 +22,7 @@ function currencyName(code: string): string {
 }
 
 export default function CurrencyScreen() {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const current = useStore((s) => s.settings.currency);
   const update = useStore((s) => s.updateSettings);
@@ -34,22 +36,12 @@ export default function CurrencyScreen() {
 
   return (
     <PageScaffold title="Currency" scroll={false}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.SecondaryBackground, borderRadius: 14, paddingHorizontal: 14, marginBottom: 10 }}>
-        <Icon name="search" size={20} color={c.SubtitleText} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search currencies"
-          placeholderTextColor={c.SubtitleText}
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={{ flex: 1, fontSize: 19, paddingVertical: 12, color: c.PrimaryText, fontFamily: fontFamily.medium }}
-        />
-      </View>
+      <SearchBar value={query} onChangeText={setQuery} placeholder="Search currencies" autoCapitalize="none" />
       <FlatList
         data={list}
         keyExtractor={(x) => x.code}
         keyboardShouldPersistTaps="handled"
+        style={{ marginTop: 8 }}
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         renderItem={({ item }) => (
           <Pressable
@@ -58,23 +50,33 @@ export default function CurrencyScreen() {
               update({ currency: item.code });
               goBack();
             }}
-            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6, borderRadius: 12, backgroundColor: pressed ? c.SecondaryBackground : 'transparent' })}
+            android_ripple={{ color: `${m3.onSurface}1F` }}
+            style={styles.row}
           >
-            <AppText size={22} weight="semibold" style={{ width: 48 }}>
-              {item.symbol}
-            </AppText>
-            <View style={{ flex: 1 }}>
-              <AppText size={19} weight="medium" numberOfLines={1}>
-                {item.name}
-              </AppText>
-              <AppText size={14} weight="medium" color="SubtitleText">
-                {item.code}
-              </AppText>
-            </View>
-            {item.code === current ? <Icon name="checkmark-circle" size={24} color={c.IncomeGreen} /> : null}
+            {({ pressed }) => (
+              <>
+                <StateLayer pressed={pressed} color={m3.onSurface} />
+                <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ width: 56 }}>
+                  {item.symbol}
+                </AppText>
+                <View style={{ flex: 1 }}>
+                  <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} numberOfLines={1}>
+                    {item.name}
+                  </AppText>
+                  <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant}>
+                    {item.code}
+                  </AppText>
+                </View>
+                {item.code === current ? <Icon name="checkmark" size={24} color={m3.primary} /> : null}
+              </>
+            )}
           </Pressable>
         )}
       />
     </PageScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, overflow: 'hidden' },
+});

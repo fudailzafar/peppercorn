@@ -1,17 +1,17 @@
 import { goBack } from '../lib/nav';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Animated, BackHandler, Easing, Keyboard, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, Easing, Keyboard, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Reanimated, { Easing as ReEasing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { AppText } from '../components/AppText';
-import { BigAmount, CircleButton } from '../components/Bits';
+import { BigAmount } from '../components/Bits';
 import { useDateTimePicker } from '../components/DateTimeField';
 import { EnterSlide } from '../components/EnterSlide';
-import { Chip, IconButton, OutlinedField, SegmentedButton } from '../components/m3';
+import { BottomSheet, Chip, FilledButton, IconButton, OutlinedField, SegmentedButton } from '../components/m3';
 import { NumberPad } from '../components/NumberPad';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../components/Overlays';
 import { display, fromNumber, toNumber, type EntryType } from '../lib/amount';
@@ -21,7 +21,7 @@ import { useStore, useUi } from '../lib/store';
 import { useNow } from '../lib/useNow';
 import type { Category, RecurringType } from '../lib/types';
 import { springs } from '../theme/motion';
-import { m3Duration, m3Easing, shape } from '../theme/material';
+import { m3Duration, m3Easing, shape, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 
 const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'none', 1: 'daily', 2: 'weekly', 3: 'monthly' };
@@ -30,7 +30,7 @@ const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
 /** Add or edit a transaction (full-screen, slides up from the tab bar's "+"). */
 export default function TransactionScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { c, m3 } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const existing = useStore((s) => s.transactions.find((t) => t.id === id));
   const categories = useStore((s) => s.categories);
@@ -187,7 +187,7 @@ export default function TransactionScreen() {
 
   return (
     <GestureDetector gesture={dragDown}>
-    <Reanimated.View style={[{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: insets.top + 10 }, sheetStyle]}>
+    <Reanimated.View style={[{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top }, sheetStyle]}>
       {/* Top row */}
       <View style={styles.topRow}>
         <IconButton icon="close" onPress={close} label="Close" />
@@ -408,48 +408,33 @@ function CustomRepeat({
   onCancel: () => void;
   onDone: (type: 1 | 2 | 3, every: number) => void;
 }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const [type, setType] = useState<1 | 2 | 3>(initialType === 0 ? 2 : (initialType as 1 | 2 | 3));
   const [n, setN] = useState(Math.max(1, initialEvery));
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} onPress={onCancel} />
-      <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
-        <View style={[styles.sheet, { backgroundColor: c.PrimaryBackground, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-          <AppText size={24} weight="medium">
-            Repeat every
-          </AppText>
-          <View style={styles.counter}>
-            <CircleButton size={48} onPress={() => setN(Math.max(1, n - 1))} label="Fewer">
-              <Icon name="remove" size={24} color={c.DarkIcon} />
-            </CircleButton>
-            <AppText size={44} weight="medium">
-              {n}
-            </AppText>
-            <CircleButton size={48} onPress={() => setN(Math.min(99, n + 1))} label="More">
-              <Icon name="add" size={24} color={c.DarkIcon} />
-            </CircleButton>
-          </View>
-          <View style={[styles.segWrap, { borderColor: c.Outline, alignSelf: 'center' }]}>
-            {([1, 2, 3] as const).map((u) => (
-              <Pressable key={u} onPress={() => setType(u)} style={[styles.seg, type === u && { backgroundColor: c.SecondaryBackground }]}>
-                <AppText size={19} weight="semibold" color={type === u ? 'PrimaryText' : 'SubtitleText'}>
-                  {UNIT[u]}
-                  {n === 1 ? '' : 's'}
-                </AppText>
-              </Pressable>
-            ))}
-          </View>
-          <Pressable onPress={() => onDone(type, n)} style={[styles.bigButton, { backgroundColor: c.DarkBackground }]}>
-            <AppText size={20} weight="semibold" color="LightIcon">
-              Confirm
-            </AppText>
-          </Pressable>
-        </View>
+    <BottomSheet visible={visible} onClose={onCancel} bottomInset={insets.bottom}>
+      <AppText size={typeScale.titleLarge.size} color={m3.onSurface}>
+        Repeat every
+      </AppText>
+      <View style={styles.counter}>
+        <IconButton icon="remove" onPress={() => setN(Math.max(1, n - 1))} label="Fewer" tint={m3.onSurface} />
+        <AppText size={typeScale.displaySmall.size} color={m3.onSurface}>
+          {n}
+        </AppText>
+        <IconButton icon="add" onPress={() => setN(Math.min(99, n + 1))} label="More" tint={m3.onSurface} />
       </View>
-    </Modal>
+      <SegmentedButton
+        fullWidth
+        options={([1, 2, 3] as const).map((u) => `${UNIT[u][0].toUpperCase()}${UNIT[u].slice(1)}${n === 1 ? '' : 's'}`)}
+        index={type - 1}
+        onChange={(i) => setType((i + 1) as 1 | 2 | 3)}
+      />
+      <View style={{ marginTop: 24 }}>
+        <FilledButton label="Confirm" onPress={() => onDone(type, n)} />
+      </View>
+    </BottomSheet>
   );
 }
 

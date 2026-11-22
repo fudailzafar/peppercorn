@@ -1,19 +1,20 @@
 import { router } from 'expo-router';
-import { Pressable, View } from 'react-native';
-import { Icon } from '../components/Icon';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '../components/AppText';
-import { EmojiTile } from '../components/Bits';
+import { Icon } from '../components/Icon';
+import { StateLayer } from '../components/m3';
 import { PageScaffold } from '../components/SettingsBits';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
 import type { Category } from '../lib/types';
-import { useTheme } from '../theme/theme';
+import { shape, typeScale } from '../theme/material';
+import { useTheme, withAlpha } from '../theme/theme';
 
 /** Manage categories: tap to edit, use the arrows to reorder. */
 export default function CategoriesScreen() {
   const categories = useStore((s) => s.categories);
   const reorder = useStore((s) => s.reorderCategories);
-  const { c } = useTheme();
+  const { m3 } = useTheme();
 
   const section = (income: boolean) => {
     const list = categories.filter((x) => x.income === income).sort((a, b) => a.order - b.order);
@@ -26,43 +27,57 @@ export default function CategoriesScreen() {
       reorder(income, ids);
     };
     return (
-      <View style={{ marginTop: 16 }}>
-        <AppText size={17} weight="semibold" color="SubtitleText" style={{ marginLeft: 6, marginBottom: 8 }}>
-          {income ? 'INCOME' : 'EXPENSE'}
+      <View style={{ marginTop: 8 }}>
+        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
+          {income ? 'Income' : 'Expense'}
         </AppText>
-        <View style={{ backgroundColor: c.Settings, borderRadius: 20, paddingVertical: 4 }}>
-          {list.map((cat: Category, i) => (
-            <View key={cat.id} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8 }}>
-              <Pressable
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
-                onPress={() => router.push({ pathname: '/category-edit', params: { id: cat.id } })}
-                accessibilityLabel={`Edit ${cat.name}`}
-              >
-                <EmojiTile emoji={cat.emoji} colour={cat.colour} size={40} />
-                <AppText size={21} weight="medium" style={{ marginLeft: 12, flex: 1 }} numberOfLines={1}>
-                  {cat.name}
-                </AppText>
-              </Pressable>
-              <Pressable onPress={() => move(i, -1)} hitSlop={8} style={{ padding: 6, opacity: i === 0 ? 0.25 : 1 }} accessibilityLabel="Move up">
-                <Icon name="chevron-up" size={22} color={c.SubtitleText} />
-              </Pressable>
-              <Pressable onPress={() => move(i, 1)} hitSlop={8} style={{ padding: 6, opacity: i === list.length - 1 ? 0.25 : 1 }} accessibilityLabel="Move down">
-                <Icon name="chevron-down" size={22} color={c.SubtitleText} />
-              </Pressable>
-            </View>
-          ))}
-          <Pressable
-            onPress={() => router.push({ pathname: '/category-edit', params: { income: income ? '1' : '0' } })}
-            style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 }}
-          >
-            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.SecondaryBackground, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="add" size={24} color={c.SubtitleText} />
-            </View>
-            <AppText size={21} weight="medium" color="SubtitleText" style={{ marginLeft: 12 }}>
-              New Category
-            </AppText>
-          </Pressable>
-        </View>
+        {list.map((cat: Category, i) => (
+          <View key={cat.id} style={styles.row}>
+            <Pressable
+              style={styles.rowMain}
+              android_ripple={{ color: `${m3.onSurface}1F` }}
+              onPress={() => router.push({ pathname: '/category-edit', params: { id: cat.id } })}
+              accessibilityLabel={`Edit ${cat.name}`}
+            >
+              {({ pressed }) => (
+                <>
+                  <StateLayer pressed={pressed} color={m3.onSurface} />
+                  <View style={[styles.avatar, { backgroundColor: withAlpha(cat.colour, 0.3) }]}>
+                    <AppText size={20} style={{ includeFontPadding: false }}>
+                      {cat.emoji}
+                    </AppText>
+                  </View>
+                  <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} style={{ marginLeft: 16, flex: 1 }} numberOfLines={1}>
+                    {cat.name}
+                  </AppText>
+                </>
+              )}
+            </Pressable>
+            <Pressable onPress={() => move(i, -1)} style={[styles.move, { opacity: i === 0 ? 0.38 : 1 }]} accessibilityLabel="Move up" android_ripple={{ color: `${m3.onSurface}1F`, radius: 20 }}>
+              <Icon name="chevron-up" size={24} color={m3.onSurfaceVariant} />
+            </Pressable>
+            <Pressable onPress={() => move(i, 1)} style={[styles.move, { opacity: i === list.length - 1 ? 0.38 : 1 }]} accessibilityLabel="Move down" android_ripple={{ color: `${m3.onSurface}1F`, radius: 20 }}>
+              <Icon name="chevron-down" size={24} color={m3.onSurfaceVariant} />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable
+          onPress={() => router.push({ pathname: '/category-edit', params: { income: income ? '1' : '0' } })}
+          android_ripple={{ color: `${m3.onSurface}1F` }}
+          style={styles.rowMain}
+        >
+          {({ pressed }) => (
+            <>
+              <StateLayer pressed={pressed} color={m3.onSurface} />
+              <View style={[styles.avatar, { backgroundColor: m3.surfaceContainerHigh }]}>
+                <Icon name="add" size={24} color={m3.onSurfaceVariant} />
+              </View>
+              <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginLeft: 16 }}>
+                New category
+              </AppText>
+            </>
+          )}
+        </Pressable>
       </View>
     );
   };
@@ -74,3 +89,11 @@ export default function CategoriesScreen() {
     </PageScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  subheader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, letterSpacing: 0.1 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingRight: 4 },
+  rowMain: { flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, overflow: 'hidden' },
+  avatar: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
+  move: { width: 40, height: 48, alignItems: 'center', justifyContent: 'center' },
+});

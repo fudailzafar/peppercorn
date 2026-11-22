@@ -2,6 +2,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { OptionRow, PageScaffold } from '../components/SettingsBits';
 import { AppText } from '../components/AppText';
 import { Haptics } from '../lib/haptics';
+import { typeScale } from '../theme/material';
+import { useTheme } from '../theme/theme';
 import { useStore } from '../lib/store';
 
 interface Option {
@@ -14,6 +16,7 @@ interface Option {
 /** One screen for Dime's simple "pick one" settings (theme, haptics, number entry, upcoming logs). */
 export default function SettingsChoice() {
   const { key } = useLocalSearchParams<{ key: string }>();
+  const { m3 } = useTheme();
   const settings = useStore((s) => s.settings);
   const update = useStore((s) => s.updateSettings);
 
@@ -71,7 +74,7 @@ export default function SettingsChoice() {
         />
       ))}
       {footer ? (
-        <AppText size={15} weight="medium" color="SubtitleText" style={{ marginTop: 8, marginLeft: 6 }}>
+        <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ marginTop: 12, marginHorizontal: 16 }}>
           {footer}
         </AppText>
       ) : null}

@@ -19,7 +19,7 @@ function useHydrated() {
 export default function RootLayout() {
   const hydrated = useHydrated();
   const [fontsLoaded, fontError] = useFonts({ Roboto_400Regular, Roboto_500Medium, Roboto_700Bold });
-  const { c, dark } = useTheme();
+  const { m3, dark } = useTheme();
 
   // Once the saved data is loaded: create default categories on first run, then
   // log any recurring transactions that came due and roll budget periods forward.
@@ -41,21 +41,21 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     // Keep the browser chrome and page background in step with the app's theme (system or manual).
-    document.documentElement.style.backgroundColor = c.PrimaryBackground;
-    document.body.style.backgroundColor = c.PrimaryBackground;
+    document.documentElement.style.backgroundColor = m3.surface;
+    document.body.style.backgroundColor = m3.surface;
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', c.PrimaryBackground));
-  }, [c.PrimaryBackground, dark]);
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', m3.surface));
+  }, [m3.surface, dark]);
 
   if (!hydrated || (!fontsLoaded && !fontError)) return null;
 
   return (
-    <GestureHandlerRootView style={webFrame(c.PrimaryBackground)}>
+    <GestureHandlerRootView style={webFrame(m3.surface)}>
       <StatusBar style={dark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: c.PrimaryBackground },
+          contentStyle: { backgroundColor: m3.surface },
           // Pushing a page (Categories, Currency, Budget detail...) slides it in from the right; back slides it out.
           animation: 'slide_from_right',
           animationDuration: 300,

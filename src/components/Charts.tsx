@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import Svg, { Defs, Path, Text as SvgText, TextPath } from 'react-native-svg';
 import { fmtAxis, niceMax } from '../lib/format';
 import { useStore } from '../lib/store';
 import { useAnimatedNumber } from '../lib/useAnimatedNumber';
@@ -129,63 +128,6 @@ export function BarChart({ values, labels, fadeFrom, average, height = 220, acti
         })}
       </View>
     </View>
-  );
-}
-
-// MARK: Overall budget gauge
-
-interface GaugeProps {
-  /** 0-1 of the budget spent. */
-  fraction: number;
-  /** 0-1 of the period elapsed (the pace marker). */
-  elapsed: number;
-  caption: string;
-  size?: number;
-}
-
-const polar = (cx: number, cy: number, r: number, deg: number) => ({
-  x: cx + r * Math.cos((deg * Math.PI) / 180),
-  y: cy + r * Math.sin((deg * Math.PI) / 180),
-});
-
-/** Semicircle donut with curved caption and a pace marker. */
-export function Gauge({ fraction, elapsed, caption, size = 330 }: GaugeProps) {
-  const { c } = useTheme();
-  const stroke = 34;
-  const cx = size / 2;
-  const cy = size / 2 + 6;
-  const r = size / 2 - stroke / 2 - 26;
-  const arc = (from: number, to: number, radius = r) => {
-    const a = polar(cx, cy, radius, from);
-    const b = polar(cx, cy, radius, to);
-    return `M${a.x} ${a.y} A${radius} ${radius} 0 ${to - from > 180 ? 1 : 0} 1 ${b.x} ${b.y}`;
-  };
-
-  const animated = useStore((st) => st.settings.animatedCharts);
-  const drawn = useAnimatedNumber(Math.min(Math.max(fraction, 0), 1), animated);
-  const spentEnd = 180 + drawn * 180;
-  const pace = polar(cx, cy, r + stroke / 2 + 4, 180 + Math.min(Math.max(elapsed, 0), 1) * 180);
-  const textR = r + stroke / 2 + 22;
-  const behind = fraction > elapsed;
-
-  return (
-    <Svg width={size} height={size / 2 + 40} viewBox={`0 0 ${size} ${size / 2 + 40}`}>
-      <Defs>
-        <Path id="gauge-text" d={arc(196, 344, textR)} />
-      </Defs>
-      <Path d={arc(180, 360)} stroke={c.SecondaryBackground} strokeWidth={stroke} strokeLinecap="round" fill="none" />
-      {drawn > 0.001 ? <Path d={arc(180, spentEnd)} stroke={c.DarkIcon} strokeWidth={stroke} strokeLinecap="round" fill="none" /> : null}
-      <SvgText fill={c.SubtitleText} fontSize={20} fontFamily="Roboto_500Medium" letterSpacing={2}>
-        <TextPath href="#gauge-text" startOffset="50%" textAnchor="middle">
-          {caption.toUpperCase()}
-        </TextPath>
-      </SvgText>
-      <Path
-        d={`M${pace.x} ${pace.y} l-8 -4 l0 8 z`}
-        fill={behind ? c.BudgetRed : c.GreyIcon}
-        transform={`rotate(${180 + Math.min(Math.max(elapsed, 0), 1) * 180 + 90} ${pace.x} ${pace.y})`}
-      />
-    </Svg>
   );
 }
 
