@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from './Icon';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -95,10 +95,10 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
     <Animated.View style={[styles.edge, left ? { left: 25 } : { right: 25 }, style]}>
       <View style={styles.stack}>
         <Animated.View style={dim}>
-          <Ionicons name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={c.SecondaryBackground} />
+          <Icon name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={c.SecondaryBackground} />
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, bright]}>
-          <Ionicons name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={c.PrimaryText} />
+          <Icon name={left ? 'arrow-back-circle' : 'arrow-forward-circle'} size={24} color={c.PrimaryText} />
         </Animated.View>
       </View>
       <View>
@@ -118,7 +118,7 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
 
   const end = (left: boolean, label: string, style: object) => (
     <Animated.View style={[styles.edge, left ? { left: 25 } : { right: 25 }, style, { opacity: 0.8 }]}>
-      <Ionicons name={left ? 'glasses' : 'partly-sunny'} size={26} color={c.SubtitleText} />
+      <Icon name={left ? 'glasses' : 'partly-sunny'} size={26} color={c.SubtitleText} />
       <AppText size={15} weight="semibold" color="SubtitleText" style={{ width: 90, textAlign: 'center' }}>
         {label}
       </AppText>

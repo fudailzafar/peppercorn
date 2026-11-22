@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon, type IconName } from './Icon';
 import Animated, { Easing, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { m3Duration, m3Easing, shape, stateLayer, typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
@@ -20,14 +20,14 @@ export function StateLayer({ pressed, color, radius }: { pressed: boolean; color
 // MARK: Icon button
 
 /** M3 tonal icon button: a 40dp container inside a 48dp touch target. */
-export function IconButton({ icon, onPress, label, tint }: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void; label: string; tint?: string }) {
+export function IconButton({ icon, onPress, label, tint }: { icon: IconName; onPress: () => void; label: string; tint?: string }) {
   const { m3 } = useTheme();
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.touch} android_ripple={{ color: `${m3.onSurface}1F`, radius: 24 }}>
       {({ pressed }) => (
         <View style={[styles.iconContainer, { backgroundColor: m3.surfaceContainerHighest }]}>
           <StateLayer pressed={pressed} color={m3.onSurface} radius={shape.full} />
-          <Ionicons name={icon} size={24} color={tint ?? m3.onSurfaceVariant} />
+          <Icon name={icon} size={24} color={tint ?? m3.onSurfaceVariant} />
         </View>
       )}
     </Pressable>
@@ -67,7 +67,7 @@ function Segment({ label, selected, divider, onPress, fullWidth }: { label: stri
         <>
           <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: m3.secondaryContainer }, bg]} />
           <StateLayer pressed={pressed} color={m3.onSurface} />
-          {selected ? <Ionicons name="checkmark" size={18} color={m3.onSecondaryContainer} /> : null}
+          {selected ? <Icon name="checkmark" size={18} color={m3.onSecondaryContainer} /> : null}
           <AppText size={typeScale.labelLarge.size} weight="semibold" color={selected ? m3.onSecondaryContainer : m3.onSurface} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
             {label}
           </AppText>
@@ -91,7 +91,7 @@ export function Chip({
   trailing,
 }: {
   label?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IconName;
   onPress: () => void;
   /** Container colour when selected/filled; omit for an outlined chip. */
   tint?: string;
@@ -108,7 +108,7 @@ export function Chip({
       {({ pressed }) => (
         <>
           <StateLayer pressed={pressed} color={content} radius={shape.full} />
-          {icon ? <Ionicons name={icon} size={18} color={content} /> : null}
+          {icon ? <Icon name={icon} size={18} color={content} /> : null}
           {label ? (
             <AppText size={typeScale.labelLarge.size} weight="semibold" color={content} numberOfLines={1} style={{ flexShrink: 1, letterSpacing: typeScale.labelLarge.tracking }}>
               {label}
@@ -147,7 +147,7 @@ export function M3Switch({ value, onChange }: { value: boolean; onChange: (v: bo
       <Animated.View style={[styles.switchTrack, track]}>
         <Animated.View style={[styles.switchThumb, thumb]}>
           <Animated.View style={check}>
-            <Ionicons name="checkmark" size={16} color={m3.primary} />
+            <Icon name="checkmark" size={16} color={m3.primary} />
           </Animated.View>
         </Animated.View>
       </Animated.View>

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Haptics } from '../lib/haptics';
 import { useStore, useUi } from '../lib/store';
@@ -35,7 +35,7 @@ export function Fab() {
         {({ pressed }) => (
           <>
             <View style={[StyleSheet.absoluteFill, { backgroundColor: m3.onPrimary, opacity: pressed ? stateLayer.pressed : 0, borderRadius: shape.large }]} />
-            <Ionicons name="add" size={24} color={m3.onPrimary} />
+            <Icon name="add" size={24} color={m3.onPrimary} />
             {empty ? (
               <AppText size={14} weight="semibold" color={m3.onPrimary} style={{ letterSpacing: 0.1 }}>
                 Add entry

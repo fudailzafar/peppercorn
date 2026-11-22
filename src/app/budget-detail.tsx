@@ -1,7 +1,7 @@
 import { goBack } from '../lib/nav';
 import { router, useLocalSearchParams } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { CircleButton } from '../components/Bits';
@@ -34,7 +34,7 @@ export default function BudgetDetail() {
     return (
       <View style={[styles.fill, { backgroundColor: c.PrimaryBackground, paddingTop: insets.top + 12, paddingHorizontal: 20 }]}>
         <CircleButton onPress={() => goBack()} label="Back">
-          <Ionicons name="chevron-back" size={22} color={c.DarkIcon} />
+          <Icon name="chevron-back" size={22} color={c.DarkIcon} />
         </CircleButton>
       </View>
     );
@@ -110,13 +110,13 @@ export default function BudgetDetail() {
     <View style={[styles.fill, { backgroundColor: c.PrimaryBackground }]}>
       <View style={[styles.bar, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => goBack()} style={[styles.back, { backgroundColor: c.SecondaryBackground }]} accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={20} color={c.DarkIcon} />
+          <Icon name="chevron-back" size={20} color={c.DarkIcon} />
           <AppText size={18} weight="semibold">
             Back
           </AppText>
         </Pressable>
         <CircleButton onPress={() => router.push({ pathname: '/new-budget', params: { id } })} label="Edit budget">
-          <Ionicons name="pencil" size={18} color={c.DarkIcon} />
+          <Icon name="pencil" size={18} color={c.DarkIcon} />
         </CircleButton>
       </View>
       <FlatList

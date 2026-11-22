@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { AppText } from '../components/AppText';
 import { CircleButton } from '../components/Bits';
 import { OptionRow, PageScaffold } from '../components/SettingsBits';
@@ -39,13 +39,13 @@ export default function TimeFrames() {
       </AppText>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.Settings, padding: 14, borderRadius: 16 }}>
         <CircleButton onPress={() => update({ firstDayOfMonth: Math.max(1, settings.firstDayOfMonth - 1) })} label="Earlier">
-          <Ionicons name="remove" size={22} color={c.DarkIcon} />
+          <Icon name="remove" size={22} color={c.DarkIcon} />
         </CircleButton>
         <AppText size={22} weight="semibold">
           {ordinal(settings.firstDayOfMonth)}
         </AppText>
         <CircleButton onPress={() => update({ firstDayOfMonth: Math.min(28, settings.firstDayOfMonth + 1) })} label="Later">
-          <Ionicons name="add" size={22} color={c.DarkIcon} />
+          <Icon name="add" size={22} color={c.DarkIcon} />
         </CircleButton>
       </View>
       <AppText size={15} weight="medium" color="SubtitleText" style={{ marginTop: 10, marginLeft: 6 }}>

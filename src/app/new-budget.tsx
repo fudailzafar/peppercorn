@@ -2,7 +2,7 @@ import { goBack } from '../lib/nav';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { BigAmount, CircleButton } from '../components/Bits';
@@ -73,7 +73,7 @@ export default function NewBudget() {
     <View style={{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: 16 }}>
       <View style={styles.top}>
         <CircleButton onPress={() => goBack()} label="Close" size={42}>
-          <Ionicons name="close" size={22} color={c.SubtitleText} />
+          <Icon name="close" size={22} color={c.SubtitleText} />
         </CircleButton>
         <AppText size={22} weight="semibold">
           {editing ? 'Edit Budget' : 'New Budget'}

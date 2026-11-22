@@ -1,20 +1,19 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon, type IconName } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shape, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
 import { IconButton, M3Switch, StateLayer } from './m3';
 
-type IconName = keyof typeof Ionicons.glyphMap;
 
 /** A 40dp circle holding a glyph in Dime's accent colour on a tint of that colour (M3 leading icon). */
 export function IconTile({ name, colour }: { name: IconName; colour: string }) {
   return (
     <View style={[styles.tile, { backgroundColor: withAlpha(colour, 0.22) }]}>
-      <Ionicons name={name} size={22} color={colour} />
+      <Icon name={name} size={22} color={colour} />
     </View>
   );
 }
@@ -72,7 +71,7 @@ export function SettingsRow({ icon, colour, label, value, onPress, toggle, destr
                   {value}
                 </AppText>
               ) : null}
-              <Ionicons name="chevron-forward" size={20} color={m3.onSurfaceVariant} />
+              <Icon name="chevron-forward" size={20} color={m3.onSurfaceVariant} />
             </>
           )}
         </>

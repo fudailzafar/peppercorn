@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { AppText } from '../components/AppText';
 import { EmojiTile } from '../components/Bits';
 import { PageScaffold } from '../components/SettingsBits';
@@ -44,10 +44,10 @@ export default function CategoriesScreen() {
                 </AppText>
               </Pressable>
               <Pressable onPress={() => move(i, -1)} hitSlop={8} style={{ padding: 6, opacity: i === 0 ? 0.25 : 1 }} accessibilityLabel="Move up">
-                <Ionicons name="chevron-up" size={22} color={c.SubtitleText} />
+                <Icon name="chevron-up" size={22} color={c.SubtitleText} />
               </Pressable>
               <Pressable onPress={() => move(i, 1)} hitSlop={8} style={{ padding: 6, opacity: i === list.length - 1 ? 0.25 : 1 }} accessibilityLabel="Move down">
-                <Ionicons name="chevron-down" size={22} color={c.SubtitleText} />
+                <Icon name="chevron-down" size={22} color={c.SubtitleText} />
               </Pressable>
             </View>
           ))}
@@ -56,7 +56,7 @@ export default function CategoriesScreen() {
             style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10 }}
           >
             <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.SecondaryBackground, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="add" size={24} color={c.SubtitleText} />
+              <Icon name="add" size={24} color={c.SubtitleText} />
             </View>
             <AppText size={21} weight="medium" color="SubtitleText" style={{ marginLeft: 12 }}>
               New Category

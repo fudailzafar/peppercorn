@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { BigAmount } from '../../components/Bits';
@@ -154,7 +154,7 @@ export default function InsightsScreen() {
           <>
             <StateLayer pressed={pressed} color={m3.onSurface} />
             <View style={[styles.blockIcon, { backgroundColor: container }]}>
-              <Ionicons name={isIncome ? 'arrow-up' : 'arrow-down'} size={20} color={ink} style={{ transform: [{ rotate: isIncome ? '45deg' : '-45deg' }] }} />
+              <Icon name={isIncome ? 'arrow-up' : 'arrow-down'} size={20} color={ink} style={{ transform: [{ rotate: isIncome ? '45deg' : '-45deg' }] }} />
             </View>
             <View style={{ flex: 1 }}>
               <AppText size={typeScale.labelMedium.size} weight="semibold" color={m3.onSurfaceVariant} numberOfLines={1} style={{ letterSpacing: typeScale.labelMedium.tracking }}>
@@ -224,7 +224,7 @@ export default function InsightsScreen() {
               />
               {change !== null ? (
                 <View style={[styles.badge, { backgroundColor: change >= 0 ? m3.successContainer : m3.errorContainer }]}>
-                  <Ionicons name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.error} />
+                  <Icon name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.error} />
                   <AppText size={typeScale.labelMedium.size} weight="semibold" color={change >= 0 ? m3.success : m3.error}>
                     {Math.min(Math.round(Math.abs(change)), 999)}% vs last
                   </AppText>

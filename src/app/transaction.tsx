@@ -2,7 +2,7 @@ import { goBack } from '../lib/nav';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { Animated, BackHandler, Easing, Keyboard, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Reanimated, { Easing as ReEasing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -308,7 +308,7 @@ export default function TransactionScreen() {
               {/* Error state that fades in and out over the normal one when the category is missing. */}
               {category ? null : (
                 <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: flash, backgroundColor: m3.errorContainer, borderRadius: shape.full, borderWidth: 1, borderColor: m3.error, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]}>
-                  <Ionicons name="apps-outline" size={18} color={m3.onErrorContainer} />
+                  <Icon name="apps-outline" size={18} color={m3.onErrorContainer} />
                   <AppText size={14} weight="semibold" color={m3.onErrorContainer}>
                     Category
                   </AppText>
@@ -423,13 +423,13 @@ function CustomRepeat({
           </AppText>
           <View style={styles.counter}>
             <CircleButton size={48} onPress={() => setN(Math.max(1, n - 1))} label="Fewer">
-              <Ionicons name="remove" size={24} color={c.DarkIcon} />
+              <Icon name="remove" size={24} color={c.DarkIcon} />
             </CircleButton>
             <AppText size={44} weight="medium">
               {n}
             </AppText>
             <CircleButton size={48} onPress={() => setN(Math.min(99, n + 1))} label="More">
-              <Ionicons name="add" size={24} color={c.DarkIcon} />
+              <Icon name="add" size={24} color={c.DarkIcon} />
             </CircleButton>
           </View>
           <View style={[styles.segWrap, { borderColor: c.Outline, alignSelf: 'center' }]}>

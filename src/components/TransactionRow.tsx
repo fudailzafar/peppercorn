@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from './Icon';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -121,10 +121,10 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
       <Animated.View pointerEvents="none" style={[styles.reveal, revealStyle]}>
         <Animated.View style={[styles.revealIcon, iconStyle]}>
           <Animated.View style={calmIcon}>
-            <Ionicons name="trash-outline" size={24} color={m3.onErrorContainer} />
+            <Icon name="trash-outline" size={24} color={m3.onErrorContainer} />
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, hotIcon]}>
-            <Ionicons name="trash-outline" size={24} color={m3.onError} />
+            <Icon name="trash-outline" size={24} color={m3.onError} />
           </Animated.View>
         </Animated.View>
       </Animated.View>
@@ -157,7 +157,7 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
                       {t.note}
                     </AppText>
                     <View style={styles.supporting}>
-                      {t.recurringType > 0 ? <Ionicons name="repeat" size={14} color={m3.onSurfaceVariant} /> : null}
+                      {t.recurringType > 0 ? <Icon name="repeat" size={14} color={m3.onSurfaceVariant} /> : null}
                       <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} numberOfLines={1} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
                         {subtitle}
                       </AppText>

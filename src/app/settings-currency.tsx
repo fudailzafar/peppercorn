@@ -1,7 +1,7 @@
 import { goBack } from '../lib/nav';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { PageScaffold } from '../components/SettingsBits';
@@ -35,7 +35,7 @@ export default function CurrencyScreen() {
   return (
     <PageScaffold title="Currency" scroll={false}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.SecondaryBackground, borderRadius: 14, paddingHorizontal: 14, marginBottom: 10 }}>
-        <Ionicons name="search" size={20} color={c.SubtitleText} />
+        <Icon name="search" size={20} color={c.SubtitleText} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -71,7 +71,7 @@ export default function CurrencyScreen() {
                 {item.code}
               </AppText>
             </View>
-            {item.code === current ? <Ionicons name="checkmark-circle" size={24} color={c.IncomeGreen} /> : null}
+            {item.code === current ? <Icon name="checkmark-circle" size={24} color={c.IncomeGreen} /> : null}
           </Pressable>
         )}
       />

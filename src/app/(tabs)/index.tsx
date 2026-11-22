@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon, type IconName } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { BigAmount } from '../../components/Bits';
@@ -21,7 +21,7 @@ import { useTheme } from '../../theme/theme';
 
 type FilterType = 'all' | 'type' | 'day' | 'week' | 'month' | 'category' | 'recurring' | 'upcoming';
 
-const FILTERS: { key: FilterType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const FILTERS: { key: FilterType; label: string; icon: IconName }[] = [
   { key: 'all', label: 'all entries', icon: 'albums' },
   { key: 'type', label: 'by type', icon: 'cash' },
   { key: 'day', label: 'by day', icon: 'calendar' },
@@ -104,7 +104,7 @@ export default function LogScreen() {
     return (
       <View style={[styles.empty, { backgroundColor: m3.surface }]}>
         <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
-          <Ionicons name="file-tray-outline" size={44} color={m3.onSurfaceVariant} />
+          <Icon name="file-tray-outline" size={44} color={m3.onSurfaceVariant} />
         </View>
         <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ textAlign: 'center', marginTop: 24 }}>
           Your Log is Empty
@@ -133,7 +133,7 @@ export default function LogScreen() {
       </View>
       {filter !== 'all' ? (
         <View style={styles.activeFilter}>
-          <Chip label={filterTag} icon="checkmark" tint={m3.secondaryContainer} onTint={m3.onSecondaryContainer} onPress={() => setFilter('all')} accessibilityLabel={`Clear filter ${filterTag}`} trailing={<Ionicons name="close" size={18} color={m3.onSecondaryContainer} />} />
+          <Chip label={filterTag} icon="checkmark" tint={m3.secondaryContainer} onTint={m3.onSecondaryContainer} onPress={() => setFilter('all')} accessibilityLabel={`Clear filter ${filterTag}`} trailing={<Icon name="close" size={18} color={m3.onSecondaryContainer} />} />
         </View>
       ) : null}
 
@@ -229,7 +229,7 @@ function LogHeader() {
             label={TIMEFRAMES[settings.logTimeFrame - 1]}
             accessibilityLabel="Change time frame"
             onPress={pill.open}
-            trailing={<Ionicons name="chevron-down" size={18} color={m3.onSurfaceVariant} />}
+            trailing={<Icon name="chevron-down" size={18} color={m3.onSurfaceVariant} />}
           />
         </View>
       </View>

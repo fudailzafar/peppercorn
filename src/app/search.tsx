@@ -1,7 +1,7 @@
 import { goBack } from '../lib/nav';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { useDeleteFlow } from '../components/DeleteFlow';
@@ -47,7 +47,7 @@ export default function SearchScreen() {
     <View style={{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: insets.top + 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, marginBottom: 6 }}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.SecondaryBackground, borderRadius: 14, paddingHorizontal: 14 }}>
-          <Ionicons name="search" size={20} color={c.SubtitleText} />
+          <Icon name="search" size={20} color={c.SubtitleText} />
           <TextInput
             autoFocus
             value={query}
@@ -60,7 +60,7 @@ export default function SearchScreen() {
           />
           {query ? (
             <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityLabel="Clear">
-              <Ionicons name="close-circle" size={20} color={c.SubtitleText} />
+              <Icon name="close-circle" size={20} color={c.SubtitleText} />
             </Pressable>
           ) : null}
         </View>

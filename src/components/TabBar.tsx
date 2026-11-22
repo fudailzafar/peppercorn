@@ -3,30 +3,19 @@ import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { ComponentProps } from 'react';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
 import { useUi } from '../lib/store';
 import { m3Duration, m3Easing, shape, typeScale } from '../theme/material';
-import { tabIcons } from '../theme/tabIcons';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
+import { Icon } from './Icon';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
-type TabKey = keyof typeof tabIcons;
+type TabKey = 'log' | 'insights' | 'budget' | 'settings';
 const ROUTE_ICON: Record<string, TabKey> = { index: 'log', insights: 'insights', budget: 'budget', settings: 'settings' };
 const ROUTE_LABEL: Record<string, string> = { index: 'Log', insights: 'Insights', budget: 'Budget', settings: 'Settings' };
 
 /** Height of the bar's content, from the M3 navigation bar spec (80dp), excluding the system inset. */
 export const NAV_BAR_HEIGHT = 80;
-
-function TabIcon({ icon, color }: { icon: TabKey; color: string }) {
-  return (
-    <Svg width={24} height={24} viewBox="0 0 24 24">
-      {tabIcons[icon].map((p, i) => (
-        <Path key={i} d={p.d} fill={color} fillRule={p.fillRule} clipRule={p.clipRule} />
-      ))}
-    </Svg>
-  );
-}
 
 /** One destination: icon in a pill-shaped active indicator, with the label below (M3 navigation bar item). */
 function Destination({ focused, icon, label, onPress }: { focused: boolean; icon: TabKey; label: string; onPress: () => void }) {
@@ -50,7 +39,7 @@ function Destination({ focused, icon, label, onPress }: { focused: boolean; icon
             {/* The pressed state layer: a 10% overlay in the content colour. */}
             <View style={[styles.indicator, { backgroundColor: m3.onSurface, opacity: pressed ? 0.1 : 0 }]} />
             <View style={styles.iconLayer}>
-              <TabIcon icon={icon} color={focused ? m3.onSecondaryContainer : m3.onSurfaceVariant} />
+              <Icon name={icon} size={24} color={focused ? m3.onSecondaryContainer : m3.onSurfaceVariant} />
             </View>
           </View>
           <AppText

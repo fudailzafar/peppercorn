@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from './Icon';
 import { Haptics } from '../lib/haptics';
 import { pressDelete, pressDigit, pressDot, type EntryType } from '../lib/amount';
 import { shape } from '../theme/material';
@@ -68,7 +68,7 @@ export function NumberPad({ raw, onChange, entryType, onSubmit }: Props) {
       ))}
       <View style={styles.row}>
         {entryType === 1
-          ? key(<Ionicons name="backspace-outline" size={28} color={m3.onSurface} />, () => onChange(pressDelete(raw)), 'tonal', 'Delete')
+          ? key(<Icon name="backspace-outline" size={28} color={m3.onSurface} />, () => onChange(pressDelete(raw)), 'tonal', 'Delete')
           : key(
               <AppText size={32} weight="regular" color={m3.onSurface}>
                 .
@@ -78,7 +78,7 @@ export function NumberPad({ raw, onChange, entryType, onSubmit }: Props) {
               'Decimal point',
             )}
         {digit(0)}
-        {key(<Ionicons name="checkmark" size={30} color={m3.onPrimary} />, onSubmit, 'primary', 'Confirm')}
+        {key(<Icon name="checkmark" size={30} color={m3.onPrimary} />, onSubmit, 'primary', 'Confirm')}
       </View>
     </View>
   );

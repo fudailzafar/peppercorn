@@ -1,6 +1,6 @@
 import { goBack } from '../lib/nav';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon, type IconName } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { IconTile } from '../components/SettingsBits';
@@ -8,7 +8,7 @@ import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
 import { useTheme } from '../theme/theme';
 
-const FEATURES: { icon: keyof typeof Ionicons.glyphMap; colour: string; title: string; text: string }[] = [
+const FEATURES: { icon: IconName; colour: string; title: string; text: string }[] = [
   { icon: 'receipt', colour: '#FE724E', title: 'Log in seconds', text: 'A simple number pad and your own categories keep entries quick.' },
   { icon: 'stats-chart', colour: '#279AF4', title: 'See where it goes', text: 'Insights break your spending down by day, week and category.' },
   { icon: 'grid', colour: '#6A7CF9', title: 'Stay on budget', text: 'Set an overall budget and one per category, and watch your pace.' },
@@ -23,7 +23,7 @@ export default function Welcome() {
     <View style={{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: insets.top + 50, paddingHorizontal: 30, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
       <View style={{ alignItems: 'center' }}>
         <View style={[styles.logo, { backgroundColor: c.DarkBackground }]}>
-          <Ionicons name="cash" size={42} color={c.LightIcon} />
+          <Icon name="cash" size={42} color={c.LightIcon} />
         </View>
         <AppText size={14} weight="semibold" color="SubtitleText" style={{ marginTop: 22, letterSpacing: 1.5 }}>
           WELCOME TO

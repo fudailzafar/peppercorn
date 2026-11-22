@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, useWindowDimensions, View, type HostInstance } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon, type IconName } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUi } from '../lib/store';
 import { elevation, shape, stateLayer, typeScale } from '../theme/material';
@@ -81,7 +81,7 @@ export function PopoverItem({
 }: {
   label: string;
   selected?: boolean;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: IconName;
   destructive?: boolean;
   onPress: () => void;
 }) {
@@ -92,11 +92,11 @@ export function PopoverItem({
       {({ pressed }) => (
         <>
           <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: ink, opacity: pressed ? stateLayer.pressed : selected ? 0.06 : 0 }]} />
-          {icon ? <Ionicons name={icon} size={24} color={destructive ? m3.error : m3.onSurfaceVariant} style={{ marginRight: 12 }} /> : null}
+          {icon ? <Icon name={icon} size={24} color={destructive ? m3.error : m3.onSurfaceVariant} style={{ marginRight: 12 }} /> : null}
           <AppText size={typeScale.bodyLarge.size} color={ink} style={{ flex: 1, letterSpacing: typeScale.bodyLarge.tracking }}>
             {label}
           </AppText>
-          {selected ? <Ionicons name="checkmark" size={20} color={m3.onSurfaceVariant} /> : null}
+          {selected ? <Icon name="checkmark" size={20} color={m3.onSurfaceVariant} /> : null}
         </>
       )}
     </Pressable>

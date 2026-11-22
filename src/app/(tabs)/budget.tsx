@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { CapsuleProgress } from '../../components/Charts';
@@ -45,7 +45,7 @@ export default function BudgetScreen() {
         {nothing ? (
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
-              <Ionicons name="wallet-outline" size={44} color={m3.onSurfaceVariant} />
+              <Icon name="wallet-outline" size={44} color={m3.onSurfaceVariant} />
             </View>
             <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ marginTop: 24 }}>
               No Budgets Found
