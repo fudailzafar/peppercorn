@@ -4,8 +4,9 @@ import Svg, { Defs, Path, Text as SvgText, TextPath } from 'react-native-svg';
 import { fmtAxis, niceMax } from '../lib/format';
 import { useStore } from '../lib/store';
 import { useAnimatedNumber } from '../lib/useAnimatedNumber';
+import { typeScale } from '../theme/material';
 import { motion } from '../theme/motion';
-import { useTheme, withAlpha } from '../theme/theme';
+import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 
 // MARK: Bar chart (Insights)
@@ -39,7 +40,7 @@ function GrowingBar({ fraction, index, animate, color }: { fraction: number; ind
     <Animated.View
       style={{
         height: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${fraction * 100}%`] }),
-        borderRadius: 100,
+        borderRadius: 8,
         backgroundColor: color,
       }}
     />
@@ -48,20 +49,22 @@ function GrowingBar({ fraction, index, animate, color }: { fraction: number; ind
 
 /** Vertical capsule bars with a dashed average line, as in Dime's Insights. */
 export function BarChart({ values, labels, fadeFrom, average, height = 220, activeIndex, animate = false, replayKey = '' }: BarChartProps) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const max = niceMax(Math.max(...values, average ?? 0));
   const n = values.length;
-  const gap = n > 12 ? 4 : 10;
+  const gap = n > 12 ? 4 : 8;
   const avgY = average !== undefined && average > 0 ? (1 - Math.min(average / max, 1)) * height : null;
+  // M3 bar chart: tonal tracks, primary bars, rounded 8dp ends, secondary text for axes.
+  const radius = 8;
 
   return (
     <View>
       <View style={{ flexDirection: 'row', height }}>
         <View style={{ width: 38, justifyContent: 'space-between' }}>
-          <AppText size={14} weight="medium" color="SubtitleText">
+          <AppText size={typeScale.labelMedium.size} weight="medium" color={m3.onSurfaceVariant}>
             {fmtAxis(max)}
           </AppText>
-          <AppText size={14} weight="medium" color="SubtitleText">
+          <AppText size={typeScale.labelMedium.size} weight="medium" color={m3.onSurfaceVariant}>
             0
           </AppText>
         </View>
@@ -70,18 +73,19 @@ export function BarChart({ values, labels, fadeFrom, average, height = 220, acti
           <View style={{ flex: 1, flexDirection: 'row', gap }}>
             {values.map((v, i) => {
               const faded = i >= fadeFrom;
+              const selected = activeIndex === i;
               return (
                 <View
                   key={i}
                   style={{
                     flex: 1,
-                    borderRadius: 100,
-                    backgroundColor: withAlpha(c.SecondaryBackground, faded ? 0.5 : 1),
+                    borderRadius: radius,
+                    backgroundColor: faded ? m3.surfaceContainerLow : m3.surfaceContainerHigh,
                     justifyContent: 'flex-end',
                     overflow: 'hidden',
                   }}
                 >
-                  {v > 0 ? <GrowingBar key={`${replayKey}-${i}`} fraction={Math.max(Math.min(v / max, 1), 0.04)} index={i} animate={animate} color={c.DarkIcon} /> : null}
+                  {v > 0 ? <GrowingBar key={`${replayKey}-${i}`} fraction={Math.max(Math.min(v / max, 1), 0.04)} index={i} animate={animate} color={activeIndex === undefined || selected ? m3.primary : m3.outline} /> : null}
                 </View>
               );
             })}
@@ -89,32 +93,32 @@ export function BarChart({ values, labels, fadeFrom, average, height = 220, acti
 
           {avgY !== null ? (
             <View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
-              <View style={{ position: 'absolute', left: 0, right: 0, top: avgY, borderTopWidth: 2, borderStyle: 'dashed', borderColor: c.GreyIcon }} />
+              <View style={{ position: 'absolute', left: 0, right: 0, top: avgY, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: m3.outline }} />
             </View>
           ) : null}
         </View>
       </View>
 
       {avgY !== null ? (
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: avgY - 15 }}>
-          <View style={[styles.avgPill, { backgroundColor: c.GreyIcon }]}>
-            <AppText size={15} weight="bold" color="DarkIcon">
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: avgY - 12 }}>
+          <View style={[styles.avgPill, { backgroundColor: m3.inverseSurface }]}>
+            <AppText size={typeScale.labelMedium.size} weight="semibold" color={m3.inverseOnSurface}>
               {fmtAxis(average ?? 0)}
             </AppText>
           </View>
         </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row', marginTop: 10, marginLeft: 38 }}>
+      <View style={{ flexDirection: 'row', marginTop: 8, marginLeft: 38 }}>
         {values.map((_, i) => {
           const label = labels.find((l) => l.index === i);
           return (
             <View key={i} style={{ flex: 1, marginHorizontal: gap / 2, alignItems: 'center', overflow: 'visible' }}>
               {label ? (
                 <AppText
-                  size={17}
-                  weight="semibold"
-                  color={i >= fadeFrom ? 'EvenLighterText' : i === activeIndex ? 'DarkIcon' : 'SubtitleText'}
+                  size={typeScale.labelMedium.size}
+                  weight={i === activeIndex ? 'bold' : 'semibold'}
+                  color={i >= fadeFrom ? m3.outline : i === activeIndex ? m3.onSurface : m3.onSurfaceVariant}
                   style={{ width: 40, textAlign: 'center' }}
                 >
                   {label.text}
@@ -211,5 +215,5 @@ export function CapsuleProgress({ fraction, elapsed, colour, height = 26 }: { fr
 }
 
 const styles = StyleSheet.create({
-  avgPill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, minWidth: 34, alignItems: 'center' },
+  avgPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, minWidth: 30, alignItems: 'center' },
 });

@@ -37,18 +37,18 @@ export function IconButton({ icon, onPress, label, tint }: { icon: keyof typeof 
 // MARK: Segmented button
 
 /** M3 two-option segmented button: the selected segment is filled and shows a check mark. */
-export function SegmentedButton({ options, index, onChange }: { options: readonly [string, string]; index: 0 | 1; onChange: (i: 0 | 1) => void }) {
+export function SegmentedButton({ options, index, onChange, fullWidth }: { options: readonly string[]; index: number; onChange: (i: number) => void; fullWidth?: boolean }) {
   const { m3 } = useTheme();
   return (
-    <View style={[styles.segmented, { borderColor: m3.outline }]}>
+    <View style={[styles.segmented, { borderColor: m3.outline }, fullWidth && { alignSelf: 'stretch' }]}>
       {options.map((label, i) => (
-        <Segment key={label} label={label} selected={index === i} divider={i === 1} onPress={() => onChange(i as 0 | 1)} />
+        <Segment key={label} label={label} selected={index === i} divider={i > 0} fullWidth={fullWidth} onPress={() => onChange(i)} />
       ))}
     </View>
   );
 }
 
-function Segment({ label, selected, divider, onPress }: { label: string; selected: boolean; divider: boolean; onPress: () => void }) {
+function Segment({ label, selected, divider, onPress, fullWidth }: { label: string; selected: boolean; divider: boolean; onPress: () => void; fullWidth?: boolean }) {
   const { m3 } = useTheme();
   const fill = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
@@ -61,7 +61,7 @@ function Segment({ label, selected, divider, onPress }: { label: string; selecte
       accessibilityRole="button"
       accessibilityState={{ selected }}
       android_ripple={{ color: `${m3.onSurface}1F` }}
-      style={[styles.segment, divider && { borderLeftWidth: 1, borderLeftColor: m3.outline }]}
+      style={[styles.segment, fullWidth && { flex: 1, width: undefined }, divider && { borderLeftWidth: 1, borderLeftColor: m3.outline }]}
     >
       {({ pressed }) => (
         <>
