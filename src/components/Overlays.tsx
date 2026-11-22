@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUi } from '../lib/store';
 import { elevation, shape, stateLayer, typeScale } from '../theme/material';
+import { NAV_BAR_HEIGHT } from './TabBar';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 
@@ -102,8 +103,9 @@ export function PopoverItem({
   );
 }
 
-// MARK: Bottom confirmation card ("Delete 'Coffee'?")
+// MARK: Confirmation dialog ("Delete 'Coffee'?")
 
+/** An M3 basic dialog: 28dp corners, headline, supporting text, and right-aligned text buttons. */
 export function ConfirmSheet({
   visible,
   title,
@@ -121,80 +123,96 @@ export function ConfirmSheet({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const { c } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { m3 } = useTheme();
+  const action = (label: string, onPress: () => void, color: string) => (
+    <Pressable onPress={onPress} accessibilityRole="button" android_ripple={{ color: `${color}22` }} style={styles.textButton}>
+      {({ pressed }) => (
+        <>
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, opacity: pressed ? stateLayer.pressed : 0, borderRadius: shape.full }]} />
+          <AppText size={typeScale.labelLarge.size} weight="semibold" color={color} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+            {label}
+          </AppText>
+        </>
+      )}
+    </Pressable>
+  );
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel} statusBarTranslucent>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} onPress={onCancel} />
-      <View style={styles.sheetWrap} pointerEvents="box-none">
-        <View style={[styles.sheet, { backgroundColor: c.PrimaryBackground, paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-          <AppText size={24} weight="medium" style={{ marginBottom: 2 }}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }]} onPress={onCancel} accessibilityLabel="Dismiss dialog" />
+      <View style={styles.dialogWrap} pointerEvents="box-none">
+        <View style={[styles.dialog, elevation(3), { backgroundColor: m3.surfaceContainerHigh }]}>
+          <AppText size={typeScale.headlineSmall.size} color={m3.onSurface}>
             {title}
           </AppText>
-          <AppText size={19} weight="medium" color="SubtitleText" style={{ marginBottom: 24 }}>
+          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 16, letterSpacing: typeScale.bodyMedium.tracking }}>
             {message}
           </AppText>
-          <Pressable
-            onPress={onConfirm}
-            style={({ pressed }) => [styles.bigButton, { backgroundColor: destructive ? c.Alert : c.SecondaryBackground }, pressed && { opacity: 0.7 }]}
-          >
-            <AppText size={20} weight="semibold" color={destructive ? 'AlertRed' : 'PrimaryText'}>
-              {confirmLabel}
-            </AppText>
-          </Pressable>
-          <Pressable onPress={onCancel} style={({ pressed }) => [styles.bigButton, { backgroundColor: c.SecondaryBackground, marginTop: 8 }, pressed && { opacity: 0.7 }]}>
-            <AppText size={20} weight="semibold">
-              Cancel
-            </AppText>
-          </Pressable>
+          <View style={styles.dialogActions}>
+            {action('Cancel', onCancel, m3.primary)}
+            {action(confirmLabel, onConfirm, destructive ? m3.error : m3.primary)}
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
-// MARK: HUD toast
+// MARK: Snackbar
 
+/**
+ * An M3 snackbar: an inverse-surface bar above the navigation bar with one line of text and an optional
+ * text action. Toasts that can be undone get an "Undo" action.
+ */
 export function ToastHost() {
   const toast = useUi((s) => s.toast);
   const dismiss = useUi((s) => s.dismissToast);
-  const { c, dark } = useTheme();
+  const { m3, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const [anim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    if (toast) Animated.spring(anim, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 6 }).start();
+    if (toast) Animated.timing(anim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
     else anim.setValue(0);
   }, [toast, anim]);
 
   if (!toast) return null;
-  const tint = toast.tone === 'error' ? c.AlertRed : toast.tone === 'success' ? c.IncomeGreen : c.DarkIcon;
+  const isError = toast.tone === 'error';
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={[
         styles.toastWrap,
-        { top: insets.top + 8, opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }] },
+        { bottom: NAV_BAR_HEIGHT + insets.bottom + 88, opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] },
       ]}
     >
-      <Pressable
-        onPress={() => {
-          toast.onTap?.();
-          dismiss();
-        }}
-        style={[styles.toast, { backgroundColor: dark ? c.TertiaryBackground : '#FFFFFF' }]}
-      >
-        <Ionicons name={toast.icon as keyof typeof Ionicons.glyphMap} size={32} color={tint} />
-        <View style={{ marginLeft: 12 }}>
-          <AppText size={17} weight="semibold">
+      <Pressable onPress={dismiss} style={[styles.snackbar, elevation(3), { backgroundColor: m3.inverseSurface }]} accessibilityRole="alert">
+        {isError ? <View style={[styles.toneDot, { backgroundColor: m3.error }]} /> : null}
+        <View style={{ flex: 1 }}>
+          <AppText size={typeScale.bodyMedium.size} color={m3.inverseOnSurface} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
             {toast.title}
           </AppText>
-          {toast.subtitle ? (
-            <AppText size={14} weight="medium" color="SubtitleText">
+          {toast.subtitle && !toast.onTap ? (
+            <AppText size={typeScale.bodySmall.size} color={m3.inverseOnSurface} style={{ opacity: 0.7 }}>
               {toast.subtitle}
             </AppText>
           ) : null}
         </View>
+        {toast.onTap ? (
+          <Pressable
+            onPress={() => {
+              toast.onTap?.();
+              dismiss();
+            }}
+            hitSlop={8}
+            style={styles.snackAction}
+            accessibilityRole="button"
+          >
+            <AppText size={typeScale.labelLarge.size} weight="semibold" color={dark ? m3.primary : '#D0D0D0'}>
+              Undo
+            </AppText>
+          </Pressable>
+        ) : null}
       </Pressable>
     </Animated.View>
   );
@@ -203,20 +221,12 @@ export function ToastHost() {
 const styles = StyleSheet.create({
   popover: { position: 'absolute', borderRadius: shape.extraSmall, paddingVertical: 8, overflow: 'hidden' },
   item: { minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, overflow: 'hidden' },
-  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 24, paddingTop: 28 },
-  bigButton: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  toastWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 999 },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 22,
-    shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
-  },
+  dialogWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  dialog: { width: '100%', maxWidth: 360, borderRadius: shape.extraLarge, padding: 24 },
+  dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 24 },
+  textButton: { minHeight: 40, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', borderRadius: shape.full, overflow: 'hidden' },
+  toastWrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center', zIndex: 999 },
+  snackbar: { width: '100%', maxWidth: 560, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingLeft: 16, paddingRight: 8, borderRadius: shape.extraSmall },
+  snackAction: { minHeight: 40, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  toneDot: { width: 8, height: 8, borderRadius: 4 },
 });

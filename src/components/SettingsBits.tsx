@@ -3,29 +3,31 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../theme/theme';
+import { shape, typeScale } from '../theme/material';
+import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
-import { Toggle } from './Bits';
+import { IconButton, M3Switch, StateLayer } from './m3';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-/** A coloured rounded tile with a white glyph, as on Dime's settings rows. */
+/** A 40dp circle holding a glyph in Dime's accent colour on a tint of that colour (M3 leading icon). */
 export function IconTile({ name, colour }: { name: IconName; colour: string }) {
   return (
-    <View style={[styles.tile, { backgroundColor: colour }]}>
-      <Ionicons name={name} size={20} color="#FFFFFF" />
+    <View style={[styles.tile, { backgroundColor: withAlpha(colour, 0.22) }]}>
+      <Ionicons name={name} size={22} color={colour} />
     </View>
   );
 }
 
+/** An M3 list section: a subheader, then flat list items. */
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   return (
-    <View style={{ marginTop: 22 }}>
-      <AppText size={17} weight="semibold" color="SubtitleText" style={{ marginLeft: 10, marginBottom: 8, letterSpacing: 0.4 }}>
-        {title.toUpperCase()}
+    <View style={{ marginTop: 8 }}>
+      <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
+        {title}
       </AppText>
-      <View style={[styles.card, { backgroundColor: c.Settings }]}>{children}</View>
+      {children}
     </View>
   );
 }
@@ -34,7 +36,7 @@ interface RowProps {
   icon: IconName;
   colour: string;
   label: string;
-  /** Right-hand grey value (with a chevron). */
+  /** Trailing supporting text (with a chevron). */
   value?: string;
   onPress?: () => void;
   /** Shows a switch instead of a chevron. */
@@ -42,59 +44,59 @@ interface RowProps {
   destructive?: boolean;
 }
 
+/** An M3 one-line list item: leading icon circle, headline, trailing text / chevron / switch. */
 export function SettingsRow({ icon, colour, label, value, onPress, toggle, destructive }: RowProps) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
+  const ink = destructive ? m3.error : m3.onSurface;
   return (
     <Pressable
       onPress={toggle ? () => toggle.onChange(!toggle.value) : onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: c.SecondaryBackground }]}
+      accessibilityRole={toggle ? 'switch' : 'button'}
       accessibilityLabel={label}
+      android_ripple={{ color: `${ink}1F` }}
+      style={styles.row}
     >
-      <IconTile name={icon} colour={colour} />
-      <AppText size={22} weight="medium" color={destructive ? 'AlertRed' : 'PrimaryText'} style={{ flex: 1, marginLeft: 14 }} numberOfLines={1}>
-        {label}
-      </AppText>
-      {toggle ? (
-        <Toggle value={toggle.value} onChange={toggle.onChange} />
-      ) : (
+      {({ pressed }) => (
         <>
-          {value ? (
-            <AppText size={20} weight="medium" color="SubtitleText" style={{ marginRight: 4 }}>
-              {value}
-            </AppText>
-          ) : null}
-          <Ionicons name="chevron-forward" size={20} color={c.SubtitleText} />
+          <StateLayer pressed={pressed} color={ink} />
+          <IconTile name={icon} colour={destructive ? m3.error : colour} />
+          <AppText size={typeScale.bodyLarge.size} color={ink} style={{ flex: 1, marginLeft: 16, letterSpacing: typeScale.bodyLarge.tracking }} numberOfLines={1}>
+            {label}
+          </AppText>
+          {toggle ? (
+            <M3Switch value={toggle.value} onChange={toggle.onChange} />
+          ) : (
+            <>
+              {value ? (
+                <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginRight: 4 }}>
+                  {value}
+                </AppText>
+              ) : null}
+              <Ionicons name="chevron-forward" size={20} color={m3.onSurfaceVariant} />
+            </>
+          )}
         </>
       )}
     </Pressable>
   );
 }
 
-/** Settings sub-page: back pill, big title, scrolling content. */
+/** Settings sub-page: an M3 top app bar with a back arrow and title, then the content. */
 export function PageScaffold({ title, children, scroll = true }: { title: string; children: ReactNode; scroll?: boolean }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const body = scroll ? (
-    <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
       {children}
     </ScrollView>
   ) : (
-    <View style={{ flex: 1, paddingHorizontal: 20 }}>{children}</View>
+    <View style={{ flex: 1 }}>{children}</View>
   );
   return (
-    <View style={{ flex: 1, backgroundColor: c.PrimaryBackground }}>
-      <View style={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 6 }}>
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))}
-          style={[styles.back, { backgroundColor: c.SecondaryBackground }]}
-          accessibilityLabel="Back"
-        >
-          <Ionicons name="chevron-back" size={20} color={c.DarkIcon} />
-          <AppText size={18} weight="semibold">
-            Back
-          </AppText>
-        </Pressable>
-        <AppText size={34} weight="bold" style={{ marginTop: 14, marginBottom: 10 }}>
+    <View style={{ flex: 1, backgroundColor: m3.surface }}>
+      <View style={[styles.appBar, { paddingTop: insets.top }]}>
+        <IconButton icon="arrow-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))} label="Back" tint={m3.onSurface} />
+        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 8 }}>
           {title}
         </AppText>
       </View>
@@ -103,30 +105,39 @@ export function PageScaffold({ title, children, scroll = true }: { title: string
   );
 }
 
-/** A radio-style option row. */
+/** An M3 radio list item: headline, optional supporting text, a radio button on the right. */
 export function OptionRow({ label, caption, selected, onPress }: { label: string; caption?: string; selected: boolean; onPress: () => void }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.option, { backgroundColor: c.Settings }, pressed && { opacity: 0.7 }]}>
-      <View style={{ flex: 1 }}>
-        <AppText size={21} weight="medium">
-          {label}
-        </AppText>
-        {caption ? (
-          <AppText size={15} weight="medium" color="SubtitleText">
-            {caption}
-          </AppText>
-        ) : null}
-      </View>
-      {selected ? <Ionicons name="checkmark-circle" size={26} color={c.IncomeGreen} /> : <Ionicons name="ellipse-outline" size={26} color={c.GreyIcon} />}
+    <Pressable onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} android_ripple={{ color: `${m3.onSurface}1F` }} style={styles.option}>
+      {({ pressed }) => (
+        <>
+          <StateLayer pressed={pressed} color={m3.onSurface} />
+          <View style={{ flex: 1 }}>
+            <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} style={{ letterSpacing: typeScale.bodyLarge.tracking }}>
+              {label}
+            </AppText>
+            {caption ? (
+              <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
+                {caption}
+              </AppText>
+            ) : null}
+          </View>
+          <View style={[styles.radio, { borderColor: selected ? m3.primary : m3.onSurfaceVariant }]}>
+            {selected ? <View style={[styles.radioDot, { backgroundColor: m3.primary }]} /> : null}
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  tile: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  card: { borderRadius: 20, paddingVertical: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-start', paddingVertical: 8, paddingLeft: 8, paddingRight: 14, borderRadius: 100 },
-  option: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 8 },
+  tile: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
+  subheader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, letterSpacing: 0.1 },
+  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, overflow: 'hidden' },
+  appBar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
+  option: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, overflow: 'hidden' },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 10, height: 10, borderRadius: 5 },
 });

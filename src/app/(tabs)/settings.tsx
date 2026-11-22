@@ -7,13 +7,14 @@ import { ConfirmSheet } from '../../components/Overlays';
 import { SettingsRow, SettingsSection } from '../../components/SettingsBits';
 import { exportCsv } from '../../lib/csv';
 import { useStore, useUi } from '../../lib/store';
+import { typeScale } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
 const THEME_LABEL = { system: 'System', light: 'Light', dark: 'Dark' } as const;
 const HAPTIC_LABEL = ['Off', 'Subtle', 'Heavy'] as const;
 
 export default function SettingsScreen() {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
@@ -35,11 +36,14 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.PrimaryBackground }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-        <AppText size={36} weight="bold" style={{ marginLeft: 5 }}>
-          Settings
-        </AppText>
+    <View style={{ flex: 1, backgroundColor: m3.surface }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+        {/* M3 small top app bar */}
+        <View style={{ minHeight: 64, justifyContent: 'center' }}>
+          <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 16 }}>
+            Settings
+          </AppText>
+        </View>
 
         <SettingsSection title="General">
           <SettingsRow icon="pricetags" colour="#F4D35E" label="Categories" onPress={() => router.push('/categories')} />
@@ -97,7 +101,7 @@ export default function SettingsScreen() {
 
         <SettingsSection title="Data">
           <SettingsRow icon="share" colour="#B1638B" label="Export Data" onPress={share} />
-          <SettingsRow icon="trash-bin" colour="#FF78A3" label="Erase Data" onPress={() => setErasing(true)} />
+          <SettingsRow icon="trash-bin" colour="#FF78A3" label="Erase Data" destructive onPress={() => setErasing(true)} />
         </SettingsSection>
 
         <SettingsSection title="Others">
@@ -111,10 +115,10 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <View style={{ alignItems: 'center', marginTop: 28, gap: 2 }}>
-          <AppText size={16} weight="medium" color="SubtitleText">
+          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant}>
             Version 1.0.0
           </AppText>
-          <AppText size={15} weight="medium" color="SubtitleText" style={{ textAlign: 'center' }}>
+          <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
             A React Native port of Dime by Rafael Soh
           </AppText>
         </View>
