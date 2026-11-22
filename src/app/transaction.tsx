@@ -11,7 +11,7 @@ import { AppText } from '../components/AppText';
 import { BigAmount, CircleButton } from '../components/Bits';
 import { useDateTimePicker } from '../components/DateTimeField';
 import { EnterSlide } from '../components/EnterSlide';
-import { SlidingSegment } from '../components/SlidingSegment';
+import { Chip, IconButton, OutlinedField, SegmentedButton } from '../components/m3';
 import { NumberPad } from '../components/NumberPad';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../components/Overlays';
 import { display, fromNumber, toNumber, type EntryType } from '../lib/amount';
@@ -21,7 +21,8 @@ import { useStore, useUi } from '../lib/store';
 import { useNow } from '../lib/useNow';
 import type { Category, RecurringType } from '../lib/types';
 import { springs } from '../theme/motion';
-import { fontFamily, useTheme, withAlpha } from '../theme/theme';
+import { m3Duration, m3Easing, shape } from '../theme/material';
+import { useTheme, withAlpha } from '../theme/theme';
 
 const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'none', 1: 'daily', 2: 'weekly', 3: 'monthly' };
 const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
@@ -29,7 +30,7 @@ const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
 /** Add or edit a transaction (full-screen, slides up from the tab bar's "+"). */
 export default function TransactionScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { c } = useTheme();
+  const { c, m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const existing = useStore((s) => s.transactions.find((t) => t.id === id));
   const categories = useStore((s) => s.categories);
@@ -76,7 +77,7 @@ export default function TransactionScreen() {
   const sheetY = useSharedValue(screenHeight);
   const [closing, setClosing] = useState(false);
   useEffect(() => {
-    sheetY.set(withTiming(0, { duration: 350, easing: ReEasing.out(ReEasing.cubic) }));
+    sheetY.set(withTiming(0, { duration: m3Duration.long2 - 100, easing: ReEasing.bezier(...m3Easing.emphasizedDecelerate) }));
   }, [sheetY]);
   const finishClose = useCallback(() => goBack(), []);
   const markClosing = useCallback(() => {
@@ -88,7 +89,7 @@ export default function TransactionScreen() {
     if (closing) return;
     markClosing();
     sheetY.set(
-      withTiming(screenHeight, { duration: 300, easing: ReEasing.in(ReEasing.cubic) }, (finished) => {
+      withTiming(screenHeight, { duration: 250, easing: ReEasing.bezier(...m3Easing.emphasizedAccelerate) }, (finished) => {
         'worklet';
         if (finished) scheduleOnRN(finishClose);
       }),
@@ -189,20 +190,16 @@ export default function TransactionScreen() {
     <Reanimated.View style={[{ flex: 1, backgroundColor: c.PrimaryBackground, paddingTop: insets.top + 10 }, sheetStyle]}>
       {/* Top row */}
       <View style={styles.topRow}>
-        <CircleButton onPress={close} label="Close" size={42}>
-          <Ionicons name="close" size={22} color={c.SubtitleText} />
-        </CircleButton>
+        <IconButton icon="close" onPress={close} label="Close" />
 
         {settings.incomeTracking ? (
-          <SlidingSegment options={['Expense', 'Income']} index={income ? 1 : 0} onChange={(i) => switchType(i === 1)} />
+          <SegmentedButton options={['Expense', 'Income']} index={income ? 1 : 0} onChange={(i) => switchType(i === 1)} />
         ) : (
           <View />
         )}
 
         <View {...anchorProps(repeatMenu)}>
-          <CircleButton onPress={repeatMenu.open} label="Repeat" size={42}>
-            <Ionicons name="repeat" size={22} color={repeat > 0 ? c.DarkIcon : c.SubtitleText} />
-          </CircleButton>
+          <IconButton icon="repeat" onPress={repeatMenu.open} label="Repeat" tint={repeat > 0 ? m3.primary : undefined} />
         </View>
       </View>
 
@@ -232,19 +229,18 @@ export default function TransactionScreen() {
       {/* Amount and note */}
       <View style={styles.middle}>
         <View style={{ paddingHorizontal: 40 }}>
-          <BigAmount value={display(raw, entryType)} currency={settings.currency} size={64} color={income && amount > 0 ? 'IncomeGreen' : 'PrimaryText'} />
+          <BigAmount value={display(raw, entryType)} currency={settings.currency} size={57} color={income && amount > 0 ? 'IncomeGreen' : 'PrimaryText'} />
           {entryType === 2 && raw.length > 0 ? (
             <View style={styles.backspace}>
-              <CircleButton onPress={() => setRaw(raw.slice(0, -1))} label="Delete digit" size={42}>
-                <Ionicons name="backspace" size={20} color={c.SubtitleText} />
-              </CircleButton>
+              <IconButton icon="backspace-outline" onPress={() => setRaw(raw.slice(0, -1))} label="Delete digit" />
             </View>
           ) : null}
         </View>
 
-        <Pressable style={[styles.notePill, { borderColor: c.Outline }]} onPress={() => noteRef.current?.focus()} accessible={false}>
-          <TextInput
-            ref={noteRef}
+        <View style={{ marginTop: 24 }}>
+          <OutlinedField
+            label="Note"
+            inputRef={noteRef}
             value={note}
             onChangeText={setNote}
             onFocus={() => {
@@ -252,41 +248,38 @@ export default function TransactionScreen() {
               setPickingCategory(false);
             }}
             onBlur={() => setNoteFocused(false)}
-            placeholder="Add Note"
-            placeholderTextColor={c.SubtitleText}
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
             maxLength={60}
-            style={[styles.noteInput, { color: c.PrimaryText, fontFamily: fontFamily.medium }]}
           />
-        </Pressable>
+        </View>
 
         {repeat > 0 ? (
-          <View style={[styles.repeatChip, { backgroundColor: c.SecondaryBackground }]}>
-            <Ionicons name="repeat" size={16} color={c.DarkIcon} />
-            <AppText size={15} weight="semibold" color="DarkIcon">
-              {every === 1 ? `Repeats ${REPEAT_LABELS[repeat]}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
-            </AppText>
-          </View>
+          <Chip
+            icon="repeat"
+            label={every === 1 ? `Repeats ${REPEAT_LABELS[repeat]}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
+            tint={m3.secondaryContainer}
+            onTint={m3.onSecondaryContainer}
+            onPress={repeatMenu.open}
+            style={{ marginTop: 16 }}
+          />
         ) : null}
 
         {suggestions.length > 0 ? (
           <View style={{ marginTop: 14, gap: 8, alignItems: 'center' }}>
             {suggestions.map((s) => (
-              <Pressable
+              <Chip
                 key={s.id}
+                label={s.note}
                 onPress={() => {
                   setNote(s.note);
                   setCategoryId(s.categoryId);
                   if (raw === '') setRaw(fromNumber(s.amount, entryType));
                   Keyboard.dismiss();
                 }}
-                style={[styles.suggestion, { backgroundColor: c.SecondaryBackground }]}
-              >
-                <AppText size={17} weight="medium">
-                  {s.note}
-                </AppText>
-              </Pressable>
+                tint={m3.surfaceContainerHigh}
+                onTint={m3.onSurface}
+              />
             ))}
           </View>
         ) : null}
@@ -295,59 +288,32 @@ export default function TransactionScreen() {
       {/* Bottom: date, category and the pad */}
       <View style={{ paddingBottom: Math.max(insets.bottom, 12) + 4 }}>
         <View style={styles.pillRow}>
-          <Pressable onPress={datePicker.open} style={[styles.datePill, { borderColor: c.Outline }]} accessibilityLabel="Change date">
-            <Ionicons name="calendar" size={22} color={c.SubtitleText} />
-            <AppText size={19} weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
-              {dateText}
-            </AppText>
-            <AppText size={19} weight="semibold">
-              {time24(date)}
-            </AppText>
-          </Pressable>
+          <Chip icon="calendar-outline" label={`${dateText}  ${time24(date)}`} onPress={datePicker.open} accessibilityLabel="Change date" style={{ flex: 1 }} />
 
           {pickingCategory ? (
-            <Pressable onPress={() => setPickingCategory(false)} style={[styles.catPill, { backgroundColor: c.Alert }]}>
-              <AppText size={19} weight="semibold" color="AlertRed">
-                Close
-              </AppText>
-            </Pressable>
+            <Chip label="Close" icon="close" onPress={() => setPickingCategory(false)} tint={m3.errorContainer} onTint={m3.onErrorContainer} style={{ minWidth: 120 }} />
           ) : (
-            <Animated.View style={{ minWidth: 120, maxWidth: 170, flexShrink: 0, alignSelf: 'stretch', transform: [{ translateX: shake }] }}>
-              <Pressable
+            <Animated.View style={{ minWidth: 120, maxWidth: 190, flexShrink: 0, transform: [{ translateX: shake }] }}>
+              <Chip
+                accessibilityLabel="Choose category"
+                icon={category ? undefined : 'apps-outline'}
+                label={category ? `${category.emoji}  ${category.name}` : 'Category'}
+                tint={category ? withAlpha(category.colour, 0.3) : undefined}
+                onTint={category ? category.colour : undefined}
                 onPress={() => {
                   Keyboard.dismiss();
                   setPickingCategory(true);
                 }}
-                style={[styles.catPill, { flex: 1 }, category ? { backgroundColor: withAlpha(category.colour, 0.3), borderWidth: 0 } : { borderWidth: 1.5, borderColor: c.Outline }]}
-                accessibilityLabel="Choose category"
-              >
-                {category ? (
-                  <AppText size={19} weight="semibold" style={{ color: category.colour }} numberOfLines={1}>
-                    {category.emoji}  {category.name}
+              />
+              {/* Error state that fades in and out over the normal one when the category is missing. */}
+              {category ? null : (
+                <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: flash, backgroundColor: m3.errorContainer, borderRadius: shape.full, borderWidth: 1, borderColor: m3.error, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]}>
+                  <Ionicons name="apps-outline" size={18} color={m3.onErrorContainer} />
+                  <AppText size={14} weight="semibold" color={m3.onErrorContainer}>
+                    Category
                   </AppText>
-                ) : (
-                  <>
-                    <Ionicons name="apps" size={20} color={c.SubtitleText} />
-                    <AppText size={19} weight="semibold" color="SubtitleText">
-                      Category
-                    </AppText>
-                    {/* Red state that fades in and out over the grey one. */}
-                    <Animated.View
-                      pointerEvents="none"
-                      style={[
-                        styles.catPill,
-                        StyleSheet.absoluteFill,
-                        { opacity: flash, backgroundColor: withAlpha(c.AlertRed, 0.23), borderWidth: 1.5, borderColor: c.AlertRed, minWidth: 0, maxWidth: undefined },
-                      ]}
-                    >
-                      <Ionicons name="apps" size={20} color={c.AlertRed} />
-                      <AppText size={19} weight="semibold" color="AlertRed">
-                        Category
-                      </AppText>
-                    </Animated.View>
-                  </>
-                )}
-              </Pressable>
+                </Animated.View>
+              )}
             </Animated.View>
           )}
         </View>
@@ -391,7 +357,7 @@ export default function TransactionScreen() {
 
 /** Categories as tinted pills, filled from the bottom-right so they sit under the thumb. */
 function CategoryGrid({ categories, onPick }: { categories: Category[]; onPick: (c: Category) => void }) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
   const rows: Category[][] = [];
   for (let i = 0; i < categories.length; i += 2) rows.push(categories.slice(i, i + 2));
   rows.reverse();
@@ -422,12 +388,9 @@ function CategoryGrid({ categories, onPick }: { categories: Category[]; onPick: 
           </View>
         ))}
       </ScrollView>
-      <Pressable onPress={() => router.push('/categories')} style={[styles.editPill, { backgroundColor: c.SecondaryBackground }]} accessibilityLabel="Edit categories">
-        <Ionicons name="pencil" size={18} color={c.SubtitleText} />
-        <AppText size={19} weight="semibold" color="SubtitleText">
-          Edit
-        </AppText>
-      </Pressable>
+      <View style={styles.editPill}>
+        <Chip icon="create-outline" label="Edit" accessibilityLabel="Edit categories" tint={m3.surfaceContainerHigh} onTint={m3.onSurface} onPress={() => router.push('/categories')} />
+      </View>
     </View>
   );
 }
@@ -504,8 +467,8 @@ const styles = StyleSheet.create({
   pillRow: { flexDirection: 'row', gap: 9, paddingHorizontal: 15, marginBottom: 10, height: 44 },
   datePill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 12 },
   catPill: { minWidth: 120, maxWidth: 170, flexShrink: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingHorizontal: 14 },
-  gridPill: { flex: 1, height: 46, borderRadius: 14, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
-  editPill: { position: 'absolute', alignSelf: 'center', bottom: 6, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 26, paddingVertical: 12, borderRadius: 18 },
+  gridPill: { flex: 1, height: 48, borderRadius: shape.medium, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
+  editPill: { position: 'absolute', alignSelf: 'center', bottom: 6 },
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 24, paddingTop: 28, gap: 20 },
   counter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 30 },
   bigButton: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },

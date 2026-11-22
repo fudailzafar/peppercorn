@@ -1,10 +1,11 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Haptics } from '../lib/haptics';
 import { pressDelete, pressDigit, pressDot, type EntryType } from '../lib/amount';
+import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
-import { PressScale } from './PressScale';
+import { StateLayer } from './m3';
 
 interface Props {
   raw: string;
@@ -19,31 +20,42 @@ const ROWS = [
   [7, 8, 9],
 ];
 
-/** Dime's custom number pad: soft grey keys and a dark confirm key. */
+/** A Material 3 keypad: tonal 16dp keys with ripples, and a filled primary confirm key. */
 export function NumberPad({ raw, onChange, entryType, onSubmit }: Props) {
-  const { c } = useTheme();
+  const { m3 } = useTheme();
 
-  const key = (content: React.ReactNode, onPress: () => void, style?: object, label?: string) => (
-    <PressScale
-      key={label}
-      accessibilityLabel={label}
-      onPress={() => {
-        Haptics.light();
-        onPress();
-      }}
-      style={[styles.key, { backgroundColor: c.SecondaryBackground }, style]}
-    >
-      {content}
-    </PressScale>
-  );
+  const key = (content: React.ReactNode, onPress: () => void, tone: 'tonal' | 'primary', label: string) => {
+    const bg = tone === 'primary' ? m3.primary : m3.surfaceContainerHigh;
+    const ink = tone === 'primary' ? m3.onPrimary : m3.onSurface;
+    return (
+      <Pressable
+        key={label}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        android_ripple={{ color: `${ink}1F` }}
+        onPress={() => {
+          Haptics.light();
+          onPress();
+        }}
+        style={[styles.key, { backgroundColor: bg }]}
+      >
+        {({ pressed }) => (
+          <>
+            <StateLayer pressed={pressed} color={ink} />
+            {content}
+          </>
+        )}
+      </Pressable>
+    );
+  };
 
   const digit = (n: number) =>
     key(
-      <AppText size={36} weight="regular">
+      <AppText size={32} weight="regular" color={m3.onSurface}>
         {n}
       </AppText>,
       () => onChange(pressDigit(raw, n, entryType)),
-      undefined,
+      'tonal',
       String(n),
     );
 
@@ -56,32 +68,25 @@ export function NumberPad({ raw, onChange, entryType, onSubmit }: Props) {
       ))}
       <View style={styles.row}>
         {entryType === 1
-          ? key(<Ionicons name="backspace" size={30} color={c.LightIcon} />, () => onChange(pressDelete(raw)), { backgroundColor: c.DarkBackground }, 'Delete')
+          ? key(<Ionicons name="backspace-outline" size={28} color={m3.onSurface} />, () => onChange(pressDelete(raw)), 'tonal', 'Delete')
           : key(
-              <AppText size={36} weight="regular">
+              <AppText size={32} weight="regular" color={m3.onSurface}>
                 .
               </AppText>,
               () => onChange(pressDot(raw, entryType)),
-              undefined,
+              'tonal',
               'Decimal point',
             )}
         {digit(0)}
-        {key(
-          <View style={[styles.checkBox, { backgroundColor: c.LightIcon }]}>
-            <Ionicons name="checkmark" size={26} color={c.DarkIcon} />
-          </View>,
-          onSubmit,
-          { backgroundColor: c.DarkBackground },
-          'Confirm',
-        )}
+        {key(<Ionicons name="checkmark" size={30} color={m3.onPrimary} />, onSubmit, 'primary', 'Confirm')}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  pad: { gap: 10, paddingHorizontal: 15 },
-  row: { flexDirection: 'row', gap: 18 },
-  key: { height: 66, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  pad: { gap: 8, paddingHorizontal: 16 },
+  row: { flexDirection: 'row', gap: 8 },
+  key: { flex: 1, height: 64, borderRadius: shape.large, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   checkBox: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });
