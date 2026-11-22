@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Dime",
-    "slug": "dime-rn",
+    "name": "Dime Material",
+    "slug": "dime-rn-material",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.dimern.dime"
+      "bundleIdentifier": "app.dimern.dime.material"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.dimern.dime"
+      "package": "app.dimern.dime.material"
     },
     "web": {
       "bundler": "metro",
@@ -31,6 +31,6 @@
       "expo-font",
       "@react-native-community/datetimepicker"
     ],
-    "scheme": "dime"
+    "scheme": "dimematerial"
   }
 }
