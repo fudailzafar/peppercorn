@@ -13,7 +13,7 @@ export interface Asset {
   scheme?: number;
 }
 
-/** The four things Dime tracks the value of. Fixed: they can't be renamed, deleted or added to. */
+/** The four things Peppercorn tracks the value of. Fixed: they can't be renamed, deleted or added to. */
 export const ASSETS: readonly Asset[] = [
   { id: 'gold', name: 'Gold', emoji: '🥇', colour: '#FDBC3B', kind: 'metal', per: 'gram' },
   { id: 'silver', name: 'Silver', emoji: '🥈', colour: '#9DADFF', kind: 'metal', per: 'gram' },

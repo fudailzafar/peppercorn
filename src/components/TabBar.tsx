@@ -56,8 +56,8 @@ function Destination({ focused, icon, label, onPress }: { focused: boolean; icon
   );
 }
 
-/** Dime's five destinations in a Material 3 navigation bar. The add action is a floating action button (see Fab). */
-export function DimeTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
+/** The five destinations in a Material 3 navigation bar. The add action is a floating action button (see Fab). */
+export function AppTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
   const { m3 } = useTheme();
   const hidden = useUi((s) => s.hideTabBar);
   if (hidden) return null;

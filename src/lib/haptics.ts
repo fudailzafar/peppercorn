@@ -2,7 +2,7 @@ import * as ExpoHaptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { useStore } from './store';
 
-// Respects Dime's Haptics setting: 0 = off, 1 = subtle, 2 = heavy.
+// Respects the Haptics setting: 0 = off, 1 = subtle, 2 = heavy.
 const run = (fn: (heavy: boolean) => Promise<void>) => {
   const level = useStore.getState().settings.haptics;
   if (level === 0 || Platform.OS === 'web') return;

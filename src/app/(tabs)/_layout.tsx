@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { Fab } from '../../components/Fab';
-import { DimeTabBar } from '../../components/TabBar';
+import { AppTabBar } from '../../components/TabBar';
 
 // Open on the Home tab.
 export const unstable_settings = { anchor: 'index' };
@@ -13,7 +13,7 @@ export default function TabLayout() {
         headerShown: false,
         // Tabs switch instantly, like most apps.
         animation: 'none',
-      }} tabBar={(props) => <DimeTabBar {...props} />}>
+      }} tabBar={(props) => <AppTabBar {...props} />}>
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="insights" options={{ title: 'Insights' }} />
       <Tabs.Screen name="portfolio" options={{ title: 'Assets' }} />

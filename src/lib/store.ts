@@ -305,6 +305,7 @@ export const useStore = create<State>()(
         })),
     }),
     {
+      // The key predates the name Peppercorn; changing it would lose everyone's data.
       name: 'dime-store',
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),

@@ -1,5 +1,5 @@
 /**
- * Material Design 3 for Dime: the structure of M3 (colour roles, type scale, shapes, motion, elevation)
+ * Material Design 3 for Peppercorn: the structure of M3 (colour roles, type scale, shapes, motion, elevation)
  * with a blue primary and neutral surfaces.
  * Reference: https://m3.material.io/styles
  */

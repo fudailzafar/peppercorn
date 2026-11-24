@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Dime Material",
+    "name": "Peppercorn",
     "slug": "dime-rn-material",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,17 +8,17 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.dimern.dime.material"
+      "bundleIdentifier": "app.peppercorn.money"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#3C3C3C",
+        "backgroundColor": "#0B57D0",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.dimern.dime.material"
+      "package": "app.peppercorn.money"
     },
     "web": {
       "bundler": "metro",
@@ -31,6 +31,6 @@
       "expo-font",
       "@react-native-community/datetimepicker"
     ],
-    "scheme": "dimematerial"
+    "scheme": "peppercorn"
   }
 }

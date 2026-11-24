@@ -5,6 +5,7 @@ import { useFabScroll } from '../../lib/useFabScroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { Avatar } from '../../components/Avatar';
+import { Logotype } from '../../components/Logo';
 import { BottomSheet, Button, PillField } from '../../components/material';
 import { ConfirmSheet } from '../../components/Overlays';
 import { SettingsRow, SettingsSection } from '../../components/SettingsBits';
@@ -42,7 +43,7 @@ export default function SettingsScreen() {
       return;
     }
     try {
-      await Share.share({ title: 'Dime export', message: exportCsv(transactions, categories) });
+      await Share.share({ title: 'Peppercorn export', message: exportCsv(transactions, categories) });
     } catch {
       showToast({ title: 'Couldn’t export your data. Try again.', icon: 'alert-circle', tone: 'error' }, 2200);
     }
@@ -127,11 +128,14 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <View style={{ alignItems: 'center', marginTop: 28, gap: 2 }}>
+          <View style={{ marginBottom: 8 }}>
+            <Logotype height={26} />
+          </View>
           <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
             Version 1.0.0
           </AppText>
           <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-            A React Native port of Dime by Rafael Soh
+            Based on Dime by Rafael Soh
           </AppText>
         </View>
       </ScrollView>

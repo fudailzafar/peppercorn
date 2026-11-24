@@ -1,7 +1,7 @@
 {
-  "name": "Dime",
-  "short_name": "Dime",
-  "description": "Simple income and expense tracker with budgets and insights.",
+  "name": "Peppercorn",
+  "short_name": "Peppercorn",
+  "description": "Track spending, budgets, gold, silver and ethical funds.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

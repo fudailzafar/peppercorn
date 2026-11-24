@@ -2,7 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { StyleProp, TextStyle } from 'react-native';
 
 /**
- * Dime's icons, drawn with Google's Material Icons. Screens refer to icons by a short semantic name
+ * The app's icons, drawn with Google's Material Icons. Screens refer to icons by a short semantic name
  * (the names Dime's screens already used) and this table picks the Material glyph for each.
  * Reference: https://fonts.google.com/icons
  */

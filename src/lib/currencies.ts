@@ -1,4 +1,4 @@
-/** Currencies Dime offers (ISO 4217), by name. Names are built in because not every phone can supply them. */
+/** Currencies Peppercorn offers (ISO 4217), by name. Names are built in because not every phone can supply them. */
 export const CURRENCIES: readonly { code: string; name: string }[] = [
   { code: 'AFN', name: 'Afghan Afghani' },
   { code: 'ALL', name: 'Albanian Lek' },
