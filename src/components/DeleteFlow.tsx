@@ -5,7 +5,7 @@ import { Haptics } from '../lib/haptics';
 import { ConfirmSheet } from './Overlays';
 
 /**
- * Dime's delete flow: confirm in a bottom card, delete, then a "Tap to Undo" toast.
+ * Dime's delete flow: confirm in a bottom card, delete, then a toast with an Undo action.
  * Stopping a future recurring entry asks "Stop Recurring?" instead.
  */
 export function useDeleteFlow() {
@@ -21,8 +21,7 @@ export function useDeleteFlow() {
     Haptics.success();
     if (removed) {
       showToast({
-        title: 'Log Deleted',
-        subtitle: 'Tap to Undo',
+        title: 'Entry deleted',
         icon: 'arrow-undo-circle',
         tone: 'error',
         onTap: () => restoreTransaction(removed),
@@ -47,8 +46,8 @@ export function useDeleteFlow() {
   const element = (
     <ConfirmSheet
       visible={pending !== null}
-      title={`Delete '${pending?.note ?? ''}'?`}
-      message="This action cannot be undone."
+      title={`Delete “${pending?.note ?? ''}” entry?`}
+      message="You can undo this right after deleting."
       confirmLabel="Delete"
       onConfirm={confirm}
       onCancel={() => setPending(null)}

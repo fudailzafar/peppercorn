@@ -12,6 +12,7 @@ import { typeScale } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
 const THEME_LABEL = { system: 'System', light: 'Light', dark: 'Dark' } as const;
+const ENTRY_LABEL = { 1: 'Fill in cents first', 2: 'Type the decimal point' } as const;
 const HAPTIC_LABEL = ['Off', 'Subtle', 'Heavy'] as const;
 
 export default function SettingsScreen() {
@@ -28,13 +29,13 @@ export default function SettingsScreen() {
   const share = async () => {
     const { transactions, categories } = useStore.getState();
     if (transactions.length === 0) {
-      showToast({ title: 'Nothing to export', subtitle: 'Add a log first', icon: 'information-circle', tone: 'info' }, 2200);
+      showToast({ title: 'Nothing to export yet', subtitle: 'Add an entry first', icon: 'information-circle', tone: 'info' }, 2200);
       return;
     }
     try {
       await Share.share({ title: 'Dime export', message: exportCsv(transactions, categories) });
     } catch {
-      showToast({ title: 'Could not share', icon: 'alert-circle', tone: 'error' }, 2200);
+      showToast({ title: 'Couldn’t export your data. Try again.', icon: 'alert-circle', tone: 'error' }, 2200);
     }
   };
 
@@ -54,17 +55,24 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="keypad"
             colour="#FE6663"
-            label="Number Entry"
-            value={`Type ${settings.numberEntryType}`}
+            label="Number entry"
+            value={ENTRY_LABEL[settings.numberEntryType]}
             onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'entry' } })}
           />
           <SettingsRow
             icon="wallet"
             colour="#86CD82"
-            label="Income Tracking"
+            label="Income tracking"
             toggle={{ value: settings.incomeTracking, onChange: (v) => updateSettings({ incomeTracking: v }) }}
           />
-          <SettingsRow icon="calendar" colour="#F39B6D" label="Time Frames" onPress={() => router.push('/settings-timeframes')} />
+          <SettingsRow icon="calendar" colour="#F39B6D" label="Week and month start" onPress={() => router.push('/settings-timeframes')} />
+          <SettingsRow
+            icon="finger-print"
+            colour="#279AF4"
+            label="Haptics"
+            value={HAPTIC_LABEL[settings.haptics]}
+            onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'haptics' } })}
+          />
         </SettingsSection>
 
         <SettingsSection title="Appearance">
@@ -78,47 +86,37 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="logo-usd"
             colour="#DF928E"
-            label="Display Cents"
+            label="Show cents"
             toggle={{ value: settings.showCents, onChange: (v) => updateSettings({ showCents: v }) }}
           />
           <SettingsRow
             icon="sunny"
             colour="#158AB1"
-            label="Upcoming Logs"
+            label="Upcoming entries"
             value={settings.showUpcoming ? 'Shown' : 'Hidden'}
             onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'upcoming' } })}
           />
           <SettingsRow
             icon="remove-circle"
             colour="#F7717D"
-            label="Display +/- Symbol"
+            label="Show + and − signs"
             toggle={{ value: settings.showSign, onChange: (v) => updateSettings({ showSign: v }) }}
           />
           <SettingsRow
             icon="flash"
             colour="#556BF5"
-            label="Animated Charts"
+            label="Animated charts"
             toggle={{ value: settings.animatedCharts, onChange: (v) => updateSettings({ animatedCharts: v }) }}
           />
         </SettingsSection>
 
         <SettingsSection title="Data">
-          <SettingsRow icon="share" colour="#B1638B" label="Export Data" onPress={share} />
-          <SettingsRow icon="trash-bin" colour="#FF78A3" label="Erase Data" destructive onPress={() => setErasing(true)} />
+          <SettingsRow icon="share" colour="#B1638B" label="Export data" onPress={share} />
+          <SettingsRow icon="trash-bin" colour="#FF78A3" label="Erase data" destructive onPress={() => setErasing(true)} />
         </SettingsSection>
 
         <SettingsSection title="Account">
           <SettingsRow icon="log-out" colour="#6A7CF9" label="Log out" onPress={() => setLoggingOut(true)} />
-        </SettingsSection>
-
-        <SettingsSection title="Others">
-          <SettingsRow
-            icon="finger-print"
-            colour="#279AF4"
-            label="Haptics"
-            value={HAPTIC_LABEL[settings.haptics]}
-            onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'haptics' } })}
-          />
         </SettingsSection>
 
         <View style={{ alignItems: 'center', marginTop: 28, gap: 2 }}>
@@ -134,7 +132,7 @@ export default function SettingsScreen() {
       <ConfirmSheet
         visible={loggingOut}
         title="Log out?"
-        message="Your logs and budgets stay on this device. You will go back to the welcome screen."
+        message="You’ll return to the welcome screen. Your entries and budgets stay on this phone."
         confirmLabel="Log out"
         onCancel={() => setLoggingOut(false)}
         onConfirm={() => {
@@ -145,14 +143,14 @@ export default function SettingsScreen() {
       />
       <ConfirmSheet
         visible={erasing}
-        title="Erase all data?"
-        message="This deletes every log and budget. It cannot be undone."
-        confirmLabel="Erase"
+        title="Erase all entries and budgets?"
+        message="Your categories are kept. You can’t undo this."
+        confirmLabel="Erase data"
         onCancel={() => setErasing(false)}
         onConfirm={() => {
           eraseAll();
           setErasing(false);
-          showToast({ title: 'Data Erased', icon: 'checkmark-circle', tone: 'success' }, 2200);
+          showToast({ title: 'Data erased', icon: 'checkmark-circle', tone: 'success' }, 2200);
         }}
       />
     </View>

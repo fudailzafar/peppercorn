@@ -71,7 +71,7 @@ export default function SearchScreen() {
                 No entries found
               </AppText>
               <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 8 }}>
-                Try a different search query.
+                Try another note or category name.
               </AppText>
             </View>
           ) : undefined

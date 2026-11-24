@@ -13,7 +13,7 @@ interface Option {
   apply: () => void;
 }
 
-/** One screen for Dime's simple "pick one" settings (theme, haptics, number entry, upcoming logs). */
+/** One screen for Dime's simple "pick one" settings (theme, haptics, number entry, upcoming entries). */
 export default function SettingsChoice() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const { m3 } = useTheme();
@@ -42,17 +42,16 @@ export default function SettingsChoice() {
       },
     }));
   } else if (key === 'entry') {
-    title = 'Number Entry';
-    footer = 'Type 1 shifts digits in as cents. Type 2 uses a decimal point.';
+    title = 'Number entry';
     options = ([1, 2] as const).map((v) => ({
-      label: `Type ${v}`,
-      caption: v === 1 ? 'Digits enter as cents: 1 2 5 → 1.25' : 'Decimal point: 1 2 . 5 → 12.5',
+      label: v === 1 ? 'Fill in cents first' : 'Type the decimal point',
+      caption: v === 1 ? '1 2 5 becomes 1.25' : '1 2 . 5 becomes 12.5',
       selected: settings.numberEntryType === v,
       apply: () => update({ numberEntryType: v }),
     }));
   } else if (key === 'upcoming') {
-    title = 'Upcoming Logs';
-    footer = 'Recurring logs show their next date at the top of your Log.';
+    title = 'Upcoming entries';
+    footer = 'Repeating entries show their next date at the top of your Log.';
     options = [
       { label: 'Shown', selected: settings.showUpcoming, apply: () => update({ showUpcoming: true }) },
       { label: 'Hidden', selected: !settings.showUpcoming, apply: () => update({ showUpcoming: false }) },

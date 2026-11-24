@@ -102,7 +102,7 @@ export default function NewBudget() {
         <View style={{ marginBottom: 12 }}>
           {available.length === 0 ? (
             <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-              {'No remaining\ncategories.'}
+              Every category already has a budget.
             </AppText>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
@@ -133,7 +133,7 @@ export default function NewBudget() {
       </View>
 
       <View style={{ paddingBottom: Math.max(insets.bottom, 12) + 4 }}>
-        <NumberPad raw={raw} onChange={setRaw} entryType={entryType} onSubmit={save} />
+        <NumberPad raw={raw} onChange={setRaw} entryType={entryType} onSubmit={save} submitLabel="Save budget" />
       </View>
     </View>
   );

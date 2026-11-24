@@ -57,7 +57,7 @@ export default function BudgetDetail() {
       <View style={[styles.summary, { backgroundColor: m3.surfaceContainerLow, borderColor: m3.outlineVariant }]}>
         <View style={[styles.status, { backgroundColor: p.over ? m3.errorContainer : m3.successContainer }]}>
           <AppText size={typeScale.labelMedium.size} weight="semibold" color={p.over ? m3.error : m3.success} style={{ letterSpacing: 0.5 }}>
-            {Math.round(p.fraction * 100)}% {p.over ? 'OVER' : 'SPENT'}
+            {Math.round(p.fraction * 100)}% spent
           </AppText>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 12 }}>
@@ -97,7 +97,7 @@ export default function BudgetDetail() {
       ) : null}
 
       <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
-        Transactions
+        Entries
       </AppText>
       {list.length === 0 ? (
         <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginHorizontal: 16, marginTop: 4 }}>

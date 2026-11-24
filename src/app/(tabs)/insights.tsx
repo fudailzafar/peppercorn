@@ -122,10 +122,10 @@ export default function InsightsScreen() {
     sideLabel = barLabel;
     sideValue = barAmount;
   } else if (filtering) {
-    sideLabel = type === 3 ? (income ? 'Income/Mth' : 'Spent/Mth') : income ? 'Income/Day' : 'Spent/Day';
+    sideLabel = `${income ? 'Income' : 'Spent'} per ${type === 3 ? 'month' : 'day'}`;
     sideValue = data.average;
   } else {
-    sideLabel = type === 3 ? 'AVG/MTH' : 'AVG/DAY';
+    sideLabel = type === 3 ? 'Average per month' : 'Average per day';
     sideValue = summary.average;
   }
 
@@ -229,7 +229,7 @@ export default function InsightsScreen() {
                 <View style={[styles.badge, { backgroundColor: change >= 0 ? m3.successContainer : m3.surfaceContainerHigh }]}>
                   <Icon name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.onSurfaceVariant} />
                   <AppText size={typeScale.labelMedium.size} weight="semibold" color={change >= 0 ? m3.success : m3.onSurfaceVariant}>
-                    {Math.min(Math.round(Math.abs(change)), 999)}% vs last
+                    {Math.min(Math.round(Math.abs(change)), 999)}% vs last {TYPES.find((t) => t.type === type)?.label}
                   </AppText>
                 </View>
               ) : null}
@@ -278,7 +278,7 @@ export default function InsightsScreen() {
                     setSelectedCategory(null);
                     setSelectedBar(selectedBar === i ? null : i);
                   }}
-                  accessibilityLabel={`Select ${i + 1}`}
+                  accessibilityLabel={type === 3 ? `${monthName(data.dates[i])} ${data.dates[i].getFullYear()}` : dayLabel(data.dates[i])}
                 />
               ))}
             </View>

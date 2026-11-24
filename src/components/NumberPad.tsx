@@ -12,6 +12,8 @@ interface Props {
   onChange: (raw: string) => void;
   entryType: EntryType;
   onSubmit: () => void;
+  /** What the check key does, for screen readers. */
+  submitLabel: string;
 }
 
 const ROWS = [
@@ -21,7 +23,7 @@ const ROWS = [
 ];
 
 /** A Material 3 keypad: tonal 16dp keys with ripples, and a filled primary confirm key. */
-export function NumberPad({ raw, onChange, entryType, onSubmit }: Props) {
+export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel }: Props) {
   const { m3 } = useTheme();
 
   const key = (content: React.ReactNode, onPress: () => void, tone: 'tonal' | 'primary', label: string) => {
@@ -78,7 +80,7 @@ export function NumberPad({ raw, onChange, entryType, onSubmit }: Props) {
               'Decimal point',
             )}
         {digit(0)}
-        {key(<Icon name="checkmark" size={30} color={m3.onPrimary} />, onSubmit, 'primary', 'Confirm')}
+        {key(<Icon name="checkmark" size={30} color={m3.onPrimary} />, onSubmit, 'primary', submitLabel)}
       </View>
     </View>
   );

@@ -10,7 +10,7 @@ import { ConfirmSheet } from '../components/Overlays';
 import { EMOJIS } from '../lib/emojis';
 import { Haptics } from '../lib/haptics';
 import { useStore, useUi } from '../lib/store';
-import { categoryColors } from '../theme/tokens';
+import { categoryColors, colourNames } from '../theme/tokens';
 import { shape, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 
@@ -36,6 +36,9 @@ export default function CategoryEdit() {
 
   const palette = income ? ['#76FBB1', ...categoryColors.filter((x) => x !== '#76FBB1')] : categoryColors;
   const txCount = useStore((s) => s.transactions.filter((t) => t.categoryId === id).length);
+  const hasBudget = useStore((s) => s.budgets.some((b) => b.categoryId === id));
+  // Name only what really goes with the category.
+  const alsoDeletes = [txCount > 0 ? (txCount === 1 ? 'its 1 entry' : `its ${txCount} entries`) : '', hasBudget ? 'its budget' : ''].filter(Boolean).join(' and ');
 
   const save = () => {
     const trimmed = name.trim();
@@ -47,7 +50,7 @@ export default function CategoryEdit() {
     const clash = categories.some((x) => x.income === income && x.id !== id && x.name.toLowerCase() === trimmed.toLowerCase());
     if (clash) {
       Haptics.warning();
-      showToast({ title: 'Name already used', subtitle: 'Choose a different name', icon: 'alert-circle', tone: 'info' }, 2200);
+      showToast({ title: 'You already have a category with this name', subtitle: 'Try a different name', icon: 'alert-circle', tone: 'info' }, 2200);
       return;
     }
     if (existing) updateCategory(existing.id, { name: trimmed, emoji, colour });
@@ -83,7 +86,7 @@ export default function CategoryEdit() {
         </AppText>
         <View style={styles.grid}>
           {palette.map((col) => (
-            <Pressable key={col} onPress={() => setColour(col)} style={[styles.swatch, { backgroundColor: col }]} accessibilityRole="radio" accessibilityState={{ selected: colour === col }} accessibilityLabel={`Colour ${col}`}>
+            <Pressable key={col} onPress={() => setColour(col)} style={[styles.swatch, { backgroundColor: col }]} accessibilityRole="radio" accessibilityState={{ selected: colour === col }} accessibilityLabel={colourNames[col] ?? 'Custom colour'}>
               {colour === col ? <Icon name="checkmark" size={22} color="#FFFFFF" /> : null}
             </Pressable>
           ))}
@@ -109,8 +112,8 @@ export default function CategoryEdit() {
 
       <ConfirmSheet
         visible={confirmDelete}
-        title={`Delete '${existing?.name ?? ''}'?`}
-        message={txCount > 0 ? `Its ${txCount} ${txCount === 1 ? 'log' : 'logs'} and budget will be deleted too.` : 'This action cannot be undone.'}
+        title={`Delete “${existing?.name ?? ''}” category?`}
+        message={`${alsoDeletes ? `This also deletes ${alsoDeletes}. ` : ''}You can’t undo this.`}
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => {
           if (existing) deleteCategory(existing.id);

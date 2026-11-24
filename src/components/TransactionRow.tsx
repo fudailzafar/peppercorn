@@ -178,7 +178,7 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
       <Popover visible={menu.visible} anchor={menu.anchor} onClose={menu.close} align="center" width={200}>
         {t.recurringType > 0 ? (
           <PopoverItem
-            label="Stop Recurring"
+            label="Stop repeating"
             icon="close"
             onPress={() => {
               menu.close();

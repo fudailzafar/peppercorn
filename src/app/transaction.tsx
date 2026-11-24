@@ -24,7 +24,7 @@ import { springs } from '../theme/motion';
 import { m3Duration, m3Easing, shape, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 
-const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'none', 1: 'daily', 2: 'weekly', 3: 'monthly' };
+const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'Don’t repeat', 1: 'Daily', 2: 'Weekly', 3: 'Monthly' };
 const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
 
 /** Add or edit a transaction (full-screen, slides up from the tab bar's "+"). */
@@ -158,18 +158,18 @@ export default function TransactionScreen() {
   const submit = () => {
     if (amount <= 0 && !categoryId) {
       Haptics.error();
-      showToast({ title: 'Incomplete Entry', icon: 'help-circle-outline', tone: 'error' }, 2000);
+      showToast({ title: 'Enter an amount and choose a category', icon: 'help-circle-outline', tone: 'error' }, 2000);
       flashCategory();
       return;
     }
     if (amount <= 0) {
       Haptics.error();
-      showToast({ title: 'Missing Amount', icon: 'cash-outline', tone: 'error' }, 2000);
+      showToast({ title: 'Enter an amount', icon: 'cash-outline', tone: 'error' }, 2000);
       return;
     }
     if (!categoryId) {
       Haptics.error();
-      showToast({ title: 'Missing Category', icon: 'file-tray-outline', tone: 'error' }, 2000);
+      showToast({ title: 'Choose a category', icon: 'file-tray-outline', tone: 'error' }, 2000);
       flashCategory();
       return;
     }
@@ -222,7 +222,7 @@ export default function TransactionScreen() {
           />
         ))}
         <PopoverItem
-          label="custom"
+          label="Custom"
           selected={repeat > 0 && every > 1}
           onPress={() => {
             repeatMenu.close();
@@ -264,7 +264,7 @@ export default function TransactionScreen() {
         {repeat > 0 ? (
           <Chip
             icon="repeat"
-            label={every === 1 ? `Repeats ${REPEAT_LABELS[repeat]}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
+            label={every === 1 ? `Repeats ${REPEAT_LABELS[repeat].toLowerCase()}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
             tint={m3.secondaryContainer}
             onTint={m3.onSecondaryContainer}
             onPress={repeatMenu.open}
@@ -351,7 +351,7 @@ export default function TransactionScreen() {
           <View style={{ height: 8 }} />
         ) : (
           <EnterSlide from="left">
-            <NumberPad raw={raw} onChange={setRaw} entryType={entryType} onSubmit={submit} />
+            <NumberPad raw={raw} onChange={setRaw} entryType={entryType} onSubmit={submit} submitLabel="Save entry" />
           </EnterSlide>
         )}
       </View>
@@ -475,7 +475,7 @@ function CustomRepeat({
         onChange={(i) => setType((i + 1) as 1 | 2 | 3)}
       />
       <View style={{ marginTop: 24 }}>
-        <FilledButton label="Confirm" onPress={() => onDone(type, n)} />
+        <FilledButton label="Set repeat" onPress={() => onDone(type, n)} />
       </View>
     </BottomSheet>
   );

@@ -23,17 +23,17 @@ import { useTheme } from '../../theme/theme';
 type FilterType = 'all' | 'type' | 'day' | 'week' | 'month' | 'category' | 'recurring' | 'upcoming';
 
 const FILTERS: { key: FilterType; label: string; icon: IconName }[] = [
-  { key: 'all', label: 'all entries', icon: 'albums' },
-  { key: 'type', label: 'by type', icon: 'cash' },
-  { key: 'day', label: 'by day', icon: 'calendar' },
-  { key: 'week', label: 'by week', icon: 'calendar-number' },
-  { key: 'month', label: 'by month', icon: 'calendar-clear' },
-  { key: 'category', label: 'by category', icon: 'grid' },
-  { key: 'recurring', label: 'recurring', icon: 'repeat' },
-  { key: 'upcoming', label: 'upcoming', icon: 'sunny' },
+  { key: 'all', label: 'All entries', icon: 'albums' },
+  { key: 'type', label: 'By type', icon: 'cash' },
+  { key: 'day', label: 'By day', icon: 'calendar' },
+  { key: 'week', label: 'By week', icon: 'calendar-number' },
+  { key: 'month', label: 'By month', icon: 'calendar-clear' },
+  { key: 'category', label: 'By category', icon: 'grid' },
+  { key: 'recurring', label: 'Repeating', icon: 'repeat' },
+  { key: 'upcoming', label: 'Upcoming', icon: 'sunny' },
 ];
 
-const TIMEFRAMES = ['today', 'this week', 'this month', 'this year', 'all time'];
+const TIMEFRAMES = ['Today', 'This week', 'This month', 'This year', 'All time'];
 const HEADINGS: Record<number, string> = { 1: 'Net total', 2: 'Earned', 3: 'Spent' };
 
 type Row =
@@ -109,10 +109,10 @@ export default function LogScreen() {
           <Icon name="file-tray-outline" size={44} color={m3.onSurfaceVariant} />
         </View>
         <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ textAlign: 'center', marginTop: 24 }}>
-          Your Log is Empty
+          No entries yet
         </AppText>
         <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 8, letterSpacing: typeScale.bodyLarge.tracking }}>
-          {'Tap Add entry to log your\nfirst expense or income'}
+          Tap Add entry to add your first one.
         </AppText>
       </View>
     );
@@ -177,7 +177,7 @@ export default function LogScreen() {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
             <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant}>
-              No entries found.
+              No entries match this filter
             </AppText>
           </View>
         }
@@ -267,7 +267,7 @@ function LogHeader() {
         {([3, 2, 1] as const).map((h) => (
           <PopoverItem
             key={h}
-            label={h === 3 ? 'Total Spent' : h === 2 ? 'Total Income' : 'Net Total'}
+            label={HEADINGS[h]}
             icon={h === 3 ? 'remove' : h === 2 ? 'add' : 'swap-vertical'}
             selected={settings.logHeading === h}
             onPress={() => {

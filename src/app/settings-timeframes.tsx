@@ -18,7 +18,7 @@ export default function TimeFrames() {
   const ordinal = (n: number) => (n === 1 ? 'Start of month' : `${n}${['th', 'st', 'nd', 'rd'][n % 10 > 3 || Math.floor(n / 10) === 1 ? 0 : n % 10]} of month`);
 
   return (
-    <PageScaffold title="Time Frames">
+    <PageScaffold title="Week and month start">
       <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
         Week starts on
       </AppText>

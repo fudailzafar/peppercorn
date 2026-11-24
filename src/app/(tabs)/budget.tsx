@@ -50,7 +50,7 @@ export default function BudgetScreen() {
               <Icon name="wallet-outline" size={44} color={m3.onSurfaceVariant} />
             </View>
             <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ marginTop: 24 }}>
-              No Budgets Found
+              No budgets yet
             </AppText>
             <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 8, textAlign: 'center' }}>
               Set an overall budget, or one per category, and watch your pace.
@@ -153,8 +153,8 @@ export default function BudgetScreen() {
 
       <ConfirmSheet
         visible={toDelete !== null}
-        title={toDelete?.kind === 'main' ? 'Delete your overall budget?' : `Delete the '${categories.find((x) => x.id === (toDelete?.kind === 'category' ? toDelete.budget.categoryId : ''))?.name ?? ''}' budget?`}
-        message="This action cannot be undone."
+        title={toDelete?.kind === 'main' ? 'Delete your overall budget?' : `Delete the “${categories.find((x) => x.id === (toDelete?.kind === 'category' ? toDelete.budget.categoryId : ''))?.name ?? ''}” budget?`}
+        message="Your entries are kept. You can’t undo this."
         onCancel={() => setToDelete(null)}
         onConfirm={() => {
           if (toDelete?.kind === 'main') deleteMainBudget();
@@ -177,10 +177,10 @@ function BudgetCard({ budget, spent, category, showDays, onDelete }: { budget: B
   const percent = Math.round(p.fraction * 100);
   const tint = category?.colour ?? m3.primary;
   const status = p.over
-    ? { label: 'OVER', bg: m3.errorContainer, fg: m3.error }
+    ? { label: 'Over budget', bg: m3.errorContainer, fg: m3.error }
     : p.fraction > p.elapsed + 0.1
-      ? { label: 'AHEAD OF PACE', bg: m3.warningContainer, fg: m3.warning }
-      : { label: 'ON TRACK', bg: m3.successContainer, fg: m3.success };
+      ? { label: 'Spending fast', bg: m3.warningContainer, fg: m3.warning }
+      : { label: 'On track', bg: m3.successContainer, fg: m3.success };
 
   return (
     <View {...anchorProps(menu)} style={{ width: '48.5%' }}>

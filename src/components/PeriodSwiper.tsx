@@ -132,8 +132,8 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
         <Animated.View style={[{ flex: 1 }, pageStyle]}>{children}</Animated.View>
       </GestureDetector>
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {canGoBack ? arrow(true, backLabel, leftArrow) : end(true, "That's all, buddy.", leftEnd)}
-        {canGoForward ? arrow(false, forwardLabel, rightArrow) : end(false, 'Into the unknown.', rightEnd)}
+        {canGoBack ? arrow(true, backLabel, leftArrow) : end(true, 'No earlier entries', leftEnd)}
+        {canGoForward ? arrow(false, forwardLabel, rightArrow) : end(false, 'You’re up to date', rightEnd)}
       </View>
     </View>
   );

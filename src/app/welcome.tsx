@@ -12,10 +12,10 @@ import { radius, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 
 const SLIDES = [
-  { key: 'log', tint: '#FE724E', title: 'Log in seconds', text: 'A big number pad and your own categories keep every entry quick.', Art: LogArt },
+  { key: 'log', tint: '#FE724E', title: 'Add entries in seconds', text: 'A big number pad and your own categories keep it quick.', Art: LogArt },
   { key: 'insights', tint: '#279AF4', title: 'See where it goes', text: 'Insights break your spending down by day, week, month and category.', Art: InsightsArt },
   { key: 'budget', tint: '#6A7CF9', title: 'Stay on budget', text: 'Set an overall budget and one per category, and watch your pace.', Art: BudgetArt },
-  { key: 'private', tint: '#76FBB1', title: 'Yours, on your device', text: 'No account needed. Your entries stay on this phone unless you sign in.', Art: PrivateArt },
+  { key: 'private', tint: '#76FBB1', title: 'Yours, on your device', text: 'No account needed. Your entries stay on this phone.', Art: PrivateArt },
 ] as const;
 
 const GAP = 12;
@@ -125,7 +125,7 @@ export default function Welcome() {
           android_ripple={{ color: `${m3.onPrimary}33` }}
           onPress={() => {
             Haptics.selection();
-            showToast({ title: 'Google sign-in is coming soon', icon: 'logo-google', tone: 'info' }, 2200);
+            showToast({ title: 'Google sign-in isn’t available yet. Continue without an account.', icon: 'logo-google', tone: 'info' }, 2200);
           }}
           style={[styles.button, { backgroundColor: m3.primary }]}
         >
@@ -161,7 +161,7 @@ export default function Welcome() {
         </Pressable>
 
         <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-          Your data stays on this device until you sign in.
+          Your entries stay on this phone.
         </AppText>
       </View>
     </View>
