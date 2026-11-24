@@ -1,59 +1,58 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, BackHandler, FlatList, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
-import { Icon } from '../components/Icon';
+import { GoogleG } from '../components/GoogleG';
 import { Button } from '../components/material';
-import { BudgetArt, GoogleG, InsightsArt, LogArt, PrivateArt } from '../components/OnboardingArt';
+import { AddPreview, AssetsPreview, BudgetPreview, InsightsPreview } from '../components/OnboardingPreviews';
 import { Haptics } from '../lib/haptics';
 import { goBack } from '../lib/nav';
 import { useStore, useUi } from '../lib/store';
-import { radius, shape } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { shape } from '../theme/material';
+import { useTheme } from '../theme/theme';
 
-const SLIDES = [
-  { key: 'log', tint: '#FE724E', title: 'Add entries in seconds', text: 'A big number pad and your own categories keep it quick.', Art: LogArt },
-  { key: 'insights', tint: '#279AF4', title: 'See where it goes', text: 'Insights break your spending down by day, week, month and category.', Art: InsightsArt },
-  { key: 'budget', tint: '#6A7CF9', title: 'Stay on budget', text: 'Set an overall budget and one per category, and watch your pace.', Art: BudgetArt },
-  { key: 'private', tint: '#76FBB1', title: 'Yours, on your device', text: 'No account needed. Your entries stay on this phone.', Art: PrivateArt },
+const PAGES = [
+  { key: 'add', title: 'Add entries in seconds', text: 'Type an amount, tap a category, done.', Preview: AddPreview },
+  { key: 'budget', title: 'Stay on budget', text: 'Set a budget and see if you’re on track or spending fast.', Preview: BudgetPreview },
+  { key: 'insights', title: 'See where it goes', text: 'Your spending by week, month and category.', Preview: InsightsPreview },
+  { key: 'assets', title: 'Track your assets', text: 'Gold, silver and ethical funds, priced once a day.', Preview: AssetsPreview },
 ] as const;
 
-const GAP = 12;
-const SIDE = 20;
-const AUTO_MS = 4500;
+const LAST = PAGES.length - 1;
 
-/**
- * First screen: a slideshow of illustrated cards you can swipe sideways (the next card peeks in from the right),
- * then two ways in: Google (not wired up yet) or continuing locally with no account.
- */
+/** First screen: four pages of what Dime does. Next or Skip leads to the last, with the two ways in. */
 export default function Welcome() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const window = useWindowDimensions();
   const update = useStore((s) => s.updateSettings);
   const showToast = useUi((s) => s.showToast);
   const list = useRef<FlatList>(null);
+  const [width, setWidth] = useState(Math.min(window.width, 480));
+  // A horizontal list doesn't stretch its pages, so they take the list's own height.
+  const [height, setHeight] = useState(0);
   const [scrollX] = useState(() => new Animated.Value(0));
-  const [index, setIndex] = useState(0);
-  const touching = useRef(false);
+  const [page, setPage] = useState(0);
 
-  const cardW = Math.min(width - SIDE * 2 - 28, 360);
-  const step = cardW + GAP;
+  const goTo = (next: number) => {
+    Haptics.selection();
+    list.current?.scrollToOffset({ offset: next * width, animated: true });
+    setPage(next);
+  };
 
-  const onEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setIndex(Math.max(0, Math.min(SLIDES.length - 1, Math.round(e.nativeEvent.contentOffset.x / step))));
-  }, [step]);
-
-  // Advance by itself every few seconds, and loop; stop while a finger is on the carousel.
+  // Android's back button goes to the previous page; on the first it leaves the app, as there is nothing behind it.
   useEffect(() => {
-    const id = setInterval(() => {
-      if (touching.current) return;
-      const next = (index + 1) % SLIDES.length;
-      list.current?.scrollToOffset({ offset: next * step, animated: true });
-      setIndex(next);
-    }, AUTO_MS);
-    return () => clearInterval(id);
-  }, [index, step]);
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (page > 0) {
+        list.current?.scrollToOffset({ offset: (page - 1) * width, animated: true });
+        setPage(page - 1);
+      } else BackHandler.exitApp();
+      return true;
+    });
+    return () => sub.remove();
+  }, [page, width]);
+
+  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(Math.max(0, Math.min(LAST, Math.round(e.nativeEvent.contentOffset.x / width))));
 
   const enter = () => {
     Haptics.light();
@@ -61,94 +60,100 @@ export default function Welcome() {
     goBack();
   };
 
-  const bottom = Math.max(insets.bottom, 16) + 8;
+  const last = page === LAST;
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 16 }}>
-      <View style={styles.brand}>
-        <View style={[styles.logo, { backgroundColor: m3.primary }]}>
-          <Icon name="cash" size={22} color={m3.onPrimary} />
-        </View>
-        <AppText variant="titleLarge" color={m3.onSurface}>
+    <View
+      onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)}
+      style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) + 8 }}
+    >
+      <View style={styles.top}>
+        <AppText variant="titleLarge" style={{ flex: 1 }}>
           Dime
         </AppText>
+        {last ? null : <Button variant="text" label="Skip" onPress={() => goTo(LAST)} />}
       </View>
 
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Animated.FlatList
-          ref={list}
-          data={SLIDES}
-          keyExtractor={(s) => s.key}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={step}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          disableIntervalMomentum
-          contentContainerStyle={{ paddingHorizontal: SIDE, gap: GAP }}
-          style={{ flexGrow: 0 }}
-          onScrollBeginDrag={() => { touching.current = true; }}
-          onScrollEndDrag={() => { touching.current = false; }}
-          onMomentumScrollEnd={onEnd}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
-          scrollEventThrottle={16}
-          renderItem={({ item }) => (
-            <View style={[styles.card, { width: cardW, backgroundColor: withAlpha(item.tint, 0.14) }]}>
-              <View style={styles.art}>
-                <item.Art c={m3} accent={item.tint} />
-              </View>
-              <AppText variant="headlineSmall" color={m3.onSurface} style={{ marginTop: 8 }}>
+      <Animated.FlatList
+        ref={list}
+        data={PAGES}
+        keyExtractor={(p) => p.key}
+        horizontal
+        pagingEnabled
+        bounces={false}
+        showsHorizontalScrollIndicator={false}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={onMomentumEnd}
+        onLayout={(e: LayoutChangeEvent) => setHeight(e.nativeEvent.layout.height)}
+        style={{ flex: 1 }}
+        extraData={height}
+        renderItem={({ item }) => (
+          <View style={{ width, height: height || undefined, paddingHorizontal: 16 }}>
+            <item.Preview />
+            <View style={styles.copy}>
+              <AppText variant="headlineMedium" accessibilityRole="header" style={{ textAlign: 'center' }}>
                 {item.title}
               </AppText>
-              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ marginTop: 6 }}>
+              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
                 {item.text}
               </AppText>
             </View>
-          )}
-        />
+          </View>
+        )}
+      />
 
-        {/* Page dots: the active one stretches into a pill as you swipe. */}
-        <View style={styles.dots}>
-          {SLIDES.map((s, i) => {
-            const input = [(i - 1) * step, i * step, (i + 1) * step];
-            const w = scrollX.interpolate({ inputRange: input, outputRange: [8, 24, 8], extrapolate: 'clamp' });
-            const o = scrollX.interpolate({ inputRange: input, outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' });
-            return <Animated.View key={s.key} style={[styles.dot, { width: w, opacity: o, backgroundColor: m3.onSurface }]} />;
-          })}
-        </View>
+      {/* Page indicator: the current dot is a pill in the primary colour. */}
+      <View style={styles.dots} accessible accessibilityLabel={`Page ${page + 1} of ${PAGES.length}`}>
+        {PAGES.map((p, i) => {
+          const input = [(i - 1) * width, i * width, (i + 1) * width];
+          return (
+            <Animated.View
+              key={p.key}
+              style={[
+                styles.dot,
+                {
+                  width: scrollX.interpolate({ inputRange: input, outputRange: [8, 24, 8], extrapolate: 'clamp' }),
+                  backgroundColor: scrollX.interpolate({ inputRange: input, outputRange: [m3.outlineVariant, m3.primary, m3.outlineVariant], extrapolate: 'clamp' }),
+                },
+              ]}
+            />
+          );
+        })}
       </View>
 
-      <View style={{ paddingHorizontal: 20, paddingBottom: bottom, gap: 12 }}>
-        <Button
-          large
-          label="Continue with Google"
-          leading={
-            <View style={styles.gBadge}>
-              <GoogleG size={18} />
-            </View>
-          }
-          onPress={() => {
-            Haptics.selection();
-            showToast({ title: 'Google sign-in isn’t available yet. Continue without an account.', icon: 'logo-google', tone: 'info' }, 2200);
-          }}
-        />
-
-        <Button large variant="tonal" icon="phone-portrait-outline" label="Continue without an account" onPress={enter} />
-
-        <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-          Your entries stay on this phone.
-        </AppText>
+      {/* The same height on every page, so nothing jumps on the last one. */}
+      <View style={styles.actions}>
+        {last ? (
+          <>
+            <Button large label="Continue without an account" onPress={enter} />
+            <Button
+              large
+              variant="outlined"
+              label="Continue with Google"
+              leading={<GoogleG size={20} />}
+              onPress={() => {
+                Haptics.selection();
+                showToast({ title: 'Google sign-in isn’t available yet. Continue without an account.', icon: 'logo-google', tone: 'info' }, 2200);
+              }}
+            />
+            <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+              Your entries stay on this phone.
+            </AppText>
+          </>
+        ) : (
+          <Button large label="Next" onPress={() => goTo(page + 1)} />
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingBottom: 12 },
-  logo: { width: 36, height: 36, borderRadius: radius.key, alignItems: 'center', justifyContent: 'center' },
-  card: { borderRadius: radius.hero, padding: 20, paddingBottom: 24 },
-  art: { height: 210, alignItems: 'center', justifyContent: 'center' },
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20, height: 8 },
+  top: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4 },
+  copy: { minHeight: 124, justifyContent: 'center', gap: 8, paddingHorizontal: 8 },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, height: 8, marginBottom: 16 },
   dot: { height: 8, borderRadius: shape.full },
-  gBadge: { width: 28, height: 28, borderRadius: shape.full, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  actions: { paddingHorizontal: 16, gap: 8, minHeight: 144, justifyContent: 'flex-end' },
 });
