@@ -10,9 +10,9 @@ import { AppText } from './AppText';
 import { Icon } from './Icon';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
-type TabKey = 'home' | 'insights' | 'budget' | 'person';
-const ROUTE_ICON: Record<string, TabKey> = { index: 'home', insights: 'insights', budget: 'budget', settings: 'person' };
-const ROUTE_LABEL: Record<string, string> = { index: 'Home', insights: 'Insights', budget: 'Budget', settings: 'You' };
+type TabKey = 'home' | 'insights' | 'assets' | 'budget' | 'person';
+const ROUTE_ICON: Record<string, TabKey> = { index: 'home', insights: 'insights', portfolio: 'assets', budget: 'budget', settings: 'person' };
+const ROUTE_LABEL: Record<string, string> = { index: 'Home', insights: 'Insights', portfolio: 'Assets', budget: 'Budget', settings: 'You' };
 
 /** Height of the bar's content, from the M3 navigation bar spec (80dp), excluding the system inset. */
 export const NAV_BAR_HEIGHT = 80;
@@ -56,7 +56,7 @@ function Destination({ focused, icon, label, onPress }: { focused: boolean; icon
   );
 }
 
-/** Dime's four destinations in a Material 3 navigation bar. The add action is a floating action button (see Fab). */
+/** Dime's five destinations in a Material 3 navigation bar. The add action is a floating action button (see Fab). */
 export function DimeTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
   const { m3 } = useTheme();
   const hidden = useUi((s) => s.hideTabBar);

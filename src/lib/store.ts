@@ -3,7 +3,8 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { addPeriod, nextTransactionDate, recurrenceDate, startOfTomorrow } from './dates';
 import { defaultCurrency, setGroupingCurrency } from './format';
-import type { Budget, BudgetType, Category, MainBudget, RecurringType, Settings, Transaction } from './types';
+import { assetById, assetCategories } from './assets';
+import type { AssetId, AssetPrices, Budget, BudgetType, Category, Holding, MainBudget, RecurringType, Settings, Transaction } from './types';
 
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 
@@ -43,6 +44,9 @@ export interface TransactionInput {
   categoryId: string | null;
   recurringType: RecurringType;
   recurringCoefficient: number;
+  asset?: AssetId;
+  qty?: number;
+  rate?: number;
 }
 
 interface State {
@@ -50,6 +54,10 @@ interface State {
   transactions: Transaction[];
   budgets: Budget[];
   mainBudget: MainBudget | null;
+  holdings: Holding[];
+  prices: Partial<Record<AssetId, AssetPrices>>;
+  /** The last price update failed (older prices are still shown). */
+  priceError: boolean;
   settings: Settings;
 
   seedDefaults: () => void;
@@ -72,6 +80,13 @@ interface State {
   deleteMainBudget: () => void;
   rollBudgets: () => void;
 
+  addHolding: (h: Omit<Holding, 'id' | 'date'>) => void;
+  deleteHolding: (id: string) => Holding | undefined;
+  restoreHolding: (h: Holding) => void;
+  savePrices: (id: AssetId, history: Record<string, number>, fetchedAt?: number) => void;
+  setPriceError: (failed: boolean) => void;
+  patchTransactions: (patch: Record<string, Partial<Transaction>>) => void;
+
   updateSettings: (patch: Partial<Settings>) => void;
   eraseAll: () => void;
 }
@@ -93,6 +108,8 @@ function catchUpRecurring(t: Transaction, out: Transaction[]): boolean {
     const carries = following >= tomorrow;
     out.push({
       ...t,
+      // Each occurrence of an asset purchase is priced on its own day.
+      ...(t.asset ? { rate: undefined, qty: assetById(t.asset).kind === 'fund' ? undefined : t.qty } : {}),
       id: newId(),
       date: occurrence.getTime(),
       onceRecurring: true,
@@ -111,19 +128,26 @@ export const useStore = create<State>()(
       transactions: [],
       budgets: [],
       mainBudget: null,
+      holdings: [],
+      prices: {},
+      priceError: false,
       settings: defaultSettings(),
 
       seedDefaults: () => {
-        if (get().categories.length > 0) return;
+        // The fixed asset categories are always there, also for people who started before assets existed.
+        const fixed = assetCategories();
+        const missing = fixed.filter((a) => !get().categories.some((c) => c.id === a.id));
+        set((s) => ({ categories: [...s.categories.map((c) => fixed.find((f) => f.id === c.id) ?? c), ...missing] }));
+        if (get().categories.some((c) => !c.asset)) return;
         const now = Date.now();
-        set({
-          categories: DEFAULT_CATEGORIES.map((c, order) => ({ ...c, id: newId(), order, dateCreated: now })),
-        });
+        set((s) => ({
+          categories: [...DEFAULT_CATEGORIES.map((c, order) => ({ ...c, id: newId(), order, dateCreated: now })), ...s.categories],
+        }));
       },
 
       // MARK: Categories
       addCategory: (c) => {
-        const siblings = get().categories.filter((x) => x.income === c.income);
+        const siblings = get().categories.filter((x) => x.income === c.income && !x.asset);
         const category: Category = { ...c, id: newId(), order: siblings.length, dateCreated: Date.now() };
         set((s) => ({ categories: [...s.categories, category] }));
         return category;
@@ -160,6 +184,7 @@ export const useStore = create<State>()(
           recurringType: input.recurringType,
           recurringCoefficient: input.recurringType > 0 ? Math.max(1, input.recurringCoefficient) : 0,
           onceRecurring: input.recurringType > 0,
+          ...(input.asset ? { asset: input.asset, qty: input.qty, rate: input.rate } : {}),
         };
         const extra: Transaction[] = [];
         if (t.recurringType > 0 && catchUpRecurring(t, extra)) {
@@ -185,6 +210,9 @@ export const useStore = create<State>()(
             recurringType: input.recurringType,
             recurringCoefficient: input.recurringType > 0 ? Math.max(1, input.recurringCoefficient) : 0,
             onceRecurring: original.onceRecurring || input.recurringType > 0,
+            asset: input.asset,
+            qty: input.qty,
+            rate: input.rate,
           };
           const extra: Transaction[] = [];
           if (updated.recurringType > 0 && catchUpRecurring(updated, extra)) {
@@ -250,6 +278,21 @@ export const useStore = create<State>()(
           };
         }),
 
+      // MARK: Assets
+      addHolding: (h) => set((s) => ({ holdings: [...s.holdings, { ...h, id: newId(), date: Date.now() }] })),
+      deleteHolding: (id) => {
+        const removed = get().holdings.find((h) => h.id === id);
+        set((s) => ({ holdings: s.holdings.filter((h) => h.id !== id) }));
+        return removed;
+      },
+      restoreHolding: (h) => set((s) => ({ holdings: [...s.holdings, h] })),
+      savePrices: (id, history, fetchedAt) =>
+        set((s) => ({
+          prices: { ...s.prices, [id]: { history: { ...s.prices[id]?.history, ...history }, fetchedAt: fetchedAt ?? s.prices[id]?.fetchedAt ?? 0 } },
+        })),
+      setPriceError: (failed) => set({ priceError: failed }),
+      patchTransactions: (patch) => set((s) => ({ transactions: s.transactions.map((t) => (patch[t.id] ? { ...t, ...patch[t.id] } : t)) })),
+
       // MARK: Settings
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       eraseAll: () =>
@@ -257,6 +300,7 @@ export const useStore = create<State>()(
           transactions: [],
           budgets: [],
           mainBudget: null,
+          holdings: [],
           categories: s.categories,
         })),
     }),

@@ -46,9 +46,10 @@ export default function SearchScreen() {
   }, [query, transactions, categories, now]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 8 }}>
+    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 12 }}>
       <SearchBar
         autoFocus
+        grow
         value={query}
         onChangeText={setQuery}
         placeholder="Search entries"

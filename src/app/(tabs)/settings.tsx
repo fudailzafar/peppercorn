@@ -8,6 +8,7 @@ import { Avatar } from '../../components/Avatar';
 import { BottomSheet, FilledButton, PillField } from '../../components/m3';
 import { ConfirmSheet } from '../../components/Overlays';
 import { SettingsRow, SettingsSection } from '../../components/SettingsBits';
+import { currencySymbol } from '../../lib/format';
 import { exportCsv } from '../../lib/csv';
 import { useStore, useUi } from '../../lib/store';
 import { typeScale } from '../../theme/material';
@@ -66,7 +67,7 @@ export default function SettingsScreen() {
 
         <SettingsSection title="General">
           <SettingsRow icon="pricetags" label="Categories" onPress={() => router.push('/categories')} />
-          <SettingsRow icon="cash" label="Currency" value={settings.currency} onPress={() => router.push('/settings-currency')} />
+          <SettingsRow icon="cash" label="Currency" value={currencySymbol(settings.currency) === settings.currency ? settings.currency : `${currencySymbol(settings.currency)} ${settings.currency}`} onPress={() => router.push('/settings-currency')} />
           <SettingsRow
             icon="keypad"
             label="Number entry"
@@ -154,7 +155,7 @@ export default function SettingsScreen() {
       <ConfirmSheet
         visible={loggingOut}
         title="Log out?"
-        message="You’ll return to the welcome screen. Your entries and budgets stay on this phone."
+        message="You’ll return to the welcome screen. Your entries, assets and budgets stay on this phone."
         confirmLabel="Log out"
         onCancel={() => setLoggingOut(false)}
         onConfirm={() => {
@@ -165,7 +166,7 @@ export default function SettingsScreen() {
       />
       <ConfirmSheet
         visible={erasing}
-        title="Erase all entries and budgets?"
+        title="Erase all entries, assets and budgets?"
         message="Your categories are kept. You can’t undo this."
         confirmLabel="Erase data"
         onCancel={() => setErasing(false)}

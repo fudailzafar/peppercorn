@@ -17,7 +17,7 @@ export default function CategoriesScreen() {
   const { m3 } = useTheme();
 
   const section = (income: boolean) => {
-    const list = categories.filter((x) => x.income === income).sort((a, b) => a.order - b.order);
+    const list = categories.filter((x) => x.income === income && !x.asset).sort((a, b) => a.order - b.order);
     const move = (index: number, delta: number) => {
       const ids = list.map((x) => x.id);
       const target = index + delta;
@@ -86,6 +86,26 @@ export default function CategoriesScreen() {
     <PageScaffold title="Categories">
       {section(false)}
       {section(true)}
+      <View style={{ marginTop: 8 }}>
+        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
+          Assets (fixed)
+        </AppText>
+        {categories
+          .filter((x) => x.asset)
+          .map((cat) => (
+            <View key={cat.id} style={styles.rowMain}>
+              <View style={[styles.avatar, { backgroundColor: withAlpha(cat.colour, 0.3) }]}>
+                <AppText size={20} style={{ includeFontPadding: false }}>
+                  {cat.emoji}
+                </AppText>
+              </View>
+              <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} style={{ marginLeft: 16, flex: 1 }} numberOfLines={1}>
+                {cat.name}
+              </AppText>
+              <Icon name="lock" size={20} color={m3.onSurfaceVariant} />
+            </View>
+          ))}
+      </View>
     </PageScaffold>
   );
 }

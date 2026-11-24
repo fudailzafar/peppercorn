@@ -16,6 +16,7 @@ export default function TabLayout() {
       }} tabBar={(props) => <DimeTabBar {...props} />}>
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="insights" options={{ title: 'Insights' }} />
+      <Tabs.Screen name="portfolio" options={{ title: 'Assets' }} />
       <Tabs.Screen name="budget" options={{ title: 'Budget' }} />
       <Tabs.Screen name="settings" options={{ title: 'You' }} />
     </Tabs>

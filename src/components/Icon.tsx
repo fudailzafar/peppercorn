@@ -72,12 +72,14 @@ const MATERIAL = {
   wallet: 'account-balance-wallet',
   'wallet-outline': 'account-balance-wallet',
   // Home and profile
+  lock: 'lock-outline',
   person: 'person-outline',
   history: 'history',
   expense: 'north-east',
   income: 'south-west',
   // Bottom navigation destinations
   home: 'home',
+  assets: 'savings',
   log: 'receipt-long',
   insights: 'bar-chart',
   budget: 'account-balance-wallet',

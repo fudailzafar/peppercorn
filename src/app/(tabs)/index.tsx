@@ -8,7 +8,7 @@ import { BigAmount } from '../../components/Bits';
 import { CapsuleProgress } from '../../components/Charts';
 import { useDeleteFlow } from '../../components/DeleteFlow';
 import { Icon, type IconName } from '../../components/Icon';
-import { StateLayer } from '../../components/m3';
+import { SEARCH_HEIGHT, StateLayer } from '../../components/m3';
 import { TransactionRow } from '../../components/TransactionRow';
 import { budgetProgress, mainBudgetSpent, totalsSince } from '../../lib/calc';
 import { startOfCustomMonth } from '../../lib/dates';
@@ -18,14 +18,14 @@ import { useStore } from '../../lib/store';
 import { BUDGET_LABELS } from '../../lib/types';
 import { useFabScroll } from '../../lib/useFabScroll';
 import { useNow } from '../../lib/useNow';
-import { elevation, radius, shape, typeScale } from '../../theme/material';
+import { radius, shape, typeScale } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
 const RECENT = 6;
 
 /** Home: search, this month at a glance, four shortcuts, and the latest entries. */
 export default function HomeScreen() {
-  const { m3, dark } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const fabScroll = useFabScroll();
   const transactions = useStore((s) => s.transactions);
@@ -65,10 +65,10 @@ export default function HomeScreen() {
             accessibilityRole="search"
             accessibilityLabel="Search entries"
             android_ripple={{ color: `${m3.onSurface}1F` }}
-            style={[styles.search, dark ? { backgroundColor: m3.surfaceContainerHigh } : [{ backgroundColor: m3.surfaceContainerLow }, elevation(1)]]}
+            style={[styles.search, { backgroundColor: m3.surfaceContainerHigh }]}
           >
             <Icon name="search" size={22} color={m3.onSurface} />
-            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant}>
+            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ includeFontPadding: false }}>
               Search entries
             </AppText>
           </Pressable>
@@ -181,7 +181,7 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 
 const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-  search: { flex: 1, height: 52, borderRadius: shape.full, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
+  search: { flex: 1, height: SEARCH_HEIGHT, borderRadius: shape.full, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   card: { marginHorizontal: 16, marginTop: 20, borderRadius: radius.hero, padding: 20, paddingBottom: 12 },
   split: { flexDirection: 'row', gap: 16, marginTop: 12 },
   budget: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 12, minHeight: 52, borderTopWidth: StyleSheet.hairlineWidth },

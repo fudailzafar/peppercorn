@@ -1,5 +1,27 @@
 // Data model, mirroring Dime's Core Data entities.
 
+export type AssetId = 'gold' | 'silver' | 'taurus' | 'tata';
+
+/** Daily prices for one asset. */
+export interface AssetPrices {
+  /** Price per gram or unit, by day ("2026-11-24"). */
+  history: Record<string, number>;
+  fetchedAt: number;
+}
+
+/** Something already owned when tracking began: adds to the asset without counting as spending. */
+export interface Holding {
+  id: string;
+  asset: AssetId;
+  /** Grams or fund units. */
+  qty: number;
+  /** What was paid, or what it was worth when added if that isn't known. */
+  invested: number;
+  /** True when `invested` is what was really paid. */
+  paid?: boolean;
+  date: number;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -9,6 +31,8 @@ export interface Category {
   income: boolean;
   order: number;
   dateCreated: number;
+  /** Set on the fixed categories behind the assets. */
+  asset?: AssetId;
 }
 
 /** 0 = not recurring, 1 = daily, 2 = weekly, 3 = monthly. */
@@ -27,6 +51,10 @@ export interface Transaction {
   recurringCoefficient: number;
   /** True for transactions created by (or that started) a recurrence. */
   onceRecurring: boolean;
+  /** For asset purchases: which, how much (grams or units; unknown until a fund's price is out), and the price used. */
+  asset?: AssetId;
+  qty?: number;
+  rate?: number;
 }
 
 /** 1 = daily, 2 = weekly, 3 = monthly, 4 = yearly. */

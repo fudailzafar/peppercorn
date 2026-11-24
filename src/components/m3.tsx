@@ -4,6 +4,7 @@ import { Icon, type IconName } from './Icon';
 import { scheduleOnRN } from 'react-native-worklets';
 import Animated, { Easing, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { m3Duration, m3Easing, radius, shape, stateLayer, typeScale } from '../theme/material';
+import { useKeyboardLift } from '../lib/useKeyboardLift';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 
@@ -130,7 +131,14 @@ export function Chip({
 
 // MARK: Search bar and filled button
 
-/** M3 search bar: a full-width 56dp pill with a leading icon button, the input, and a clear action. */
+/** Space the Home search pill leaves for the profile picture beside it. */
+export const SEARCH_SIDE = 52;
+export const SEARCH_HEIGHT = 52;
+
+/**
+ * A search pill with a leading icon button, the input, and a clear action. It is exactly the Home pill's height, text
+ * size and text position; with `grow` it starts at the Home pill's width and widens to the edge.
+ */
 export function SearchBar({
   value,
   onChangeText,
@@ -138,6 +146,7 @@ export function SearchBar({
   leading,
   autoFocus,
   autoCapitalize,
+  grow = false,
 }: {
   value: string;
   onChangeText: (t: string) => void;
@@ -146,11 +155,17 @@ export function SearchBar({
   leading?: ReactNode;
   autoFocus?: boolean;
   autoCapitalize?: TextInputProps['autoCapitalize'];
+  grow?: boolean;
 }) {
   const { m3 } = useTheme();
+  const side = useSharedValue(grow ? SEARCH_SIDE : 0);
+  useEffect(() => {
+    side.set(withTiming(0, { duration: m3Duration.medium1, easing: emphasized }));
+  }, [side]);
+  const width = useAnimatedStyle(() => ({ marginRight: 16 + side.get() }));
   return (
-    <View style={[styles.searchBar, { backgroundColor: m3.surfaceContainerHigh }]}>
-      <View style={{ marginLeft: 4 }}>{leading ?? <Icon name="search" size={24} color={m3.onSurfaceVariant} style={{ marginHorizontal: 12 }} />}</View>
+    <Animated.View style={[styles.searchBar, { backgroundColor: m3.surfaceContainerHigh }, width]}>
+      {leading ? <View style={{ marginLeft: 2 }}>{leading}</View> : <Icon name="search" size={22} color={m3.onSurface} style={{ marginLeft: 16, marginRight: 12 }} />}
       <TextInput
         autoFocus={autoFocus}
         value={value}
@@ -170,7 +185,7 @@ export function SearchBar({
           <Icon name="close" size={24} color={m3.onSurfaceVariant} />
         </Pressable>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -241,6 +256,13 @@ export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { v
   const y = useSharedValue(visible ? 0 : 1);
   const scrim = useSharedValue(visible ? 1 : 0);
   const unmount = useCallback(() => setMounted(false), []);
+  const { onLayout, lift } = useKeyboardLift();
+  // The sheet rides up with the keyboard.
+  const raise = useSharedValue(0);
+  useEffect(() => {
+    raise.set(withTiming(lift, { duration: m3Duration.short4, easing: emphasized }));
+  }, [lift, raise]);
+  const raiseStyle = useAnimatedStyle(() => ({ paddingBottom: raise.get() }));
   // Mount as soon as the sheet is asked to show (adjusting state while rendering, not in an effect).
   if (visible && !mounted) setMounted(true);
 
@@ -267,12 +289,12 @@ export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { v
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }, scrimStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss" />
       </Animated.View>
-      <View style={styles.sheetWrap} pointerEvents="box-none">
+      <Animated.View onLayout={onLayout} style={[styles.sheetWrap, raiseStyle]} pointerEvents="box-none">
         <Animated.View style={[styles.sheet, { backgroundColor: m3.surfaceContainerLow, paddingBottom: Math.max(bottomInset, 16) + 8 }, sheetStyle]}>
           <View style={[styles.handle, { backgroundColor: m3.onSurfaceVariant }]} />
           {children}
         </Animated.View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -378,8 +400,8 @@ const styles = StyleSheet.create({
   sheetWrap: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: shape.extraLarge, borderTopRightRadius: shape.extraLarge, paddingHorizontal: 24, paddingTop: 12 },
   handle: { width: 32, height: 4, borderRadius: 2, alignSelf: 'center', opacity: 0.4, marginBottom: 16 },
-  searchBar: { height: 56, flexDirection: 'row', alignItems: 'center', borderRadius: shape.full, marginHorizontal: 16 },
-  searchInput: { flex: 1, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, height: 56, outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  searchBar: { height: SEARCH_HEIGHT, flexDirection: 'row', alignItems: 'center', borderRadius: shape.full, marginLeft: 16, overflow: 'hidden' },
+  searchInput: { flex: 1, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, height: SEARCH_HEIGHT, paddingVertical: 0, paddingHorizontal: 0, includeFontPadding: false, textAlignVertical: 'center', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   filled: { height: 56, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   switchTrack: { width: 52, height: 32, borderRadius: 16, borderWidth: 2, justifyContent: 'center' },
   switchThumb: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
@@ -389,7 +411,7 @@ const styles = StyleSheet.create({
   segment: { width: 108, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
   chip: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16, borderRadius: shape.full, overflow: 'hidden' },
   pillField: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, borderRadius: radius.action, borderWidth: 2 },
-  pillInput: { flex: 1, height: 56, paddingVertical: 0, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  pillInput: { flex: 1, height: 52, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center', fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   field: { height: 52, justifyContent: 'center', paddingHorizontal: 14 },
   outline: { borderRadius: radius.field },
   fieldInput: { fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, paddingVertical: 0, flex: 1, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },

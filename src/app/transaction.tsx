@@ -15,12 +15,16 @@ import { EnterSlide } from '../components/EnterSlide';
 import { BottomSheet, Chip, FilledButton, IconButton, PillField, SegmentedButton } from '../components/m3';
 import { NumberPad } from '../components/NumberPad';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../components/Overlays';
+import { assetById, assetCategoryId, fundQuote, latestQuote, metalQuote } from '../lib/assets';
 import { display, fromNumber, toNumber, type EntryType } from '../lib/amount';
-import { dayLabel, isSameDay, time24 } from '../lib/dates';
+import { dayLabel, isSameDay, shortDate, time24 } from '../lib/dates';
 import { Haptics } from '../lib/haptics';
+import { currencySymbol, fmtFull } from '../lib/format';
+import { useKeyboardLift } from '../lib/useKeyboardLift';
+import { refreshPrices } from '../lib/prices';
 import { useStore, useUi } from '../lib/store';
 import { useNow } from '../lib/useNow';
-import type { Category, RecurringType } from '../lib/types';
+import type { AssetId, Category, RecurringType } from '../lib/types';
 import { springs } from '../theme/motion';
 import { m3Duration, m3Easing, shape, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
@@ -28,9 +32,9 @@ import { useTheme, withAlpha } from '../theme/theme';
 const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'Don’t repeat', 1: 'Daily', 2: 'Weekly', 3: 'Monthly' };
 const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
 
-/** Add or edit an entry (full-screen, slides up). `income=1` opens it on Income. */
+/** Add or edit an entry (full-screen, slides up). `income=1` opens it on Income, `asset=gold` on that asset. */
 export default function TransactionScreen() {
-  const { id, income: startIncome } = useLocalSearchParams<{ id?: string; income?: string }>();
+  const { id, income: startIncome, asset: startAsset } = useLocalSearchParams<{ id?: string; income?: string; asset?: AssetId }>();
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const existing = useStore((s) => s.transactions.find((t) => t.id === id));
@@ -40,13 +44,19 @@ export default function TransactionScreen() {
   const addTransaction = useStore((s) => s.addTransaction);
   const updateTransaction = useStore((s) => s.updateTransaction);
   const showToast = useUi((s) => s.showToast);
-  const entryType = settings.numberEntryType as EntryType;
+  const prices = useStore((s) => s.prices);
 
   const [income, setIncome] = useState(existing?.income ?? startIncome === '1');
-  const [raw, setRaw] = useState(() => (existing ? fromNumber(existing.amount, entryType) : ''));
   const [note, setNote] = useState(existing?.note ?? '');
   const [date, setDate] = useState(() => (existing ? new Date(existing.date) : new Date()));
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? (startAsset ? assetCategoryId(startAsset) : null));
+  const category = categories.find((x) => x.id === categoryId);
+  // Gold and silver are entered in grams; their cost comes from the day's price.
+  const asset = category?.asset ? assetById(category.asset) : null;
+  const metal = asset?.kind === 'metal';
+  const entryType = (metal ? 2 : settings.numberEntryType) as EntryType;
+  const decimals = metal ? 3 : 2;
+  const [raw, setRaw] = useState(() => (existing ? fromNumber(metal ? (existing.qty ?? 0) : existing.amount, entryType, decimals) : ''));
   const [repeat, setRepeat] = useState<RecurringType>(existing?.recurringType ?? 0);
   const [every, setEvery] = useState(existing?.recurringCoefficient || 1);
   const [pickingCategory, setPickingCategory] = useState(false);
@@ -55,26 +65,59 @@ export default function TransactionScreen() {
   // Fixed on open, so deleting the entry doesn't turn this into the add screen while it slides away.
   const [editing] = useState(() => existing !== undefined);
   const now = useNow();
+  const { onLayout: onRootLayout, lift } = useKeyboardLift();
   const { remove } = useDeleteFlow();
   const deleteTransaction = useStore((s) => s.deleteTransaction);
   const repeatMenu = useAnchor();
   const datePicker = useDateTimePicker(date, setDate);
 
-  const category = categories.find((x) => x.id === categoryId);
-  const typeCategories = useMemo(() => categories.filter((x) => x.income === income).sort((a, b) => a.order - b.order), [categories, income]);
+  // Asset prices are in rupees, so assets are only offered with rupees.
+  const typeCategories = useMemo(
+    () => categories.filter((x) => x.income === income && (!x.asset || settings.currency === 'INR')).sort((a, b) => a.order - b.order),
+    [categories, income, settings.currency],
+  );
+  const pickCategory = (next: string | null) => {
+    const nextAsset = categories.find((x) => x.id === next)?.asset;
+    // Grams and rupees aren't the same number: start over when switching between them.
+    if ((nextAsset ? assetById(nextAsset).kind === 'metal' : false) !== metal) setRaw('');
+    setCategoryId(next);
+  };
 
   const suggestions = useMemo(() => {
     const q = note.trim().toLowerCase();
     if (!noteFocused || q.length === 0) return [];
     const seen = new Set<string>();
     return transactions
-      .filter((t) => t.income === income && t.note.toLowerCase().includes(q) && t.note.toLowerCase() !== q)
+      .filter((t) => t.income === income && !t.asset && t.note.toLowerCase().includes(q) && t.note.toLowerCase() !== q)
       .sort((a, b) => b.date - a.date)
       .filter((t) => (seen.has(t.note) ? false : (seen.add(t.note), true)))
       .slice(0, 3);
   }, [note, noteFocused, transactions, income]);
 
-  const amount = toNumber(raw, entryType);
+  const typed = toNumber(raw, entryType);
+  // Keep the price an entry was bought at unless its day (or asset) changes.
+  const sameDay = existing !== undefined && existing.asset === asset?.id && isSameDay(existing.date, date);
+  const keptRate = sameDay ? existing.rate : undefined;
+  const quote = asset && metal ? metalQuote(prices[asset.id], date) : null;
+  const rate = keptRate ?? quote?.rate;
+  const amount = metal ? Math.round(typed * (rate ?? 0) * 100) / 100 : typed;
+  const latest = asset ? latestQuote(prices[asset.id]) : null;
+  const rupee = currencySymbol('INR');
+  const assetHint = !asset
+    ? ''
+    : metal
+      ? rate === undefined
+        ? 'Getting today’s price…'
+        : `${typed > 0 ? `${rupee}${fmtFull(amount)} at ` : ''}${rupee}${fmtFull(rate)} a gram${quote && keptRate === undefined ? `, ${shortDate(new Date(`${quote.day}T00:00`))}` : ''}`
+      : latest
+        ? `Latest price ${rupee}${fmtFull(latest.rate)} a unit, ${shortDate(new Date(`${latest.day}T00:00`))}`
+        : 'Getting the latest price…';
+  // Picking an asset makes sure its daily price is there.
+  const assetId = asset?.id;
+  const hasPrice = latest !== null;
+  useEffect(() => {
+    if (assetId && !hasPrice) void refreshPrices(true);
+  }, [assetId, hasPrice]);
 
   // The screen slides up from the bottom on open and back down on close (the same on iOS, Android and web).
   // It can also be dragged down to dismiss, like an iOS sheet; the drag follows the finger on the UI thread.
@@ -160,16 +203,30 @@ export default function TransactionScreen() {
     }, 500);
   };
 
+  // What an asset purchase stores: grams (or units) and the price. A fund's units wait for its day's closing price.
+  const assetFields = () => {
+    if (!asset) return {};
+    if (metal) return { asset: asset.id, qty: typed, rate };
+    const nav = keptRate ?? fundQuote(prices[asset.id], date)?.rate;
+    return { asset: asset.id, qty: nav ? typed / nav : undefined, rate: nav };
+  };
+
   const submit = () => {
-    if (amount <= 0 && !categoryId) {
+    if (metal && typed > 0 && rate === undefined) {
+      Haptics.error();
+      showToast({ title: 'Couldn’t get the price. Check your connection and try again.', icon: 'alert-circle', tone: 'error' }, 3000);
+      void refreshPrices(true);
+      return;
+    }
+    if (typed <= 0 && !categoryId) {
       Haptics.error();
       showToast({ title: 'Enter an amount and choose a category', icon: 'help-circle-outline', tone: 'error' }, 2000);
       flashCategory();
       return;
     }
-    if (amount <= 0) {
+    if (typed <= 0) {
       Haptics.error();
-      showToast({ title: 'Enter an amount', icon: 'cash-outline', tone: 'error' }, 2000);
+      showToast({ title: metal ? 'Enter the grams' : 'Enter an amount', icon: 'cash-outline', tone: 'error' }, 2000);
       return;
     }
     if (!categoryId) {
@@ -178,7 +235,7 @@ export default function TransactionScreen() {
       flashCategory();
       return;
     }
-    const input = { amount, date: date.getTime(), note, income, categoryId, recurringType: repeat, recurringCoefficient: repeat > 0 ? every : 0 };
+    const input = { amount, date: date.getTime(), note, income, categoryId, recurringType: repeat, recurringCoefficient: repeat > 0 ? every : 0, ...assetFields() };
     if (existing) {
       updateTransaction(existing.id, input);
       showToast({ title: 'Changes saved', icon: 'checkmark-circle', tone: 'success' }, 2000);
@@ -186,7 +243,7 @@ export default function TransactionScreen() {
       const saved = addTransaction(input);
       showToast(
         {
-          title: income ? 'Income saved' : 'Expense saved',
+          title: asset ? `${asset.name} saved` : income ? 'Income saved' : 'Expense saved',
           icon: 'checkmark-circle',
           tone: 'success',
           // A repeating entry may have logged past dates too, so it can't be undone as one.
@@ -195,6 +252,8 @@ export default function TransactionScreen() {
         3000,
       );
     }
+    // Fetches an older day's price if this purchase needs one.
+    if (asset && !metal) void refreshPrices(true);
     Haptics.success();
     close();
   };
@@ -203,7 +262,7 @@ export default function TransactionScreen() {
     if (next === income) return;
     Haptics.selection();
     setIncome(next);
-    setCategoryId(null);
+    pickCategory(null);
   };
 
   const todayish = isSameDay(date, now);
@@ -211,7 +270,7 @@ export default function TransactionScreen() {
 
   return (
     <GestureDetector gesture={dragDown}>
-    <Reanimated.View style={[{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top }, sheetStyle]}>
+    <Reanimated.View onLayout={onRootLayout} style={[{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top, paddingBottom: lift }, sheetStyle]}>
       {/* Top row */}
       <View style={styles.topRow}>
         <IconButton icon="close" onPress={close} label="Close" />
@@ -264,7 +323,7 @@ export default function TransactionScreen() {
       {/* Amount and note */}
       <Pressable accessible={false} style={styles.middle} onPress={() => { noteRef.current?.blur(); Keyboard.dismiss(); }}>
         <View style={{ alignSelf: 'stretch', paddingHorizontal: 56, alignItems: 'center' }}>
-          <BigAmount value={display(raw, entryType)} currency={settings.currency} size={57} color={income && amount > 0 ? 'IncomeGreen' : 'PrimaryText'} />
+          <BigAmount value={display(raw, entryType)} currency={settings.currency} suffix={metal ? 'g' : undefined} size={57} color={income && amount > 0 ? 'IncomeGreen' : 'PrimaryText'} />
           {/* Backspace sits beside the amount (the keypad itself is just digits, the point and the check). */}
           {entryType === 2 && raw.length > 0 ? (
             <View style={styles.backspace}>
@@ -273,6 +332,11 @@ export default function TransactionScreen() {
           ) : null}
         </View>
 
+        {assetHint ? (
+          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 4, textAlign: 'center' }}>
+            {assetHint}
+          </AppText>
+        ) : null}
         <View style={{ marginTop: 24, paddingHorizontal: 16, alignSelf: 'stretch' }}>
           <PillField
             placeholder="Add a note"
@@ -312,7 +376,7 @@ export default function TransactionScreen() {
                 label={s.note}
                 onPress={() => {
                   setNote(s.note);
-                  setCategoryId(s.categoryId);
+                  pickCategory(s.categoryId);
                   if (raw === '') setRaw(fromNumber(s.amount, entryType));
                   Keyboard.dismiss();
                 }}
@@ -333,7 +397,7 @@ export default function TransactionScreen() {
             selectedId={categoryId}
             onPick={(cat) => {
               Haptics.selection();
-              setCategoryId(cat.id === categoryId ? null : cat.id);
+              pickCategory(cat.id === categoryId ? null : cat.id);
             }}
           />
         ) : null}
@@ -343,11 +407,11 @@ export default function TransactionScreen() {
           {pickingCategory ? (
             <Chip label="Close" icon="close" onPress={() => setPickingCategory(false)} tint={m3.errorContainer} onTint={m3.onErrorContainer} style={{ minWidth: 120 }} />
           ) : (
-            <Animated.View style={{ minWidth: 120, maxWidth: 190, flexShrink: 0, transform: [{ translateX: shake }] }}>
+            <Animated.View style={{ minWidth: 120, maxWidth: 176, flexShrink: 0, transform: [{ translateX: shake }] }}>
               <Chip
                 accessibilityLabel="Choose category"
                 icon={category ? undefined : 'apps-outline'}
-                label={category ? `${category.emoji}  ${category.name}` : 'Category'}
+                label={category ? `${category.emoji}  ${category.asset ? category.name.replace(/ Fund$/, '') : category.name}` : 'Category'}
                 tint={category ? withAlpha(category.colour, 0.3) : undefined}
                 onTint={category ? m3.onSurface : undefined}
                 onPress={() => {
@@ -374,7 +438,7 @@ export default function TransactionScreen() {
               categories={typeCategories}
               onPick={(cat) => {
                 Haptics.selection();
-                setCategoryId(cat.id);
+                pickCategory(cat.id);
                 setPickingCategory(false);
               }}
             />
@@ -383,7 +447,7 @@ export default function TransactionScreen() {
           <View style={{ height: 8 }} />
         ) : (
           <EnterSlide from="left">
-            <NumberPad raw={raw} onChange={setRaw} entryType={entryType} onSubmit={submit} submitLabel="Save entry" />
+            <NumberPad raw={raw} onChange={setRaw} entryType={entryType} onSubmit={submit} submitLabel="Save entry" decimals={decimals} />
           </EnterSlide>
         )}
       </View>
@@ -454,8 +518,8 @@ function CategoryGrid({ categories, onPick }: { categories: Category[]; onPick: 
                 style={({ pressed }) => [styles.gridPill, { backgroundColor: withAlpha(cat.colour, pressed ? 0.5 : 0.3) }]}
               >
                 <AppText size={20}>{cat.emoji}</AppText>
-                <AppText size={20} weight="semibold" color={m3.onSurface} numberOfLines={1}>
-                  {cat.name}
+                <AppText size={cat.asset ? 15 : 20} weight="semibold" color={m3.onSurface} numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {cat.asset ? cat.name.replace(/ Fund$/, '') : cat.name}
                 </AppText>
               </Pressable>
             ))}

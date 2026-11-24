@@ -8,6 +8,11 @@ export function currencySymbol(code: string): string {
   const cached = symbolCache.get(code);
   if (cached) return cached;
   let symbol = CURRENCY_SYMBOLS[code] ?? code;
+  // Right-to-left symbols scramble next to digits, so those currencies use their code.
+  if (/[\u0590-\u08FF\uFB50-\uFDFF]/.test(symbol)) {
+    symbolCache.set(code, code);
+    return code;
+  }
   if (symbol !== code || CURRENCY_SYMBOLS[code]) {
     symbolCache.set(code, symbol);
     return symbol;
@@ -15,6 +20,7 @@ export function currencySymbol(code: string): string {
   try {
     const parts = new Intl.NumberFormat('en', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0);
     symbol = parts.find((p) => p.type === 'currency')?.value ?? code;
+    if (/[\u0590-\u08FF\uFB50-\uFDFF]/.test(symbol)) symbol = code;
   } catch {
     // Unknown code: fall back to the code itself.
   }

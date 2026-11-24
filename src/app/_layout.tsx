@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useEffect, useSyncExternalStore } from 'react';
 import { AppState, Platform } from 'react-native';
 import { ToastHost } from '../components/Overlays';
+import { refreshPrices } from '../lib/prices';
 import { useStore } from '../lib/store';
 import { useTheme } from '../theme/theme';
 
@@ -29,10 +30,12 @@ export default function RootLayout() {
     seedDefaults();
     runRecurring();
     rollBudgets();
+    void refreshPrices();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         useStore.getState().runRecurring();
         useStore.getState().rollBudgets();
+        void refreshPrices();
       }
     });
     return () => sub.remove();

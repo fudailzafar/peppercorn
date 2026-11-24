@@ -17,6 +17,7 @@ export function BigAmount({
   size = 56,
   align = 'center',
   color = 'PrimaryText',
+  suffix,
 }: {
   value: string;
   sign?: '+' | '-' | '';
@@ -24,6 +25,8 @@ export function BigAmount({
   size?: number;
   align?: 'center' | 'flex-start' | 'flex-end';
   color?: 'PrimaryText' | 'IncomeGreen';
+  /** A unit after the number ("g") in place of the currency symbol. */
+  suffix?: string;
 }) {
   const symbol = currencySymbol(currency);
   const isCode = symbol.length > 1;
@@ -40,15 +43,22 @@ export function BigAmount({
           {sign}
         </AppText>
       ) : null}
-      <AppText size={small} weight="medium" color="SubtitleText" style={{ marginRight: size * (isCode ? 0.1 : 0.06) }}>
-        {symbol}
-      </AppText>
+      {suffix ? null : (
+        <AppText size={small} weight="medium" color="SubtitleText" style={{ marginRight: size * (isCode ? 0.1 : 0.06) }}>
+          {symbol}
+        </AppText>
+      )}
       <AppText size={size} weight="medium" color={color} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} style={tabular}>
         {whole}
       </AppText>
       {cents ? (
         <AppText size={size * 0.56} weight="medium" color={color === 'IncomeGreen' ? color : 'SubtitleText'} style={tabular}>
           {cents}
+        </AppText>
+      ) : null}
+      {suffix ? (
+        <AppText size={size * 0.52} weight="medium" color="SubtitleText" style={{ marginLeft: size * 0.1 }}>
+          {suffix}
         </AppText>
       ) : null}
     </View>

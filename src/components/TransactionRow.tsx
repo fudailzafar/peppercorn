@@ -6,6 +6,7 @@ import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { dayLabel, shortDate, timeLabel } from '../lib/dates';
+import { qtyLabel } from '../lib/assets';
 import { currencySymbol, fmtFull } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
@@ -116,7 +117,8 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
 
   const sign = !showSign ? '' : t.income ? '+' : '-';
   const amountColor = future ? m3.onSurfaceVariant : t.income ? m3.success : m3.onSurface;
-  const subtitle = future ? dayLabel(new Date(futureDate ?? t.date)) : showDate ? `${shortDate(new Date(t.date))}, ${timeLabel(t.date)}` : timeLabel(t.date);
+  const when = future ? dayLabel(new Date(futureDate ?? t.date)) : showDate ? `${shortDate(new Date(t.date))}, ${timeLabel(t.date)}` : timeLabel(t.date);
+  const subtitle = t.asset && t.qty !== undefined ? `${qtyLabel(t.asset, t.qty)} · ${when}` : when;
   const tint = category?.colour ?? '#A6A6A6';
 
   return (

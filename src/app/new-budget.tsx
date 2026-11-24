@@ -49,7 +49,7 @@ export default function NewBudget() {
   const [raw, setRaw] = useState(() => (source ? fromNumber(source.amount, entryType) : ''));
 
   // Categories that don't have a budget yet (plus the one being edited).
-  const available = categories.filter((x) => !x.income && (x.id === editingBudget?.categoryId || !budgets.some((b) => b.categoryId === x.id)));
+  const available = categories.filter((x) => !x.income && !x.asset && (x.id === editingBudget?.categoryId || !budgets.some((b) => b.categoryId === x.id)));
   const amount = toNumber(raw, entryType);
 
   const save = () => {

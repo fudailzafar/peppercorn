@@ -14,6 +14,8 @@ interface Props {
   onSubmit: () => void;
   /** What the check key does, for screen readers. */
   submitLabel: string;
+  /** Digits allowed after the point (3 for grams). */
+  decimals?: number;
 }
 
 const ROWS = [
@@ -23,7 +25,7 @@ const ROWS = [
 ];
 
 /** A Material 3 keypad: tonal 16dp keys with ripples, and a filled primary confirm key. */
-export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel }: Props) {
+export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel, decimals = 2 }: Props) {
   const { m3 } = useTheme();
 
   const key = (content: React.ReactNode, onPress: () => void, tone: 'tonal' | 'primary', label: string) => {
@@ -56,7 +58,7 @@ export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel }: P
       <AppText size={32} weight="regular" color={m3.onSurface}>
         {n}
       </AppText>,
-      () => onChange(pressDigit(raw, n, entryType)),
+      () => onChange(pressDigit(raw, n, entryType, decimals)),
       'tonal',
       String(n),
     );
