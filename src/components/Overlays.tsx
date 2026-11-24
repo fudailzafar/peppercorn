@@ -2,11 +2,22 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, useWindowDimensions, View, type HostInstance } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Reanimated, { Easing as ReEasing, Keyframe } from 'react-native-reanimated';
 import { useUi } from '../lib/store';
-import { elevation, shape, stateLayer, typeScale } from '../theme/material';
+import { elevation, m3Duration, m3Easing, shape, stateLayer, typeScale } from '../theme/material';
 import { NAV_BAR_HEIGHT } from './TabBar';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
+
+// M3 container motion: menus grow from their anchor (scale + fade, 200ms) and dialogs scale up from 90% (200ms).
+const MENU_ENTER = new Keyframe({
+  0: { opacity: 0, transform: [{ scaleX: 0.85 }, { scaleY: 0.6 }] },
+  100: { opacity: 1, transform: [{ scaleX: 1 }, { scaleY: 1 }], easing: ReEasing.bezierFn(...m3Easing.emphasizedDecelerate) },
+}).duration(m3Duration.short4);
+const DIALOG_ENTER = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.9 }] },
+  100: { opacity: 1, transform: [{ scale: 1 }], easing: ReEasing.bezierFn(...m3Easing.emphasizedDecelerate) },
+}).duration(m3Duration.short4);
 
 // MARK: Anchored popover (the small menus Dime shows under a button)
 
@@ -65,9 +76,12 @@ export function Popover({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss menu" />
       {/* An M3 menu: a 4dp-cornered surface at elevation 2, positioned under its anchor. */}
-      <View style={[styles.popover, elevation(2), { top: anchor.y + anchor.height + 4, left, width, backgroundColor: m3.surfaceContainer }]}>
+      <Reanimated.View
+        entering={MENU_ENTER}
+        style={[styles.popover, elevation(2), { top: anchor.y + anchor.height + 4, left, width, backgroundColor: m3.surfaceContainer, transformOrigin: align === 'right' ? 'top right' : align === 'left' ? 'top left' : 'top center' }]}
+      >
         {children}
-      </View>
+      </Reanimated.View>
     </Modal>
   );
 }
@@ -140,7 +154,7 @@ export function ConfirmSheet({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }]} onPress={onCancel} accessibilityLabel="Dismiss dialog" />
       <View style={styles.dialogWrap} pointerEvents="box-none">
-        <View style={[styles.dialog, elevation(3), { backgroundColor: m3.surfaceContainerHigh }]}>
+        <Reanimated.View entering={DIALOG_ENTER} style={[styles.dialog, elevation(3), { backgroundColor: m3.surfaceContainerHigh }]}>
           <AppText size={typeScale.headlineSmall.size} color={m3.onSurface}>
             {title}
           </AppText>
@@ -151,7 +165,7 @@ export function ConfirmSheet({
             {action('Cancel', onCancel, m3.primary)}
             {action(confirmLabel, onConfirm, destructive ? m3.error : m3.primary)}
           </View>
-        </View>
+        </Reanimated.View>
       </View>
     </Modal>
   );

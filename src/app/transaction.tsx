@@ -11,7 +11,7 @@ import { AppText } from '../components/AppText';
 import { BigAmount } from '../components/Bits';
 import { useDateTimePicker } from '../components/DateTimeField';
 import { EnterSlide } from '../components/EnterSlide';
-import { BottomSheet, Chip, FilledButton, IconButton, OutlinedField, SegmentedButton } from '../components/m3';
+import { BottomSheet, Chip, FilledButton, IconButton, PillField, SegmentedButton } from '../components/m3';
 import { NumberPad } from '../components/NumberPad';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../components/Overlays';
 import { display, fromNumber, toNumber, type EntryType } from '../lib/amount';
@@ -122,7 +122,7 @@ export default function TransactionScreen() {
       if (e.translationY > 110 || e.velocityY > 900) {
         scheduleOnRN(markClosing);
         sheetY.set(
-          withTiming(screenHeight, { duration: 220, easing: ReEasing.out(ReEasing.cubic) }, (finished) => {
+          withTiming(screenHeight, { duration: 200, easing: ReEasing.bezier(...m3Easing.emphasizedAccelerate) }, (finished) => {
             'worklet';
             if (finished) scheduleOnRN(finishClose);
           }),
@@ -136,6 +136,11 @@ export default function TransactionScreen() {
 
   // Dime flashes the category pill red and shakes it when the category is missing.
   const noteRef = useRef<ComponentRef<typeof TextInput>>(null);
+  // Closing the keyboard (back gesture, or its check key) also leaves the note field, so the number pad returns.
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidHide', () => noteRef.current?.blur());
+    return () => sub.remove();
+  }, []);
   const [flash] = useState(() => new Animated.Value(0));
   const [shake] = useState(() => new Animated.Value(0));
   const flashCategory = () => {
@@ -227,9 +232,10 @@ export default function TransactionScreen() {
       </Popover>
 
       {/* Amount and note */}
-      <View style={styles.middle}>
-        <View style={{ paddingHorizontal: 40 }}>
+      <Pressable accessible={false} style={styles.middle} onPress={() => { noteRef.current?.blur(); Keyboard.dismiss(); }}>
+        <View style={{ alignSelf: 'stretch', paddingHorizontal: 56, alignItems: 'center' }}>
           <BigAmount value={display(raw, entryType)} currency={settings.currency} size={57} color={income && amount > 0 ? 'IncomeGreen' : 'PrimaryText'} />
+          {/* Backspace sits beside the amount (the keypad itself is just digits, the point and the check). */}
           {entryType === 2 && raw.length > 0 ? (
             <View style={styles.backspace}>
               <IconButton icon="backspace-outline" onPress={() => setRaw(raw.slice(0, -1))} label="Delete digit" />
@@ -237,9 +243,10 @@ export default function TransactionScreen() {
           ) : null}
         </View>
 
-        <View style={{ marginTop: 24 }}>
-          <OutlinedField
-            label="Note"
+        <View style={{ marginTop: 24, paddingHorizontal: 16, alignSelf: 'stretch' }}>
+          <PillField
+            placeholder="Add a note"
+            icon="create-outline"
             inputRef={noteRef}
             value={note}
             onChangeText={setNote}
@@ -283,10 +290,21 @@ export default function TransactionScreen() {
             ))}
           </View>
         ) : null}
-      </View>
+      </Pressable>
 
       {/* Bottom: date, category and the pad */}
       <View style={{ paddingBottom: Math.max(insets.bottom, 12) + 4 }}>
+        {/* Category quick-pick: one tap on a chip instead of opening the full grid. */}
+        {!pickingCategory && !noteFocused && typeCategories.length > 0 ? (
+          <CategoryChips
+            categories={typeCategories}
+            selectedId={categoryId}
+            onPick={(cat) => {
+              Haptics.selection();
+              setCategoryId(cat.id === categoryId ? null : cat.id);
+            }}
+          />
+        ) : null}
         <View style={styles.pillRow}>
           <Chip icon="calendar-outline" label={`${dateText}  ${time24(date)}`} onPress={datePicker.open} accessibilityLabel="Change date" style={{ flex: 1 }} />
 
@@ -352,6 +370,31 @@ export default function TransactionScreen() {
       />
     </Reanimated.View>
     </GestureDetector>
+  );
+}
+
+/** A single scrolling row of category chips; the chosen one is filled and outlined in its colour. */
+function CategoryChips({ categories, selectedId, onPick }: { categories: Category[]; selectedId: string | null; onPick: (c: Category) => void }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 15, paddingBottom: 10 }}>
+      {categories.map((cat) => {
+        const on = cat.id === selectedId;
+        return (
+          <Pressable
+            key={cat.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`Category ${cat.name}`}
+            onPress={() => onPick(cat)}
+            style={({ pressed }) => [styles.quickChip, { backgroundColor: withAlpha(cat.colour, on ? 0.55 : pressed ? 0.4 : 0.22), borderColor: on ? cat.colour : 'transparent' }]}
+          >
+            <AppText size={14} weight={on ? 'semibold' : 'medium'} color={on ? 'PrimaryText' : 'SubtitleText'}>
+              {cat.emoji}  {cat.name}
+            </AppText>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -443,7 +486,8 @@ const styles = StyleSheet.create({
   segWrap: { flexDirection: 'row', borderWidth: 1.5, borderRadius: 100, padding: 3 },
   seg: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 100 },
   middle: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  backspace: { position: 'absolute', right: -4, top: 12 },
+  // Pinned to the right edge, level with the amount, so it never sits on top of the digits.
+  backspace: { position: 'absolute', right: 8, top: 0, bottom: 0, justifyContent: 'center' },
   // Fully rounded like the Expense | Income capsule, with the text centred and no leading icon.
   notePill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 3, marginTop: 12, minWidth: 0, maxWidth: 280 },
   noteInput: { fontSize: 18, flexShrink: 1, minWidth: 84, paddingVertical: 4, textAlign: 'center' },
@@ -452,6 +496,7 @@ const styles = StyleSheet.create({
   pillRow: { flexDirection: 'row', gap: 9, paddingHorizontal: 15, marginBottom: 10, height: 44 },
   datePill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 12 },
   catPill: { minWidth: 120, maxWidth: 170, flexShrink: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingHorizontal: 14 },
+  quickChip: { height: 40, paddingHorizontal: 14, borderRadius: shape.full, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   gridPill: { flex: 1, height: 48, borderRadius: shape.medium, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
   editPill: { position: 'absolute', alignSelf: 'center', bottom: 6 },
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 24, paddingTop: 28, gap: 20 },

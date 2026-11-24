@@ -5,6 +5,7 @@ import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { Haptics } from '../lib/haptics';
+import { m3Easing } from '../theme/material';
 import { springs } from '../theme/motion';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
@@ -67,7 +68,7 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
         scheduleOnRN(change, goingForward ? 1 : -1);
         // The new period starts off-screen on the far side and slides in over 0.3s.
         offset.set(goingForward ? width : -width);
-        offset.set(withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) }));
+        offset.set(withTiming(0, { duration: 300, easing: Easing.bezier(...m3Easing.emphasizedDecelerate) }));
       } else {
         offset.set(withSpring(0, springs.smooth));
       }

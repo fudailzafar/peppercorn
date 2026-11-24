@@ -45,6 +45,8 @@ const MATERIAL = {
   'information-circle': 'info',
   keypad: 'dialpad',
   'logo-usd': 'attach-money',
+  'log-out': 'logout',
+  'phone-portrait-outline': 'smartphone',
   options: 'tune',
   'options-outline': 'tune',
   'partly-sunny': 'wb-sunny',

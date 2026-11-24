@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
+import { useFabScroll } from '../../lib/useFabScroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { ConfirmSheet } from '../../components/Overlays';
@@ -16,11 +17,13 @@ const HAPTIC_LABEL = ['Off', 'Subtle', 'Heavy'] as const;
 export default function SettingsScreen() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
+  const fabScroll = useFabScroll();
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
   const eraseAll = useStore((s) => s.eraseAll);
   const showToast = useUi((s) => s.showToast);
   const [erasing, setErasing] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const share = async () => {
     const { transactions, categories } = useStore.getState();
@@ -37,7 +40,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+      <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
         {/* M3 small top app bar */}
         <View style={{ minHeight: 64, justifyContent: 'center' }}>
           <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 16 }}>
@@ -104,6 +107,10 @@ export default function SettingsScreen() {
           <SettingsRow icon="trash-bin" colour="#FF78A3" label="Erase Data" destructive onPress={() => setErasing(true)} />
         </SettingsSection>
 
+        <SettingsSection title="Account">
+          <SettingsRow icon="log-out" colour="#6A7CF9" label="Log out" onPress={() => setLoggingOut(true)} />
+        </SettingsSection>
+
         <SettingsSection title="Others">
           <SettingsRow
             icon="finger-print"
@@ -124,6 +131,18 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
+      <ConfirmSheet
+        visible={loggingOut}
+        title="Log out?"
+        message="Your logs and budgets stay on this device. You will go back to the welcome screen."
+        confirmLabel="Log out"
+        onCancel={() => setLoggingOut(false)}
+        onConfirm={() => {
+          setLoggingOut(false);
+          // The Log tab watches this flag and opens the welcome screen again.
+          updateSettings({ welcomed: false });
+        }}
+      />
       <ConfirmSheet
         visible={erasing}
         title="Erase all data?"

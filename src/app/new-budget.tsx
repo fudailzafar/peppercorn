@@ -87,7 +87,15 @@ export default function NewBudget() {
       ) : null}
 
       <View style={styles.amountArea}>
-        <BigAmount value={display(raw, entryType)} currency={settings.currency} size={57} />
+        <View style={{ alignSelf: 'stretch', paddingHorizontal: 56, alignItems: 'center' }}>
+          <BigAmount value={display(raw, entryType)} currency={settings.currency} size={57} />
+          {/* Backspace beside the amount, as on the Add entry screen. */}
+          {entryType === 2 && raw.length > 0 ? (
+            <View style={styles.backspace}>
+              <IconButton icon="backspace-outline" onPress={() => setRaw(raw.slice(0, -1))} label="Delete digit" />
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {!overall ? (
@@ -135,4 +143,6 @@ const styles = StyleSheet.create({
   top: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
   padded: { paddingHorizontal: 16 },
   amountArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Pinned to the right edge, level with the amount, so it never sits on top of the digits.
+  backspace: { position: 'absolute', right: 8, top: 0, bottom: 0, justifyContent: 'center' },
 });

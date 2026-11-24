@@ -21,6 +21,9 @@ export interface M3Roles {
   /** Income, kept as Dime's green. */
   success: string;
   successContainer: string;
+  /** Spending ahead of the time elapsed, but not over budget yet. */
+  warning: string;
+  warningContainer: string;
   surface: string;
   surfaceDim: string;
   surfaceContainerLowest: string;
@@ -52,6 +55,8 @@ export const m3Light: M3Roles = {
   onErrorContainer: '#8C1D18',
   success: '#03CD86',
   successContainer: '#D8F7EA',
+  warning: '#B26A00',
+  warningContainer: '#FFEBC8',
   surface: '#FFFFFF',
   surfaceDim: '#EDEDED',
   surfaceContainerLowest: '#FFFFFF',
@@ -82,6 +87,8 @@ export const m3Dark: M3Roles = {
   onErrorContainer: '#FFD9D5',
   success: '#0FFFA9',
   successContainer: '#0B3A2B',
+  warning: '#FFB74D',
+  warningContainer: '#4A3410',
   surface: '#060A07',
   surfaceDim: '#060A07',
   surfaceContainerLowest: '#030504',
@@ -138,6 +145,19 @@ export const shape = {
   large: 16,
   extraLarge: 28,
   full: 999,
+} as const;
+
+/**
+ * Component radii: one place to decide how rounded each kind of control is, so fields, keys, cards and sheets
+ * stay consistent. (Google Pay-style: small radius for inputs, larger for containers, full for actions.)
+ */
+export const radius = {
+  field: shape.medium,
+  key: shape.large,
+  card: shape.large,
+  hero: shape.extraLarge,
+  sheet: shape.extraLarge,
+  action: shape.full,
 } as const;
 
 // MARK: State layers and elevation

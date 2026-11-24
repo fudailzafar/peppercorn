@@ -289,6 +289,9 @@ interface UiState {
   toast: ToastState | null;
   /** Hides the tab bar (e.g. while a sheet is open). */
   hideTabBar: boolean;
+  /** True while the add button is tucked away because the user is scrolling down. */
+  fabHidden: boolean;
+  setFabHidden: (hide: boolean) => void;
   showToast: (t: Omit<ToastState, 'id'>, durationMs?: number) => void;
   dismissToast: () => void;
   setHideTabBar: (hide: boolean) => void;
@@ -299,6 +302,7 @@ let toastId = 0;
 export const useUi = create<UiState>((set, get) => ({
   toast: null,
   hideTabBar: false,
+  fabHidden: false,
   showToast: (t, durationMs = 4000) => {
     const id = ++toastId;
     set({ toast: { ...t, id } });
@@ -308,4 +312,5 @@ export const useUi = create<UiState>((set, get) => ({
   },
   dismissToast: () => set({ toast: null }),
   setHideTabBar: (hide) => set({ hideTabBar: hide }),
+  setFabHidden: (hide) => set({ fabHidden: hide }),
 }));

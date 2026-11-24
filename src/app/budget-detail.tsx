@@ -6,6 +6,7 @@ import { AppText } from '../components/AppText';
 import { CapsuleProgress } from '../components/Charts';
 import { useDeleteFlow } from '../components/DeleteFlow';
 import { IconButton } from '../components/m3';
+import { SharedAxis } from '../components/SharedAxis';
 import { TransactionRow } from '../components/TransactionRow';
 import { budgetProgress, budgetSpent, budgetTransactions, mainBudgetSpent } from '../lib/calc';
 import { BUDGET_LABELS, BUDGET_PERIOD_PHRASE } from '../lib/types';
@@ -116,13 +117,15 @@ export default function BudgetDetail() {
         </AppText>
         <IconButton icon="create-outline" onPress={() => router.push({ pathname: '/new-budget', params: { id } })} label="Edit budget" tint={m3.onSurface} />
       </View>
-      <FlatList
-        data={list}
-        keyExtractor={(t) => t.id}
-        ListHeaderComponent={header}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        renderItem={({ item }) => <TransactionRow transaction={item} onDelete={ask} onQuickDelete={remove} />}
-      />
+      <SharedAxis>
+        <FlatList
+          data={list}
+          keyExtractor={(t) => t.id}
+          ListHeaderComponent={header}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          renderItem={({ item }) => <TransactionRow transaction={item} onDelete={ask} onQuickDelete={remove} />}
+        />
+      </SharedAxis>
       {deleteSheet}
     </View>
   );

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useFabScroll } from '../../lib/useFabScroll';
 import { Icon } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
@@ -18,6 +19,7 @@ import { useTheme, withAlpha } from '../../theme/theme';
 export default function BudgetScreen() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
+  const fabScroll = useFabScroll();
   const budgets = useStore((s) => s.budgets);
   const mainBudget = useStore((s) => s.mainBudget);
   const transactions = useStore((s) => s.transactions);
@@ -33,7 +35,7 @@ export default function BudgetScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+      <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
         {/* M3 small top app bar with an add action */}
         <View style={styles.topBar}>
           <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ flex: 1, marginLeft: 16 }}>
@@ -92,7 +94,7 @@ export default function BudgetScreen() {
                         </AppText>
                       </View>
                       <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginBottom: 12, letterSpacing: typeScale.bodyLarge.tracking }}>
-                        {p.over ? 'over' : 'left'} {BUDGET_PERIOD_PHRASE[mainBudget.type]}
+                        {p.over ? 'over' : 'left'} {BUDGET_PERIOD_PHRASE[mainBudget.type]} · {p.daysLeft} {p.daysLeft === 1 ? 'day' : 'days'} left
                       </AppText>
                       <CapsuleProgress fraction={p.fraction} elapsed={p.elapsed} colour={p.over ? m3.error : m3.primary} height={12} />
                       <View style={styles.overallFoot}>
@@ -140,6 +142,8 @@ export default function BudgetScreen() {
                 budget={b}
                 spent={budgetSpent(b, transactions)}
                 category={categories.find((x) => x.id === b.categoryId)}
+                // The overall card already says how long is left; a category card only repeats it when its period differs.
+                showDays={!mainBudget || budgetProgress(b, 0).daysLeft !== budgetProgress(mainBudget, 0).daysLeft}
                 onDelete={() => setToDelete({ kind: 'category', budget: b })}
               />
             ))}
@@ -164,7 +168,7 @@ export default function BudgetScreen() {
 }
 
 /** An M3 filled card per category budget: avatar and name, amount left, a status chip and a progress indicator. */
-function BudgetCard({ budget, spent, category, onDelete }: { budget: Budget; spent: number; category?: { emoji: string; name: string; colour: string }; onDelete: () => void }) {
+function BudgetCard({ budget, spent, category, showDays, onDelete }: { budget: Budget; spent: number; category?: { emoji: string; name: string; colour: string }; showDays: boolean; onDelete: () => void }) {
   const { m3 } = useTheme();
   const settings = useStore((s) => s.settings);
   const menu = useAnchor();
@@ -172,6 +176,11 @@ function BudgetCard({ budget, spent, category, onDelete }: { budget: Budget; spe
   const sym = currencySymbol(settings.currency);
   const percent = Math.round(p.fraction * 100);
   const tint = category?.colour ?? m3.primary;
+  const status = p.over
+    ? { label: 'OVER', bg: m3.errorContainer, fg: m3.error }
+    : p.fraction > p.elapsed + 0.1
+      ? { label: 'AHEAD OF PACE', bg: m3.warningContainer, fg: m3.warning }
+      : { label: 'ON TRACK', bg: m3.successContainer, fg: m3.success };
 
   return (
     <View {...anchorProps(menu)} style={{ width: '48.5%' }}>
@@ -197,16 +206,19 @@ function BudgetCard({ budget, spent, category, onDelete }: { budget: Budget; spe
                 <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface} numberOfLines={1}>
                   {category?.name ?? 'Unknown'}
                 </AppText>
-                <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant}>
-                  {p.daysLeft} {p.daysLeft === 1 ? 'day' : 'days'} left
-                </AppText>
+                {showDays ? (
+                  <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant}>
+                    {p.daysLeft} {p.daysLeft === 1 ? 'day' : 'days'} left
+                  </AppText>
+                ) : null}
               </View>
             </View>
 
             <View style={{ flex: 1, minHeight: 16 }} />
-            <View style={[styles.status, { backgroundColor: p.over ? m3.errorContainer : m3.successContainer }]}>
-              <AppText size={typeScale.labelSmall.size} weight="semibold" color={p.over ? m3.error : m3.success} style={{ letterSpacing: 0.5 }}>
-                {percent}% {p.over ? 'OVER' : 'SPENT'}
+            {/* Status by pace, not just by how much is spent: over budget, spending ahead of the calendar, or on track. */}
+            <View style={[styles.status, { backgroundColor: status.bg }]}>
+              <AppText size={typeScale.labelSmall.size} weight="semibold" color={status.fg} style={{ letterSpacing: 0.5 }}>
+                {percent}% · {status.label}
               </AppText>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginTop: 8 }}>

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+import { useFabScroll } from '../../lib/useFabScroll';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Icon, type IconName } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +43,7 @@ type Row =
 export default function LogScreen() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
+  const fabScroll = useFabScroll();
   const transactions = useStore((s) => s.transactions);
   const categories = useStore((s) => s.categories);
   const settings = useStore((s) => s.settings);
@@ -117,7 +119,6 @@ export default function LogScreen() {
   }
 
   const showHeader = filter === 'all';
-  const filterTag = FILTERS.find((f) => f.key === filter)?.label ?? '';
 
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
@@ -131,11 +132,6 @@ export default function LogScreen() {
           <IconButton icon={filter === 'all' ? 'options-outline' : 'options'} onPress={filterMenu.open} label="Filter" tint={filter === 'all' ? undefined : m3.primary} />
         </View>
       </View>
-      {filter !== 'all' ? (
-        <View style={styles.activeFilter}>
-          <Chip label={filterTag} icon="checkmark" tint={m3.secondaryContainer} onTint={m3.onSecondaryContainer} onPress={() => setFilter('all')} accessibilityLabel={`Clear filter ${filterTag}`} trailing={<Icon name="close" size={18} color={m3.onSecondaryContainer} />} />
-        </View>
-      ) : null}
 
       <Popover visible={filterMenu.visible} anchor={filterMenu.anchor} onClose={filterMenu.close} align="right" width={210}>
         {FILTERS.map((f) => (
@@ -174,6 +170,7 @@ export default function LogScreen() {
       ) : null}
 
       <FlatList
+        {...fabScroll}
         data={rows}
         keyExtractor={(r) => r.key}
         ListHeaderComponent={showHeader ? <LogHeader /> : <View style={{ height: 8 }} />}
@@ -332,7 +329,6 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 120 },
   emptyIcon: { width: 96, height: 96, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingRight: 4 },
-  activeFilter: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 8 },
   summary: { marginHorizontal: 16, marginTop: 8, marginBottom: 8, padding: 24, borderRadius: shape.extraLarge, borderWidth: 1 },
   subheader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingTop: 4 },

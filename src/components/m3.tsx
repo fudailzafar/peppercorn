@@ -1,8 +1,9 @@
-import { useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
+import { Modal, Pressable, StyleSheet, TextInput, View, useWindowDimensions, type DimensionValue, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
+import { scheduleOnRN } from 'react-native-worklets';
 import Animated, { Easing, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { m3Duration, m3Easing, shape, stateLayer, typeScale } from '../theme/material';
+import { m3Duration, m3Easing, radius, shape, stateLayer, typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 
@@ -14,7 +15,13 @@ const emphasized = Easing.bezier(...m3Easing.emphasized);
 
 /** Paints M3's pressed state layer (a translucent overlay in the content colour) over its parent. */
 export function StateLayer({ pressed, color, radius }: { pressed: boolean; color: string; radius?: number }) {
-  return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, opacity: pressed ? stateLayer.pressed : 0, borderRadius: radius }]} />;
+  // The overlay fades in over 100ms when pressed and out over 200ms on release, as M3 specifies.
+  const o = useSharedValue(0);
+  useEffect(() => {
+    o.set(withTiming(pressed ? stateLayer.pressed : 0, { duration: pressed ? m3Duration.short2 : m3Duration.short4, easing: emphasized }));
+  }, [pressed, o]);
+  const style = useAnimatedStyle(() => ({ opacity: o.get() }));
+  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, borderRadius: radius }, style]} />;
 }
 
 // MARK: Icon button
@@ -190,19 +197,81 @@ export function FilledButton({ label, onPress, accessibilityLabel }: { label: st
   );
 }
 
+// MARK: Pill field
+
+/**
+ * A tonal, fully rounded text field (the same pill shape as the chips and the Expense/Income switch). The hint is a
+ * plain placeholder, not a floating label, and the pill gets a primary outline while you type.
+ */
+export function PillField({ icon, inputRef, onFocus, onBlur, ...rest }: Omit<TextInputProps, 'style'> & { icon?: IconName; inputRef?: Ref<ComponentRef<typeof TextInput>> }) {
+  const { m3 } = useTheme();
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={[styles.pillField, { backgroundColor: m3.surfaceContainerHigh, borderColor: focused ? m3.primary : 'transparent' }]}>
+      {icon ? <Icon name={icon} size={22} color={m3.onSurfaceVariant} /> : null}
+      <TextInput
+        ref={inputRef}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
+        placeholderTextColor={m3.onSurfaceVariant}
+        selectionColor={m3.primary}
+        cursorColor={m3.primary}
+        autoComplete="off"
+        style={[styles.pillInput, { color: m3.onSurface }]}
+        {...rest}
+      />
+    </View>
+  );
+}
+
 // MARK: Bottom sheet
 
 /** M3 modal bottom sheet: a scrim, a 28dp-cornered surface with a drag handle, anchored to the bottom. */
 export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { visible: boolean; onClose: () => void; children: ReactNode; bottomInset?: number }) {
   const { m3 } = useTheme();
+  const { height } = useWindowDimensions();
+  // The sheet stays mounted while it animates out: up over 400ms (emphasized decelerate), down over 250ms (accelerate).
+  const [mounted, setMounted] = useState(visible);
+  const y = useSharedValue(visible ? 0 : 1);
+  const scrim = useSharedValue(visible ? 1 : 0);
+  const unmount = useCallback(() => setMounted(false), []);
+  // Mount as soon as the sheet is asked to show (adjusting state while rendering, not in an effect).
+  if (visible && !mounted) setMounted(true);
+
+  useEffect(() => {
+    if (visible) {
+      y.set(withTiming(0, { duration: m3Duration.medium4, easing: Easing.bezier(...m3Easing.emphasizedDecelerate) }));
+      scrim.set(withTiming(1, { duration: m3Duration.medium2 }));
+    } else {
+      scrim.set(withTiming(0, { duration: m3Duration.medium1 }));
+      y.set(
+        withTiming(1, { duration: m3Duration.medium1, easing: Easing.bezier(...m3Easing.emphasizedAccelerate) }, (finished) => {
+          'worklet';
+          if (finished) scheduleOnRN(unmount);
+        }),
+      );
+    }
+  }, [visible, y, scrim, unmount]);
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() * height }] }));
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: scrim.get() }));
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }]} onPress={onClose} accessibilityLabel="Dismiss" />
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }, scrimStyle]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss" />
+      </Animated.View>
       <View style={styles.sheetWrap} pointerEvents="box-none">
-        <View style={[styles.sheet, { backgroundColor: m3.surfaceContainerLow, paddingBottom: Math.max(bottomInset, 16) + 8 }]}>
+        <Animated.View style={[styles.sheet, { backgroundColor: m3.surfaceContainerLow, paddingBottom: Math.max(bottomInset, 16) + 8 }, sheetStyle]}>
           <View style={[styles.handle, { backgroundColor: m3.onSurfaceVariant }]} />
           {children}
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -247,11 +316,11 @@ export function M3Switch({ value, onChange }: { value: boolean; onChange: (v: bo
 interface FieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
   inputRef?: Ref<ComponentRef<typeof TextInput>>;
-  width?: number;
+  width?: DimensionValue;
 }
 
-/** M3 outlined text field: a 4dp-cornered outline with a label that floats onto the border. */
-export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width = 260, ...rest }: FieldProps) {
+/** M3 outlined text field: a 12dp-cornered outline (the shared field radius) with a label that floats onto the border. */
+export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width = '100%', ...rest }: FieldProps) {
   const { m3 } = useTheme();
   const [focused, setFocused] = useState(false);
   const raised = focused || (value ?? '').length > 0;
@@ -263,7 +332,7 @@ export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width =
   }, [raised, focused, lift, focus]);
 
   const labelStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(lift.get(), [0, 1], [0, -26]) }, { translateX: interpolate(lift.get(), [0, 1], [0, -4]) }, { scale: interpolate(lift.get(), [0, 1], [1, 0.75]) }],
+    transform: [{ translateY: interpolate(lift.get(), [0, 1], [0, -24]) }, { translateX: interpolate(lift.get(), [0, 1], [0, -4]) }, { scale: interpolate(lift.get(), [0, 1], [1, 0.75]) }],
   }));
   const borderStyle = useAnimatedStyle(() => ({
     borderColor: interpolateColor(focus.get(), [0, 1], [m3.outline, m3.primary]),
@@ -319,9 +388,11 @@ const styles = StyleSheet.create({
   segmented: { flexDirection: 'row', height: 40, borderWidth: 1, borderRadius: shape.full, overflow: 'hidden' },
   segment: { width: 108, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
   chip: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16, borderRadius: shape.full, overflow: 'hidden' },
-  field: { height: 56, justifyContent: 'center', paddingHorizontal: 16 },
-  outline: { borderRadius: shape.extraSmall },
+  pillField: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, borderRadius: radius.action, borderWidth: 2 },
+  pillInput: { flex: 1, height: 56, paddingVertical: 0, fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  field: { height: 52, justifyContent: 'center', paddingHorizontal: 14 },
+  outline: { borderRadius: radius.field },
   fieldInput: { fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, paddingVertical: 0, flex: 1, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
-  fieldLabel: { position: 'absolute', left: 12, top: 15 },
+  fieldLabel: { position: 'absolute', left: 12, top: 13 },
   labelPlate: { paddingHorizontal: 4 },
 });

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useFabScroll } from '../../lib/useFabScroll';
 import { Icon } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
@@ -37,6 +38,7 @@ const MONTH_LETTERS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D
 export default function InsightsScreen() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
+  const fabScroll = useFabScroll();
   const transactions = useStore((s) => s.transactions);
   const categories = useStore((s) => s.categories);
   const settings = useStore((s) => s.settings);
@@ -130,8 +132,9 @@ export default function InsightsScreen() {
   // Income / Expenses cards double as filters: a selected card gets a 2dp primary outline.
   const block = (isIncome: boolean, amount: number) => {
     const selected = filtering && income === isIncome;
-    const container = isIncome ? m3.successContainer : m3.errorContainer;
-    const ink = isIncome ? m3.success : m3.error;
+    // Only income is tinted (green). Spending stays neutral: red is kept for errors and going over a budget.
+    const container = isIncome ? m3.successContainer : m3.surfaceContainerHigh;
+    const ink = isIncome ? m3.success : m3.onSurfaceVariant;
     return (
       <Pressable
         key={String(isIncome)}
@@ -174,7 +177,7 @@ export default function InsightsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
       <PeriodSwiper canGoBack={offset > minOffset} canGoForward={offset < 0} backLabel={neighbour(-1)} forwardLabel={neighbour(1)} onChange={swipeTo}>
-        <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+        <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
           {/* M3 small top app bar */}
           <View style={styles.topBar}>
             <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 16 }}>
@@ -223,9 +226,9 @@ export default function InsightsScreen() {
                 align="flex-start"
               />
               {change !== null ? (
-                <View style={[styles.badge, { backgroundColor: change >= 0 ? m3.successContainer : m3.errorContainer }]}>
-                  <Icon name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.error} />
-                  <AppText size={typeScale.labelMedium.size} weight="semibold" color={change >= 0 ? m3.success : m3.error}>
+                <View style={[styles.badge, { backgroundColor: change >= 0 ? m3.successContainer : m3.surfaceContainerHigh }]}>
+                  <Icon name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.onSurfaceVariant} />
+                  <AppText size={typeScale.labelMedium.size} weight="semibold" color={change >= 0 ? m3.success : m3.onSurfaceVariant}>
                     {Math.min(Math.round(Math.abs(change)), 999)}% vs last
                   </AppText>
                 </View>

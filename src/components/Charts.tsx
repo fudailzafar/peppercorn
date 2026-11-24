@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { fmtAxis, niceMax } from '../lib/format';
 import { useStore } from '../lib/store';
 import { useAnimatedNumber } from '../lib/useAnimatedNumber';
-import { typeScale } from '../theme/material';
+import { m3Duration, m3Easing, typeScale } from '../theme/material';
 import { motion } from '../theme/motion';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
@@ -31,7 +31,8 @@ function GrowingBar({ fraction, index, animate, color }: { fraction: number; ind
   const [progress] = useState(() => new Animated.Value(animate ? 0 : 1));
   useEffect(() => {
     if (!animate) return;
-    const run = Animated.spring(progress, { toValue: 1, delay: index * motion.barStagger, useNativeDriver: false, ...motion.chartSpring });
+    // Bars grow with M3's emphasized-decelerate curve over 500ms, each one a beat after its neighbour.
+    const run = Animated.timing(progress, { toValue: 1, delay: index * motion.barStagger, duration: m3Duration.long2, easing: Easing.bezier(...m3Easing.emphasizedDecelerate), useNativeDriver: false });
     run.start();
     return () => run.stop();
   }, [animate, index, progress]);

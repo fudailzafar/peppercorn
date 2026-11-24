@@ -1,35 +1,24 @@
-import { Easing, type EasingFunction } from 'react-native';
-
 /**
- * Motion tokens lifted from Dime's SwiftUI source so the two apps move the same way.
- * SwiftUI springs are described by response (seconds) and dampingFraction; React Native's
- * Animated.spring wants stiffness and damping (mass 1), so we convert.
+ * Material 3 motion, ready to use with Reanimated and Animated.
+ * Easing and duration tokens live in material.ts; this file holds the M3 Expressive spring tokens.
+ * Reference: https://m3.material.io/styles/motion/overview/specs
  */
-export function swiftSpring(response: number, dampingFraction: number) {
-  const omega = (2 * Math.PI) / response;
-  return { stiffness: omega * omega, damping: 2 * dampingFraction * omega, mass: 1 };
+
+/** A spring from M3's (stiffness, damping ratio) pair, as the mass-1 config Reanimated expects. */
+function spring(stiffness: number, dampingRatio: number) {
+  return { stiffness, damping: 2 * dampingRatio * Math.sqrt(stiffness), mass: 1 };
 }
 
-/**
- * Reanimated spring configs shaped like UIKit's: a smooth settle with a hint of overshoot,
- * and a snappier one for small controls. Built from the same (response, damping) pairs SwiftUI uses.
- */
 export const springs = {
-  smooth: swiftSpring(0.45, 0.85),
-  snappy: swiftSpring(0.32, 0.85),
+  /** Spatial springs move things across the screen (position, size, shape). */
+  smooth: spring(700, 0.9), // default spatial
+  snappy: spring(1400, 0.9), // fast spatial
+  slow: spring(300, 0.9), // slow spatial
+  /** Effects springs change colour or opacity and never overshoot. */
+  effects: spring(1600, 1),
 } as const;
 
 export const motion = {
-  /** `.interactiveSpring(response: 0.6, dampingFraction: 0.8)`: used for chart bars growing in. */
-  chartSpring: swiftSpring(0.6, 0.8),
-  /** Delay between neighbouring bars: `.delay(Double(index) * 0.1)`. */
-  barStagger: 100,
-  /** `.easeInOut(duration: 0.3)`: page slides and popover dismissals. */
-  easeInOut: { duration: 300, easing: Easing.inOut(Easing.ease) as EasingFunction },
-  /** `.easeIn(duration: 0.15)`: selection changes in menus. */
-  easeInQuick: { duration: 150, easing: Easing.in(Easing.ease) as EasingFunction },
-  /** `withAnimation(.easeInOut)`: SwiftUI's default 0.35s, used for sliding panels. */
-  slide: { duration: 350, easing: Easing.inOut(Easing.ease) as EasingFunction },
-  /** `.easeInOut(duration: 0.2)`: popover presentation. */
-  present: { duration: 200, easing: Easing.inOut(Easing.ease) as EasingFunction },
+  /** Delay between neighbouring bars when a chart grows in. */
+  barStagger: 30,
 } as const;

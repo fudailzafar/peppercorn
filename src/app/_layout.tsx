@@ -56,17 +56,16 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: m3.surface },
-          // Pushing a page (Categories, Currency, Budget detail...) slides it in from the right; back slides it out.
-          animation: 'slide_from_right',
-          animationDuration: 300,
+          // Pages switch instantly.
+          animation: 'none',
         }}
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="transaction" options={{ presentation: 'transparentModal', animation: 'none', contentStyle: { backgroundColor: 'transparent' } }} />
-        <Stack.Screen name="search" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="search" options={{ presentation: 'fullScreenModal', animation: 'none' }} />
         <Stack.Screen name="new-budget" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="category-edit" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="welcome" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="welcome" options={{ presentation: 'fullScreenModal', animation: 'none' }} />
       </Stack>
       <ToastHost />
     </GestureHandlerRootView>

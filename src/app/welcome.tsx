@@ -1,68 +1,180 @@
-import { goBack } from '../lib/nav';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, FlatList, Pressable, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
-import { Icon, type IconName } from '../components/Icon';
-import { FilledButton } from '../components/m3';
-import { IconTile } from '../components/SettingsBits';
+import { Icon } from '../components/Icon';
+import { StateLayer } from '../components/m3';
+import { BudgetArt, GoogleG, InsightsArt, LogArt, PrivateArt } from '../components/OnboardingArt';
 import { Haptics } from '../lib/haptics';
-import { useStore } from '../lib/store';
-import { shape, typeScale } from '../theme/material';
-import { useTheme } from '../theme/theme';
+import { goBack } from '../lib/nav';
+import { useStore, useUi } from '../lib/store';
+import { radius, typeScale } from '../theme/material';
+import { useTheme, withAlpha } from '../theme/theme';
 
-const FEATURES: { icon: IconName; colour: string; title: string; text: string }[] = [
-  { icon: 'receipt', colour: '#FE724E', title: 'Log in seconds', text: 'A simple number pad and your own categories keep entries quick.' },
-  { icon: 'stats-chart', colour: '#279AF4', title: 'See where it goes', text: 'Insights break your spending down by day, week and category.' },
-  { icon: 'grid', colour: '#6A7CF9', title: 'Stay on budget', text: 'Set an overall budget and one per category, and watch your pace.' },
-];
+const SLIDES = [
+  { key: 'log', tint: '#FE724E', title: 'Log in seconds', text: 'A big number pad and your own categories keep every entry quick.', Art: LogArt },
+  { key: 'insights', tint: '#279AF4', title: 'See where it goes', text: 'Insights break your spending down by day, week, month and category.', Art: InsightsArt },
+  { key: 'budget', tint: '#6A7CF9', title: 'Stay on budget', text: 'Set an overall budget and one per category, and watch your pace.', Art: BudgetArt },
+  { key: 'private', tint: '#76FBB1', title: 'Yours, on your device', text: 'No account needed. Your entries stay on this phone unless you sign in.', Art: PrivateArt },
+] as const;
 
+const GAP = 12;
+const SIDE = 20;
+const AUTO_MS = 4500;
+
+/**
+ * First screen: a slideshow of illustrated cards you can swipe sideways (the next card peeks in from the right),
+ * then two ways in: Google (not wired up yet) or continuing locally with no account.
+ */
 export default function Welcome() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const update = useStore((s) => s.updateSettings);
+  const showToast = useUi((s) => s.showToast);
+  const list = useRef<FlatList>(null);
+  const [scrollX] = useState(() => new Animated.Value(0));
+  const [index, setIndex] = useState(0);
+  const touching = useRef(false);
+
+  const cardW = Math.min(width - SIDE * 2 - 28, 360);
+  const step = cardW + GAP;
+
+  const onEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setIndex(Math.max(0, Math.min(SLIDES.length - 1, Math.round(e.nativeEvent.contentOffset.x / step))));
+  }, [step]);
+
+  // Advance by itself every few seconds, and loop; stop while a finger is on the carousel.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (touching.current) return;
+      const next = (index + 1) % SLIDES.length;
+      list.current?.scrollToOffset({ offset: next * step, animated: true });
+      setIndex(next);
+    }, AUTO_MS);
+    return () => clearInterval(id);
+  }, [index, step]);
+
+  const enter = () => {
+    Haptics.light();
+    update({ welcomed: true });
+    goBack();
+  };
+
+  const bottom = Math.max(insets.bottom, 16) + 8;
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 48, paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom, 16) + 8 }}>
-      <View style={{ alignItems: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 16 }}>
+      <View style={styles.brand}>
         <View style={[styles.logo, { backgroundColor: m3.primary }]}>
-          <Icon name="cash" size={44} color={m3.onPrimary} />
+          <Icon name="cash" size={22} color={m3.onPrimary} />
         </View>
-        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ marginTop: 24, letterSpacing: 1.5 }}>
-          WELCOME TO
-        </AppText>
-        <AppText size={typeScale.displayMedium.size} color={m3.onSurface}>
+        <AppText size={typeScale.titleLarge.size} weight="medium" color={m3.onSurface}>
           Dime
         </AppText>
       </View>
 
-      <View style={{ flex: 1, justifyContent: 'center', gap: 24 }}>
-        {FEATURES.map((f) => (
-          <View key={f.title} style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-            <IconTile name={f.icon} colour={f.colour} />
-            <View style={{ flex: 1 }}>
-              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface}>
-                {f.title}
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <Animated.FlatList
+          ref={list}
+          data={SLIDES}
+          keyExtractor={(s) => s.key}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={step}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          disableIntervalMomentum
+          contentContainerStyle={{ paddingHorizontal: SIDE, gap: GAP }}
+          style={{ flexGrow: 0 }}
+          onScrollBeginDrag={() => { touching.current = true; }}
+          onScrollEndDrag={() => { touching.current = false; }}
+          onMomentumScrollEnd={onEnd}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
+          scrollEventThrottle={16}
+          renderItem={({ item }) => (
+            <View style={[styles.card, { width: cardW, backgroundColor: withAlpha(item.tint, 0.14) }]}>
+              <View style={styles.art}>
+                <item.Art c={m3} accent={item.tint} />
+              </View>
+              <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ marginTop: 8 }}>
+                {item.title}
               </AppText>
-              <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
-                {f.text}
+              <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 6, letterSpacing: typeScale.bodyLarge.tracking }}>
+                {item.text}
               </AppText>
             </View>
-          </View>
-        ))}
+          )}
+        />
+
+        {/* Page dots: the active one stretches into a pill as you swipe. */}
+        <View style={styles.dots}>
+          {SLIDES.map((s, i) => {
+            const input = [(i - 1) * step, i * step, (i + 1) * step];
+            const w = scrollX.interpolate({ inputRange: input, outputRange: [8, 24, 8], extrapolate: 'clamp' });
+            const o = scrollX.interpolate({ inputRange: input, outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' });
+            return <Animated.View key={s.key} style={[styles.dot, { width: w, opacity: o, backgroundColor: m3.onSurface }]} />;
+          })}
+        </View>
       </View>
 
-      <FilledButton
-        label="Get started"
-        onPress={() => {
-          Haptics.light();
-          update({ welcomed: true });
-          goBack();
-        }}
-      />
+      <View style={{ paddingHorizontal: 20, paddingBottom: bottom, gap: 12 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Continue with Google"
+          android_ripple={{ color: `${m3.onPrimary}33` }}
+          onPress={() => {
+            Haptics.selection();
+            showToast({ title: 'Google sign-in is coming soon', icon: 'logo-google', tone: 'info' }, 2200);
+          }}
+          style={[styles.button, { backgroundColor: m3.primary }]}
+        >
+          {({ pressed }) => (
+            <>
+              <StateLayer pressed={pressed} color={m3.onPrimary} radius={radius.action} />
+              <View style={[styles.gBadge, { backgroundColor: '#FFFFFF' }]}>
+                <GoogleG size={18} />
+              </View>
+              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onPrimary}>
+                Continue with Google
+              </AppText>
+            </>
+          )}
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Continue without an account"
+          android_ripple={{ color: `${m3.onSurface}1F` }}
+          onPress={enter}
+          style={[styles.button, { backgroundColor: m3.secondaryContainer }]}
+        >
+          {({ pressed }) => (
+            <>
+              <StateLayer pressed={pressed} color={m3.onSecondaryContainer} radius={radius.action} />
+              <Icon name="phone-portrait-outline" size={20} color={m3.onSecondaryContainer} />
+              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSecondaryContainer}>
+                Continue without an account
+              </AppText>
+            </>
+          )}
+        </Pressable>
+
+        <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+          Your data stays on this device until you sign in.
+        </AppText>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  logo: { width: 96, height: 96, borderRadius: shape.extraLarge, alignItems: 'center', justifyContent: 'center' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingBottom: 12 },
+  logo: { width: 36, height: 36, borderRadius: radius.key, alignItems: 'center', justifyContent: 'center' },
+  card: { borderRadius: radius.hero, padding: 20, paddingBottom: 24 },
+  art: { height: 210, alignItems: 'center', justifyContent: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20, height: 8 },
+  dot: { height: 8, borderRadius: 4 },
+  button: { height: 56, borderRadius: radius.action, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, overflow: 'hidden' },
+  gBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

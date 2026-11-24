@@ -7,6 +7,7 @@ import { shape, typeScale } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
 import { IconButton, M3Switch, StateLayer } from './m3';
+import { SharedAxis } from './SharedAxis';
 
 
 /** A 40dp circle holding a glyph in Dime's accent colour on a tint of that colour (M3 leading icon). */
@@ -99,7 +100,7 @@ export function PageScaffold({ title, children, scroll = true }: { title: string
           {title}
         </AppText>
       </View>
-      {body}
+      <SharedAxis>{body}</SharedAxis>
     </View>
   );
 }

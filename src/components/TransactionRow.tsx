@@ -10,7 +10,7 @@ import { currencySymbol, fmtFull } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
 import type { Transaction } from '../lib/types';
-import { shape, typeScale } from '../theme/material';
+import { m3Easing, shape, typeScale } from '../theme/material';
 import { springs } from '../theme/motion';
 import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
@@ -82,7 +82,7 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
       'worklet';
       if (confirmReached.get()) {
         // Fly off the left edge over 0.3s.
-        x.set(withTiming(x.get() - width, { duration: 300, easing: Easing.inOut(Easing.ease) }));
+        x.set(withTiming(x.get() - width, { duration: 250, easing: Easing.bezier(...m3Easing.emphasizedAccelerate) }));
         scheduleOnRN(deleteSoon);
       } else {
         x.set(withSpring(0, springs.smooth));
@@ -101,7 +101,7 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
   const rowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
   // Material swipe-to-dismiss: a container reveals behind the row, turns solid red past the delete point,
   // and its trash icon grows. Colours are read here, not inside the worklets (they are plain JS values).
-  const armed = useDerivedValue(() => withTiming(-x.get() > width * CONFIRM ? 1 : 0, { duration: 150 }));
+  const armed = useDerivedValue(() => withTiming(-x.get() > width * CONFIRM ? 1 : 0, { duration: 100 }));
   const calm = m3.errorContainer;
   const hot = m3.error;
   const revealStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(armed.get(), [0, 1], [calm, hot]) }));
