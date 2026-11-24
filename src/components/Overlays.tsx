@@ -4,10 +4,11 @@ import { Icon, type IconName } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Reanimated, { Easing as ReEasing, Keyframe } from 'react-native-reanimated';
 import { useUi } from '../lib/store';
-import { elevation, m3Duration, m3Easing, shape, stateLayer, typeScale } from '../theme/material';
+import { elevation, m3Duration, m3Easing, shape, stateLayer } from '../theme/material';
 import { NAV_BAR_HEIGHT } from './TabBar';
-import { useTheme } from '../theme/theme';
+import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
+import { Button } from './material/Button';
 
 // M3 container motion: menus grow from their anchor (scale + fade, 200ms) and dialogs scale up from 90% (200ms).
 const MENU_ENTER = new Keyframe({
@@ -107,7 +108,7 @@ export function PopoverItem({
         <>
           <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: ink, opacity: pressed ? stateLayer.pressed : selected ? 0.06 : 0 }]} />
           {icon ? <Icon name={icon} size={24} color={destructive ? m3.error : m3.onSurfaceVariant} style={{ marginRight: 12 }} /> : null}
-          <AppText size={typeScale.bodyLarge.size} color={ink} style={{ flex: 1, letterSpacing: typeScale.bodyLarge.tracking }}>
+          <AppText variant="bodyLarge" color={ink} style={{ flex: 1 }}>
             {label}
           </AppText>
           {selected ? <Icon name="checkmark" size={20} color={m3.onSurfaceVariant} /> : null}
@@ -138,32 +139,20 @@ export function ConfirmSheet({
   onCancel: () => void;
 }) {
   const { m3 } = useTheme();
-  const action = (label: string, onPress: () => void, color: string) => (
-    <Pressable onPress={onPress} accessibilityRole="button" android_ripple={{ color: `${color}22` }} style={styles.textButton}>
-      {({ pressed }) => (
-        <>
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: color, opacity: pressed ? stateLayer.pressed : 0, borderRadius: shape.full }]} />
-          <AppText size={typeScale.labelLarge.size} weight="semibold" color={color} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
-            {label}
-          </AppText>
-        </>
-      )}
-    </Pressable>
-  );
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }]} onPress={onCancel} accessibilityLabel="Dismiss dialog" />
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha(m3.scrim, 0.32) }]} onPress={onCancel} accessibilityLabel="Dismiss dialog" />
       <View style={styles.dialogWrap} pointerEvents="box-none">
         <Reanimated.View entering={DIALOG_ENTER} style={[styles.dialog, elevation(3), { backgroundColor: m3.surfaceContainerHigh }]}>
-          <AppText size={typeScale.headlineSmall.size} color={m3.onSurface}>
+          <AppText variant="headlineSmall" color={m3.onSurface}>
             {title}
           </AppText>
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 16, letterSpacing: typeScale.bodyMedium.tracking }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 16 }}>
             {message}
           </AppText>
           <View style={styles.dialogActions}>
-            {action('Cancel', onCancel, m3.primary)}
-            {action(confirmLabel, onConfirm, destructive ? m3.error : m3.primary)}
+            <Button variant="text" label="Cancel" onPress={onCancel} />
+            <Button variant={destructive ? 'dangerText' : 'text'} label={confirmLabel} onPress={onConfirm} />
           </View>
         </Reanimated.View>
       </View>
@@ -180,7 +169,7 @@ export function ConfirmSheet({
 export function ToastHost() {
   const toast = useUi((s) => s.toast);
   const dismiss = useUi((s) => s.dismissToast);
-  const { m3, dark } = useTheme();
+  const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const [anim] = useState(() => new Animated.Value(0));
 
@@ -203,11 +192,11 @@ export function ToastHost() {
       <Pressable onPress={dismiss} style={[styles.snackbar, elevation(3), { backgroundColor: m3.inverseSurface }]} accessibilityRole="alert">
         {isError ? <View style={[styles.toneDot, { backgroundColor: m3.error }]} /> : null}
         <View style={{ flex: 1 }}>
-          <AppText size={typeScale.bodyMedium.size} color={m3.inverseOnSurface} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
+          <AppText variant="bodyMedium" color={m3.inverseOnSurface}>
             {toast.title}
           </AppText>
           {toast.subtitle && !toast.onTap ? (
-            <AppText size={typeScale.bodySmall.size} color={m3.inverseOnSurface} style={{ opacity: 0.7 }}>
+            <AppText variant="bodySmall" color={m3.inverseOnSurface} style={{ opacity: 0.7 }}>
               {toast.subtitle}
             </AppText>
           ) : null}
@@ -222,7 +211,7 @@ export function ToastHost() {
             style={styles.snackAction}
             accessibilityRole="button"
           >
-            <AppText size={typeScale.labelLarge.size} weight="semibold" color={dark ? m3.primary : '#D0D0D0'}>
+            <AppText variant="labelLarge" color={m3.inversePrimary}>
               Undo
             </AppText>
           </Pressable>
@@ -238,7 +227,6 @@ const styles = StyleSheet.create({
   dialogWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 360, borderRadius: shape.extraLarge, padding: 24 },
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 24 },
-  textButton: { minHeight: 40, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', borderRadius: shape.full, overflow: 'hidden' },
   toastWrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center', zIndex: 999 },
   snackbar: { width: '100%', maxWidth: 560, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingLeft: 16, paddingRight: 8, borderRadius: shape.extraSmall },
   snackAction: { minHeight: 40, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },

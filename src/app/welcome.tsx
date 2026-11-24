@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, FlatList, Pressable, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, FlatList, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { Icon } from '../components/Icon';
-import { StateLayer } from '../components/m3';
+import { Button } from '../components/material';
 import { BudgetArt, GoogleG, InsightsArt, LogArt, PrivateArt } from '../components/OnboardingArt';
 import { Haptics } from '../lib/haptics';
 import { goBack } from '../lib/nav';
 import { useStore, useUi } from '../lib/store';
-import { radius, typeScale } from '../theme/material';
+import { radius, shape } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 
 const SLIDES = [
@@ -69,7 +69,7 @@ export default function Welcome() {
         <View style={[styles.logo, { backgroundColor: m3.primary }]}>
           <Icon name="cash" size={22} color={m3.onPrimary} />
         </View>
-        <AppText size={typeScale.titleLarge.size} weight="medium" color={m3.onSurface}>
+        <AppText variant="titleLarge" color={m3.onSurface}>
           Dime
         </AppText>
       </View>
@@ -97,10 +97,10 @@ export default function Welcome() {
               <View style={styles.art}>
                 <item.Art c={m3} accent={item.tint} />
               </View>
-              <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ marginTop: 8 }}>
+              <AppText variant="headlineSmall" color={m3.onSurface} style={{ marginTop: 8 }}>
                 {item.title}
               </AppText>
-              <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 6, letterSpacing: typeScale.bodyLarge.tracking }}>
+              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ marginTop: 6 }}>
                 {item.text}
               </AppText>
             </View>
@@ -119,48 +119,23 @@ export default function Welcome() {
       </View>
 
       <View style={{ paddingHorizontal: 20, paddingBottom: bottom, gap: 12 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Continue with Google"
-          android_ripple={{ color: `${m3.onPrimary}33` }}
+        <Button
+          large
+          label="Continue with Google"
+          leading={
+            <View style={styles.gBadge}>
+              <GoogleG size={18} />
+            </View>
+          }
           onPress={() => {
             Haptics.selection();
             showToast({ title: 'Google sign-in isn’t available yet. Continue without an account.', icon: 'logo-google', tone: 'info' }, 2200);
           }}
-          style={[styles.button, { backgroundColor: m3.primary }]}
-        >
-          {({ pressed }) => (
-            <>
-              <StateLayer pressed={pressed} color={m3.onPrimary} radius={radius.action} />
-              <View style={[styles.gBadge, { backgroundColor: '#FFFFFF' }]}>
-                <GoogleG size={18} />
-              </View>
-              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onPrimary}>
-                Continue with Google
-              </AppText>
-            </>
-          )}
-        </Pressable>
+        />
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Continue without an account"
-          android_ripple={{ color: `${m3.onSurface}1F` }}
-          onPress={enter}
-          style={[styles.button, { backgroundColor: m3.secondaryContainer }]}
-        >
-          {({ pressed }) => (
-            <>
-              <StateLayer pressed={pressed} color={m3.onSecondaryContainer} radius={radius.action} />
-              <Icon name="phone-portrait-outline" size={20} color={m3.onSecondaryContainer} />
-              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSecondaryContainer}>
-                Continue without an account
-              </AppText>
-            </>
-          )}
-        </Pressable>
+        <Button large variant="tonal" icon="phone-portrait-outline" label="Continue without an account" onPress={enter} />
 
-        <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+        <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
           Your entries stay on this phone.
         </AppText>
       </View>
@@ -174,7 +149,6 @@ const styles = StyleSheet.create({
   card: { borderRadius: radius.hero, padding: 20, paddingBottom: 24 },
   art: { height: 210, alignItems: 'center', justifyContent: 'center' },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20, height: 8 },
-  dot: { height: 8, borderRadius: 4 },
-  button: { height: 56, borderRadius: radius.action, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, overflow: 'hidden' },
-  gBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  dot: { height: 8, borderRadius: shape.full },
+  gBadge: { width: 28, height: 28, borderRadius: shape.full, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
 });

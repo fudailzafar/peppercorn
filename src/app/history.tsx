@@ -1,13 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { goBack } from '../lib/nav';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Icon, type IconName } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { BigAmount } from '../components/Bits';
 import { useDeleteFlow } from '../components/DeleteFlow';
-import { Chip, IconButton, SegmentedButton } from '../components/m3';
+import { AssistChip, Card, IconButton, SegmentedButton, TopAppBar } from '../components/material';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../components/Overlays';
 import { TransactionRow } from '../components/TransactionRow';
 import { groupByMonth, logPeriodStart, totalsSince, upcoming } from '../lib/calc';
@@ -17,7 +17,7 @@ import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
 import { useNow } from '../lib/useNow';
 import type { Transaction } from '../lib/types';
-import { shape, typeScale } from '../theme/material';
+import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
 type FilterType = 'all' | 'type' | 'day' | 'week' | 'month' | 'category' | 'recurring' | 'upcoming';
@@ -99,16 +99,16 @@ export default function HistoryScreen() {
   if (transactions.length === 0) {
     return (
       <View style={[styles.empty, { backgroundColor: m3.surface }]}>
-        <View style={{ position: 'absolute', top: insets.top + 8, left: 4 }}>
-          <IconButton icon="arrow-back" onPress={() => goBack()} label="Back" tint={m3.onSurface} />
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+          <TopAppBar title="History" onBack={() => goBack()} />
         </View>
         <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
           <Icon name="file-tray-outline" size={44} color={m3.onSurfaceVariant} />
         </View>
-        <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ textAlign: 'center', marginTop: 24 }}>
+        <AppText variant="headlineSmall" color={m3.onSurface} style={{ textAlign: 'center', marginTop: 24 }}>
           No entries yet
         </AppText>
-        <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 8, letterSpacing: typeScale.bodyLarge.tracking }}>
+        <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 8 }}>
           Your expenses and income will show up here.
         </AppText>
       </View>
@@ -119,17 +119,18 @@ export default function HistoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      {/* M3 small top app bar: title on the left, action icons on the right. */}
-      <View style={[styles.topBar, { paddingTop: insets.top }]}>
-        <IconButton icon="arrow-back" onPress={() => goBack()} label="Back" tint={m3.onSurface} />
-        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ flex: 1, marginLeft: 8 }}>
-          History
-        </AppText>
-        <IconButton icon="search" onPress={() => router.push('/search')} label="Search" />
-        <View {...anchorProps(filterMenu)}>
-          <IconButton icon={filter === 'all' ? 'options-outline' : 'options'} onPress={filterMenu.open} label="Filter" tint={filter === 'all' ? undefined : m3.primary} />
-        </View>
-      </View>
+      <TopAppBar
+        title="History"
+        onBack={() => goBack()}
+        actions={
+          <>
+            <IconButton icon="search" onPress={() => router.push('/search')} label="Search" />
+            <View {...anchorProps(filterMenu)}>
+              <IconButton icon={filter === 'all' ? 'options-outline' : 'options'} onPress={filterMenu.open} label="Filter" tint={filter === 'all' ? undefined : m3.primary} />
+            </View>
+          </>
+        }
+      />
 
       <Popover visible={filterMenu.visible} anchor={filterMenu.anchor} onClose={filterMenu.close} align="right" width={210}>
         {FILTERS.map((f) => (
@@ -173,7 +174,7 @@ export default function HistoryScreen() {
         ListHeaderComponent={showHeader ? <LogHeader /> : <View style={{ height: 8 }} />}
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant}>
+            <AppText variant="bodyLarge" color={m3.onSurfaceVariant}>
               No entries match this filter
             </AppText>
           </View>
@@ -209,17 +210,13 @@ function LogHeader() {
 
   return (
     // A tonal "summary" card (28dp corners) holding the heading, the period chip and the total.
-    <View style={[styles.summary, { backgroundColor: m3.surfaceContainerLow, borderColor: m3.outlineVariant }]}>
+    <Card hero style={styles.summary}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View {...anchorProps(headingMenu)}>
-          <Pressable onLongPress={headingMenu.open} delayLongPress={300} onPress={headingMenu.open} accessibilityLabel="Change what the total shows">
-            <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.titleMedium.tracking }}>
-              {HEADINGS[settings.logHeading]}
-            </AppText>
-          </Pressable>
+          <AssistChip label={HEADINGS[settings.logHeading]} accessibilityLabel="Change what the total shows" onPress={headingMenu.open} trailing={<Icon name="chevron-down" size={18} color={m3.onSurfaceVariant} />} />
         </View>
         <View {...anchorProps(pill)}>
-          <Chip
+          <AssistChip
             label={TIMEFRAMES[settings.logTimeFrame - 1]}
             accessibilityLabel="Change time frame"
             onPress={pill.open}
@@ -234,11 +231,11 @@ function LogHeader() {
 
       {bothSides ? (
         <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
-          <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.success}>
+          <AppText variant="labelLarge" color={m3.success}>
             +{currencySymbol(settings.currency)}
             {fmtSmart(totals.income, settings.showCents)}
           </AppText>
-          <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant}>
+          <AppText variant="labelLarge" color={m3.onSurfaceVariant}>
             -{currencySymbol(settings.currency)}
             {fmtSmart(totals.spent, settings.showCents)}
           </AppText>
@@ -274,7 +271,7 @@ function LogHeader() {
           />
         ))}
       </Popover>
-    </View>
+    </Card>
   );
 }
 
@@ -285,11 +282,11 @@ function MonthHeader({ label, net }: { label: string; net: number | null }) {
   const currency = useStore((s) => s.settings.currency);
   return (
     <View style={styles.subheader}>
-      <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+      <AppText variant="labelLarge" color={m3.onSurfaceVariant}>
         {label}
       </AppText>
       {net !== null ? (
-        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+        <AppText variant="labelLarge" color={m3.onSurfaceVariant}>
           {showSign ? (net >= 0 ? '+' : '-') : ''}
           {currencySymbol(currency)}
           {fmtFull(Math.abs(net))}
@@ -306,7 +303,7 @@ function Stepper({ label, onPrev, onNext }: { label: string; onPrev: () => void;
   return (
     <View style={styles.stepper}>
       <IconButton icon="chevron-back" onPress={onPrev} label="Previous" />
-      <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface}>
+      <AppText variant="titleMedium" color={m3.onSurface}>
         {label}
       </AppText>
       <IconButton icon="chevron-forward" onPress={onNext} label="Next" />
@@ -325,8 +322,7 @@ function TypeToggle({ income, onChange }: { income: boolean; onChange: (v: boole
 const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingBottom: 120 },
   emptyIcon: { width: 96, height: 96, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingRight: 4 },
-  summary: { marginHorizontal: 16, marginTop: 8, marginBottom: 8, padding: 24, borderRadius: shape.extraLarge, borderWidth: 1 },
+  summary: { marginHorizontal: 16, marginTop: 8, marginBottom: 8, padding: 20 },
   subheader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingTop: 4 },
 });

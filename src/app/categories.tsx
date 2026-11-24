@@ -1,17 +1,14 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { AppText } from '../components/AppText';
+import { View } from 'react-native';
 import { Icon } from '../components/Icon';
-import { StateLayer } from '../components/m3';
+import { EmojiAvatar, IconAvatar, IconButton, ListItem, Subheader } from '../components/material';
 import { PageScaffold } from '../components/SettingsBits';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
-import type { Category } from '../lib/types';
-import { shape, typeScale } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { useTheme } from '../theme/theme';
 
-/** Manage categories: tap to edit, use the arrows to reorder. */
-export default function CategoriesScreen() {
+/** Every category as a list: tap to edit, arrows to reorder. The asset categories are fixed. */
+export default function Categories() {
   const categories = useStore((s) => s.categories);
   const reorder = useStore((s) => s.reorderCategories);
   const { m3 } = useTheme();
@@ -27,57 +24,24 @@ export default function CategoriesScreen() {
       reorder(income, ids);
     };
     return (
-      <View style={{ marginTop: 8 }}>
-        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
-          {income ? 'Income' : 'Expense'}
-        </AppText>
-        {list.map((cat: Category, i) => (
-          <View key={cat.id} style={styles.row}>
-            <Pressable
-              style={styles.rowMain}
-              android_ripple={{ color: `${m3.onSurface}1F` }}
-              onPress={() => router.push({ pathname: '/category-edit', params: { id: cat.id } })}
-              accessibilityLabel={`Edit ${cat.name}`}
-            >
-              {({ pressed }) => (
-                <>
-                  <StateLayer pressed={pressed} color={m3.onSurface} />
-                  <View style={[styles.avatar, { backgroundColor: withAlpha(cat.colour, 0.3) }]}>
-                    <AppText size={20} style={{ includeFontPadding: false }}>
-                      {cat.emoji}
-                    </AppText>
-                  </View>
-                  <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} style={{ marginLeft: 16, flex: 1 }} numberOfLines={1}>
-                    {cat.name}
-                  </AppText>
-                </>
-              )}
-            </Pressable>
-            <Pressable onPress={() => move(i, -1)} style={[styles.move, { opacity: i === 0 ? 0.38 : 1 }]} accessibilityLabel="Move up" android_ripple={{ color: `${m3.onSurface}1F`, radius: 20 }}>
-              <Icon name="chevron-up" size={24} color={m3.onSurfaceVariant} />
-            </Pressable>
-            <Pressable onPress={() => move(i, 1)} style={[styles.move, { opacity: i === list.length - 1 ? 0.38 : 1 }]} accessibilityLabel="Move down" android_ripple={{ color: `${m3.onSurface}1F`, radius: 20 }}>
-              <Icon name="chevron-down" size={24} color={m3.onSurfaceVariant} />
-            </Pressable>
-          </View>
-        ))}
-        <Pressable
-          onPress={() => router.push({ pathname: '/category-edit', params: { income: income ? '1' : '0' } })}
-          android_ripple={{ color: `${m3.onSurface}1F` }}
-          style={styles.rowMain}
-        >
-          {({ pressed }) => (
-            <>
-              <StateLayer pressed={pressed} color={m3.onSurface} />
-              <View style={[styles.avatar, { backgroundColor: m3.surfaceContainerHigh }]}>
-                <Icon name="add" size={24} color={m3.onSurfaceVariant} />
+      <View>
+        <Subheader text={income ? 'Income' : 'Expense'} />
+        {list.map((cat, i) => (
+          <ListItem
+            key={cat.id}
+            headline={cat.name}
+            accessibilityLabel={`Edit ${cat.name}`}
+            leading={<EmojiAvatar emoji={cat.emoji} colour={cat.colour} />}
+            onPress={() => router.push({ pathname: '/category-edit', params: { id: cat.id } })}
+            actions={
+              <View style={{ flexDirection: 'row' }}>
+                <IconButton icon="chevron-up" onPress={() => move(i, -1)} disabled={i === 0} label={`Move ${cat.name} up`} />
+                <IconButton icon="chevron-down" onPress={() => move(i, 1)} disabled={i === list.length - 1} label={`Move ${cat.name} down`} />
               </View>
-              <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginLeft: 16 }}>
-                New category
-              </AppText>
-            </>
-          )}
-        </Pressable>
+            }
+          />
+        ))}
+        <ListItem headline="New category" leading={<IconAvatar icon="add" />} onPress={() => router.push({ pathname: '/category-edit', params: { income: income ? '1' : '0' } })} />
       </View>
     );
   };
@@ -86,34 +50,12 @@ export default function CategoriesScreen() {
     <PageScaffold title="Categories">
       {section(false)}
       {section(true)}
-      <View style={{ marginTop: 8 }}>
-        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.subheader}>
-          Assets (fixed)
-        </AppText>
-        {categories
-          .filter((x) => x.asset)
-          .map((cat) => (
-            <View key={cat.id} style={styles.rowMain}>
-              <View style={[styles.avatar, { backgroundColor: withAlpha(cat.colour, 0.3) }]}>
-                <AppText size={20} style={{ includeFontPadding: false }}>
-                  {cat.emoji}
-                </AppText>
-              </View>
-              <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} style={{ marginLeft: 16, flex: 1 }} numberOfLines={1}>
-                {cat.name}
-              </AppText>
-              <Icon name="lock" size={20} color={m3.onSurfaceVariant} />
-            </View>
-          ))}
-      </View>
+      <Subheader text="Assets (fixed)" />
+      {categories
+        .filter((x) => x.asset)
+        .map((cat) => (
+          <ListItem key={cat.id} headline={cat.name} leading={<EmojiAvatar emoji={cat.emoji} colour={cat.colour} />} trailing={<Icon name="lock" size={24} color={m3.onSurfaceVariant} />} />
+        ))}
     </PageScaffold>
   );
 }
-
-const styles = StyleSheet.create({
-  subheader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, letterSpacing: 0.1 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingRight: 4 },
-  rowMain: { flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, overflow: 'hidden' },
-  avatar: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  move: { width: 40, height: 48, alignItems: 'center', justifyContent: 'center' },
-});

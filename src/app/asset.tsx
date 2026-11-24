@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { gainText, inr, ValueCard } from '../components/AssetBits';
 import { useDeleteFlow } from '../components/DeleteFlow';
-import { BottomSheet, Chip, FilledButton, IconButton, PillField } from '../components/m3';
+import { BottomSheet, Button, EmojiAvatar, IconButton, ListItem, PillField, Subheader, TopAppBar } from '../components/material';
 import { TransactionRow } from '../components/TransactionRow';
 import { ASSETS, latestQuote, previousQuote, qtyLabel, valuation } from '../lib/assets';
 import { shortDate } from '../lib/dates';
@@ -14,8 +14,7 @@ import { goBack } from '../lib/nav';
 import { refreshPrices } from '../lib/prices';
 import { useStore, useUi } from '../lib/store';
 import type { Holding } from '../lib/types';
-import { typeScale } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { useTheme } from '../theme/theme';
 
 /** One asset: its value, today's price, and everything bought. */
 export default function AssetScreen() {
@@ -80,16 +79,11 @@ export default function AssetScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top }}>
-      <View style={styles.bar}>
-        <IconButton icon="arrow-back" onPress={() => goBack()} label="Back" tint={m3.onSurface} />
-        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 8, flex: 1 }} numberOfLines={1}>
-          {asset.name}
-        </AppText>
-      </View>
+    <View style={{ flex: 1, backgroundColor: m3.surface }}>
+      <TopAppBar title={asset.name} onBack={() => goBack()} />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <ValueCard title="Current value" v={v}>
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 12 }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 12 }}>
             You have {qtyLabel(asset.id, v.qty)}
             {v.pending > 0 ? ` and ${inr(v.pending)} waiting for its day’s price` : ''}
           </AppText>
@@ -97,19 +91,19 @@ export default function AssetScreen() {
 
         <View style={styles.price}>
           <View style={{ flex: 1 }}>
-            <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant}>
+            <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
               {metal ? `${asset.id === 'gold' ? '22K, ' : ''}Chennai, per gram` : 'Closing price, per unit (Direct Growth)'}
             </AppText>
-            <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant}>
+            <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
               {quote ? shortDate(new Date(`${quote.day}T00:00`)) : 'Not available yet'}
             </AppText>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface}>
+            <AppText variant="titleMedium" color={m3.onSurface}>
               {quote ? inr(quote.rate) : '-'}
             </AppText>
             {change !== null ? (
-              <AppText size={typeScale.bodySmall.size} color={change > 0 ? m3.success : m3.onSurfaceVariant}>
+              <AppText variant="bodySmall" color={change > 0 ? m3.success : m3.onSurfaceVariant}>
                 {change === 0 ? 'No change' : `${change > 0 ? '+' : '-'}${inr(change)}`}
               </AppText>
             ) : null}
@@ -118,8 +112,8 @@ export default function AssetScreen() {
 
         {currency === 'INR' ? (
           <View style={styles.actions}>
-            <Chip icon="add" label="Add purchase" tint={m3.primary} onTint={m3.onPrimary} onPress={() => router.push({ pathname: '/transaction', params: { asset: asset.id } })} />
-            <Chip label="I already own some" tint={m3.primaryContainer} onTint={m3.onPrimaryContainer} onPress={() => setAdding(true)} />
+            <Button icon="add" label="Add purchase" onPress={() => router.push({ pathname: '/transaction', params: { asset: asset.id } })} />
+            <Button variant="tonal" label="I already own some" onPress={() => setAdding(true)} />
           </View>
         ) : null}
 
@@ -130,36 +124,28 @@ export default function AssetScreen() {
 
         {owned.length > 0 ? <Subheader text="Already owned" /> : null}
         {owned.map((h) => (
-          <View key={h.id} style={styles.row}>
-            <View style={[styles.avatar, { backgroundColor: withAlpha(asset.colour, 0.3) }]}>
-              <AppText size={20} style={{ includeFontPadding: false }}>
-                {asset.emoji}
-              </AppText>
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText size={typeScale.bodyLarge.size} color={m3.onSurface}>
-                {qtyLabel(asset.id, h.qty)}
-              </AppText>
-              <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant}>
-                {h.paid ? `${inr(h.invested)} paid` : `${inr(h.invested)} when added, ${shortDate(new Date(h.date))}`}
-              </AppText>
-            </View>
-            <IconButton icon="trash-outline" onPress={() => removeHolding(h)} label="Remove" />
-          </View>
+          <ListItem
+            key={h.id}
+            leading={<EmojiAvatar emoji={asset.emoji} colour={asset.colour} />}
+            headline={qtyLabel(asset.id, h.qty)}
+            supporting={h.paid ? `${inr(h.invested)} paid` : `${inr(h.invested)} when added, ${shortDate(new Date(h.date))}`}
+            actions={<IconButton icon="trash-outline" onPress={() => removeHolding(h)} label="Remove" />}
+            style={{ paddingRight: 4 }}
+          />
         ))}
 
         {bought.length === 0 && owned.length === 0 ? (
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ margin: 16 }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ margin: 16 }}>
             Nothing here yet. Add a purchase, or what you already own.
           </AppText>
         ) : null}
       </ScrollView>
 
       <BottomSheet visible={adding} onClose={closeSheet} bottomInset={insets.bottom}>
-        <AppText size={typeScale.titleLarge.size} color={m3.onSurface}>
+        <AppText variant="titleLarge" color={m3.onSurface}>
           Your {asset.name}
         </AppText>
-        <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 4, marginBottom: 20 }}>
+        <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 4, marginBottom: 20 }}>
           {metal ? 'Valued at today’s price.' : 'Add what you paid to see your gain or loss. Without it, tracking starts from today’s value.'} It isn’t taken from your balance.
         </AppText>
         <View style={{ gap: 16 }}>
@@ -172,11 +158,11 @@ export default function AssetScreen() {
             </Field>
           )}
           {hint ? (
-            <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+            <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
               {hint}
             </AppText>
           ) : null}
-          <FilledButton label="Add" onPress={save} />
+          <Button large label="Add" onPress={save} />
         </View>
       </BottomSheet>
       {element}
@@ -188,7 +174,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   const { m3 } = useTheme();
   return (
     <View style={{ gap: 6 }}>
-      <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ marginLeft: 4 }}>
+      <AppText variant="labelLarge" color={m3.onSurfaceVariant} style={{ marginLeft: 4 }}>
         {label}
       </AppText>
       {children}
@@ -196,19 +182,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Subheader({ text }: { text: string }) {
-  const { m3 } = useTheme();
-  return (
-    <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 }}>
-      {text}
-    </AppText>
-  );
-}
-
 const styles = StyleSheet.create({
-  bar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
   price: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 24, paddingTop: 16 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 16 },
-  row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16 },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

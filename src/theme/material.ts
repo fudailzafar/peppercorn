@@ -37,6 +37,7 @@ export interface M3Roles {
   outlineVariant: string;
   inverseSurface: string;
   inverseOnSurface: string;
+  inversePrimary: string;
   scrim: string;
 }
 
@@ -70,6 +71,7 @@ export const m3Light: M3Roles = {
   outlineVariant: '#C4C7C5',
   inverseSurface: '#303030',
   inverseOnSurface: '#F2F2F2',
+  inversePrimary: '#A8C7FA',
   scrim: '#000000',
 };
 
@@ -102,6 +104,7 @@ export const m3Dark: M3Roles = {
   outlineVariant: '#444746',
   inverseSurface: '#E3E3E3',
   inverseOnSurface: '#303030',
+  inversePrimary: '#0B57D0',
   scrim: '#000000',
 };
 
@@ -149,12 +152,12 @@ export const shape = {
 
 /**
  * Component radii: one place to decide how rounded each kind of control is, so fields, keys, cards and sheets
- * stay consistent. (Google Pay-style: small radius for inputs, larger for containers, full for actions.)
+ * stay consistent. (M3: medium for cards and fields, large for keys, extra-large for hero containers and sheets, full for buttons.)
  */
 export const radius = {
   field: shape.medium,
   key: shape.large,
-  card: shape.large,
+  card: shape.medium,
   hero: shape.extraLarge,
   sheet: shape.extraLarge,
   action: shape.full,

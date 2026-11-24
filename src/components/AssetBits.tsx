@@ -2,10 +2,10 @@ import { View } from 'react-native';
 import { DUST, type Valuation } from '../lib/assets';
 import { currencySymbol, fmtFull, fmtSmart } from '../lib/format';
 import { useStore } from '../lib/store';
-import { radius, typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { BigAmount } from './Bits';
+import { Card } from './material/Card';
 
 export const inr = (n: number) => `${currencySymbol('INR')}${fmtFull(Math.abs(n))}`;
 
@@ -23,13 +23,13 @@ export function ValueCard({ title, v, children }: { title: string; v: Pick<Valua
   const showCents = useStore((s) => s.settings.showCents);
   const up = v.value !== null && v.value - v.invested >= DUST;
   return (
-    <View style={{ marginHorizontal: 16, marginTop: 8, padding: 20, borderRadius: radius.hero, backgroundColor: m3.surfaceContainer }}>
-      <AppText size={typeScale.titleSmall.size} color={m3.onSurfaceVariant}>
+    <Card hero style={{ marginHorizontal: 16, marginTop: 8, padding: 20 }}>
+      <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
         {title}
       </AppText>
       <View style={{ marginTop: 4 }}>
         {v.value === null ? (
-          <AppText size={typeScale.titleLarge.size} color={m3.onSurface}>
+          <AppText variant="titleLarge" color={m3.onSurface}>
             Price not available yet
           </AppText>
         ) : (
@@ -41,7 +41,7 @@ export function ValueCard({ title, v, children }: { title: string; v: Pick<Valua
         <Stat label={v.value !== null && v.invested - v.value >= DUST ? 'Loss' : 'Gain'} value={gainText(v) || '-'} color={up ? m3.success : m3.onSurface} />
       </View>
       {children}
-    </View>
+    </Card>
   );
 }
 
@@ -49,10 +49,10 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
   const { m3 } = useTheme();
   return (
     <View style={{ flex: 1 }}>
-      <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant}>
+      <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
         {label}
       </AppText>
-      <AppText size={typeScale.bodyLarge.size} weight="semibold" color={color}>
+      <AppText variant="bodyLarge" weight="semibold" color={color}>
         {value}
       </AppText>
     </View>

@@ -5,7 +5,7 @@ import { Icon } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { BigAmount } from '../../components/Bits';
-import { IconButton, SegmentedButton, StateLayer } from '../../components/m3';
+import { Card, EmojiAvatar, IconButton, ListItem, SegmentedButton, Subheader, TopAppBar } from '../../components/material';
 import { BarChart } from '../../components/Charts';
 import { PeriodSwiper } from '../../components/PeriodSwiper';
 import {
@@ -16,15 +16,14 @@ import {
   insightsLabel,
   insightsStart,
   netChange,
-  type InsightsType,
-} from '../../lib/calc';
+  type InsightsType } from '../../lib/calc';
 import { dayLabel, monthName } from '../../lib/dates';
 import { currencySymbol, fmtBlock, fmtFull, fmtSmart } from '../../lib/format';
 import { Haptics } from '../../lib/haptics';
 import { useStore } from '../../lib/store';
 import { useNow } from '../../lib/useNow';
-import { shape, typeScale } from '../../theme/material';
-import { useTheme, withAlpha } from '../../theme/theme';
+import { shape } from '../../theme/material';
+import { useTheme } from '../../theme/theme';
 
 const TYPES: { type: InsightsType; label: string }[] = [
   { type: 1, label: 'week' },
@@ -136,11 +135,9 @@ export default function InsightsScreen() {
     const container = isIncome ? m3.successContainer : m3.surfaceContainerHigh;
     const ink = isIncome ? m3.success : m3.onSurfaceVariant;
     return (
-      <Pressable
+      <Card
         key={String(isIncome)}
-        accessibilityRole="button"
-        accessibilityState={{ selected }}
-        android_ripple={{ color: `${m3.onSurface}1F` }}
+        accessibilityLabel={`${isIncome ? 'Income' : 'Expenses'}${selected ? ', selected' : ''}`}
         onPress={() => {
           Haptics.selection();
           setSelectedBar(null);
@@ -151,26 +148,21 @@ export default function InsightsScreen() {
             setFiltering(true);
           }
         }}
-        style={[styles.block, { backgroundColor: m3.surfaceContainerHigh, borderColor: selected ? m3.primary : 'transparent' }]}
+        style={[styles.block, selected ? { backgroundColor: m3.secondaryContainer } : null]}
       >
-        {({ pressed }) => (
-          <>
-            <StateLayer pressed={pressed} color={m3.onSurface} />
             <View style={[styles.blockIcon, { backgroundColor: container }]}>
               <Icon name={isIncome ? 'arrow-up' : 'arrow-down'} size={20} color={ink} style={{ transform: [{ rotate: isIncome ? '45deg' : '-45deg' }] }} />
             </View>
             <View style={{ flex: 1 }}>
-              <AppText size={typeScale.labelMedium.size} weight="semibold" color={m3.onSurfaceVariant} numberOfLines={1} style={{ letterSpacing: typeScale.labelMedium.tracking }}>
+              <AppText variant="labelMedium" color={m3.onSurfaceVariant} numberOfLines={1}>
                 {isIncome ? 'Income' : 'Expenses'}
               </AppText>
-              <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              <AppText variant="titleMedium" color={m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {sym}
                 {fmtBlock(amount, settings.showCents)}
               </AppText>
             </View>
-          </>
-        )}
-      </Pressable>
+      </Card>
     );
   };
 
@@ -178,12 +170,7 @@ export default function InsightsScreen() {
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
       <PeriodSwiper canGoBack={offset > minOffset} canGoForward={offset < 0} backLabel={neighbour(-1)} forwardLabel={neighbour(1)} onChange={swipeTo}>
         <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
-          {/* M3 small top app bar */}
-          <View style={styles.topBar}>
-            <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 16 }}>
-              Insights
-            </AppText>
-          </View>
+          <TopAppBar title="Insights" inset={false} />
 
           {/* Period type: a three-option segmented button */}
           <View style={styles.padded}>
@@ -204,18 +191,16 @@ export default function InsightsScreen() {
           {/* Period navigator */}
           <View style={styles.navigator}>
             <IconButton icon="chevron-back" onPress={() => go(-1)} label="Previous period" />
-            <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface} style={{ letterSpacing: typeScale.titleMedium.tracking }}>
+            <AppText variant="titleMedium" color={m3.onSurface}>
               {insightsLabel(type, start)}
             </AppText>
-            <View style={{ opacity: offset < 0 ? 1 : 0.38 }} pointerEvents={offset < 0 ? 'auto' : 'none'}>
-              <IconButton icon="chevron-forward" onPress={() => go(1)} label="Next period" />
-            </View>
+            <IconButton icon="chevron-forward" onPress={() => go(1)} disabled={offset >= 0} label="Next period" />
           </View>
 
           {/* Summary card: the period total with its change, and the average beside it */}
-          <View style={[styles.summary, { backgroundColor: m3.surfaceContainerLow, borderColor: m3.outlineVariant }]}>
+          <Card hero style={styles.summary}>
             <View style={{ flex: 1 }}>
-              <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+              <AppText variant="labelLarge" color={m3.onSurfaceVariant}>
                 Net
               </AppText>
               <BigAmount
@@ -228,7 +213,7 @@ export default function InsightsScreen() {
               {change !== null ? (
                 <View style={[styles.badge, { backgroundColor: change >= 0 ? m3.successContainer : m3.surfaceContainerHigh }]}>
                   <Icon name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.onSurfaceVariant} />
-                  <AppText size={typeScale.labelMedium.size} weight="semibold" color={change >= 0 ? m3.success : m3.onSurfaceVariant}>
+                  <AppText variant="labelMedium" color={change >= 0 ? m3.success : m3.onSurfaceVariant}>
                     {Math.min(Math.round(Math.abs(change)), 999)}% vs last {TYPES.find((t) => t.type === type)?.label}
                   </AppText>
                 </View>
@@ -241,12 +226,12 @@ export default function InsightsScreen() {
                 setSelectedCategory(null);
               }}
             >
-              <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} numberOfLines={1} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+              <AppText variant="labelLarge" color={m3.onSurfaceVariant} numberOfLines={1}>
                 {sideLabel}
               </AppText>
               <BigAmount value={fmtSmart(sideValue, settings.showCents)} currency={settings.currency} size={28} align="flex-end" />
             </Pressable>
-          </View>
+          </Card>
 
           {settings.incomeTracking ? (
             <View style={[styles.blocks, styles.padded]}>
@@ -286,11 +271,9 @@ export default function InsightsScreen() {
 
           {/* Categories: a stacked share bar, then M3 list items */}
           <View style={{ marginTop: 32 }}>
-            <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurfaceVariant} style={[styles.padded, { letterSpacing: typeScale.titleMedium.tracking }]}>
-              Categories
-            </AppText>
+            <Subheader text="Categories" style={{ paddingTop: 0 }} />
             {shares.length === 0 ? (
-              <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={[styles.padded, { marginTop: 12 }]}>
+              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={[styles.padded, { marginTop: 12 }]}>
                 Nothing logged in {insightsLabel(type, start)} yet.
               </AppText>
             ) : (
@@ -301,39 +284,23 @@ export default function InsightsScreen() {
                   ))}
                 </View>
                 {shares.map((s) => (
-                  <Pressable
+                  <ListItem
                     key={s.category.id}
                     onPress={() => {
                       Haptics.selection();
                       setSelectedBar(null);
                       setSelectedCategory(selectedCategory === s.category.id ? null : s.category.id);
                     }}
-                    android_ripple={{ color: `${m3.onSurface}1F` }}
-                    style={styles.catRow}
-                  >
-                    {({ pressed }) => (
-                      <>
-                        <StateLayer pressed={pressed || selectedCategory === s.category.id} color={m3.onSurface} />
-                        <View style={[styles.avatar, { backgroundColor: withAlpha(s.category.colour, 0.3) }]}>
-                          <AppText size={20} style={{ includeFontPadding: false }}>
-                            {s.category.emoji}
-                          </AppText>
-                        </View>
-                        <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} style={{ flex: 1, marginLeft: 16, letterSpacing: typeScale.bodyLarge.tracking }} numberOfLines={1}>
-                          {s.category.name}
-                        </AppText>
-                        <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginRight: 12 }}>
-                          {sym}
-                          {s.amount < 100 ? fmtFull(s.amount) : fmtSmart(s.amount, false)}
-                        </AppText>
-                        <View style={[styles.pct, { backgroundColor: withAlpha(s.category.colour, 0.2) }]}>
-                          <AppText size={typeScale.labelLarge.size} weight="semibold" style={{ color: s.category.colour }}>
-                            {Math.round(s.percent)}%
-                          </AppText>
-                        </View>
-                      </>
-                    )}
-                  </Pressable>
+                    headline={s.category.name}
+                    leading={<EmojiAvatar emoji={s.category.emoji} colour={s.category.colour} />}
+                    trailingText={`${sym}${s.amount < 100 ? fmtFull(s.amount) : fmtSmart(s.amount, false)}`}
+                    trailing={
+                      <AppText variant="labelLarge" color={m3.onSurface} style={{ minWidth: 40, textAlign: 'right' }}>
+                        {Math.round(s.percent)}%
+                      </AppText>
+                    }
+                    style={selectedCategory === s.category.id ? { backgroundColor: m3.secondaryContainer } : undefined}
+                  />
                 ))}
               </>
             )}
@@ -345,17 +312,13 @@ export default function InsightsScreen() {
 }
 
 const styles = StyleSheet.create({
-  topBar: { minHeight: 64, justifyContent: 'center' },
   padded: { paddingHorizontal: 16 },
   navigator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, marginTop: 8 },
-  summary: { marginHorizontal: 16, marginTop: 4, padding: 20, borderRadius: shape.extraLarge, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  summary: { marginHorizontal: 16, marginTop: 4, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: shape.small, marginTop: 8 },
   blocks: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  block: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: shape.large, borderWidth: 2, overflow: 'hidden' },
+  block: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   blockIcon: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
   hitRow: { position: 'absolute', left: 54, right: 16, top: 0, flexDirection: 'row' },
   colourBar: { flexDirection: 'row', gap: 4, marginTop: 12, marginBottom: 8 },
-  catRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, overflow: 'hidden' },
-  avatar: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  pct: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: shape.small, alignItems: 'center', minWidth: 52 },
 });

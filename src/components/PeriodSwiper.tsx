@@ -104,12 +104,12 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
       </View>
       <View>
         <Animated.View style={dim}>
-          <AppText size={15} weight="semibold" color={m3.outlineVariant} style={styles.label}>
+          <AppText variant="labelLarge" color={m3.outlineVariant} style={styles.label}>
             {label}
           </AppText>
         </Animated.View>
         <Animated.View style={[StyleSheet.absoluteFill, bright]}>
-          <AppText size={15} weight="semibold" color={m3.onSurface} style={styles.label}>
+          <AppText variant="labelLarge" color={m3.onSurface} style={styles.label}>
             {label}
           </AppText>
         </Animated.View>
@@ -120,7 +120,7 @@ export function PeriodSwiper({ canGoBack, canGoForward, backLabel, forwardLabel,
   const end = (left: boolean, label: string, style: object) => (
     <Animated.View style={[styles.edge, left ? { left: 25 } : { right: 25 }, style, { opacity: 0.8 }]}>
       <Icon name={left ? 'glasses' : 'partly-sunny'} size={26} color={m3.onSurfaceVariant} />
-      <AppText size={15} weight="semibold" color={m3.onSurfaceVariant} style={{ width: 90, textAlign: 'center' }}>
+      <AppText variant="labelLarge" color={m3.onSurfaceVariant} style={{ width: 90, textAlign: 'center' }}>
         {label}
       </AppText>
     </Animated.View>

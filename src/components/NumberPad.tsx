@@ -55,7 +55,7 @@ export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel, dec
 
   const digit = (n: number) =>
     key(
-      <AppText size={32} weight="regular" color={m3.onSurface}>
+      <AppText variant="headlineLarge" color={m3.onSurface}>
         {n}
       </AppText>,
       () => onChange(pressDigit(raw, n, entryType, decimals)),
@@ -74,7 +74,7 @@ export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel, dec
         {entryType === 1
           ? key(<Icon name="backspace-outline" size={28} color={m3.onSurface} />, () => onChange(pressDelete(raw)), 'tonal', 'Delete')
           : key(
-              <AppText size={32} weight="regular" color={m3.onSurface}>
+              <AppText variant="headlineLarge" color={m3.onSurface}>
                 .
               </AppText>,
               () => onChange(pressDot(raw, entryType)),
@@ -92,5 +92,4 @@ const styles = StyleSheet.create({
   pad: { gap: 8, paddingHorizontal: 16 },
   row: { flexDirection: 'row', gap: 8 },
   key: { flex: 1, height: 64, borderRadius: shape.large, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  checkBox: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

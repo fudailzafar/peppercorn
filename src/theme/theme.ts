@@ -1,24 +1,19 @@
 import { useColorScheme } from 'react-native';
 import { useStore } from '../lib/store';
 import { m3Dark, m3Light, type M3Roles } from './material';
-import { darkColors, lightColors, type ColorName } from './tokens';
-
-export type Palette = Record<ColorName, string>;
 
 export interface Theme {
   dark: boolean;
-  /** Dime's brand palette (kept so every screen keeps working). */
-  c: Palette;
-  /** The same colours arranged as Material 3 roles. */
+  /** Material 3 colour roles. */
   m3: M3Roles;
 }
 
-/** Dime's colour palette for the current appearance (respects the Theme setting). */
+/** The Material 3 colour roles for the current appearance (respects the Theme setting). */
 export function useTheme(): Theme {
   const setting = useStore((s) => s.settings.theme);
   const system = useColorScheme();
   const dark = setting === 'dark' || (setting === 'system' && system === 'dark');
-  return { dark, c: dark ? darkColors : lightColors, m3: dark ? m3Dark : m3Light };
+  return { dark, m3: dark ? m3Dark : m3Light };
 }
 
 /** "#RRGGBB" + alpha -> "rgba(r,g,b,a)". */
@@ -32,10 +27,7 @@ export function withAlpha(hex: string, alpha: number): string {
 
 export type Weight = 'regular' | 'medium' | 'semibold' | 'bold';
 
-/**
- * Google Sans. Dime's four weights fold onto three:
- * body text (regular/medium) is Regular, emphasis (semibold) is Medium, headings (bold) are Bold.
- */
+/** Google Sans. M3 uses regular and medium (500, "semibold" here); bold is for rare emphasis. */
 export const fontFamily: Record<Weight, string> = {
   regular: 'GoogleSans_400Regular',
   medium: 'GoogleSans_400Regular',

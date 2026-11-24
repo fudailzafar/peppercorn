@@ -3,7 +3,8 @@ import { createElement, useCallback, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/theme';
-import { BottomSheet, FilledButton } from './m3';
+import { BottomSheet } from './m3';
+import { Button } from './material/Button';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const toInputValue = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -48,10 +49,11 @@ export function useDateTimePicker(value: Date, onChange: (d: Date) => void): { o
             const next = new Date(e.target.value);
             if (!Number.isNaN(next.getTime())) setDraft(next);
           },
-          style: { fontSize: 18, padding: 14, borderRadius: 4, border: `1px solid ${m3.outline}`, marginBottom: 8, background: m3.surfaceContainerLow, color: m3.onSurface, fontFamily: 'GoogleSans_400Regular' },
+          style: { fontSize: 16, padding: 16, borderRadius: 12, border: `1px solid ${m3.outline}`, marginBottom: 8, background: m3.surfaceContainerLow, color: m3.onSurface, fontFamily: 'GoogleSans_400Regular' },
         })
       )}
-      <FilledButton
+      <Button
+        large
         label="Done"
         onPress={() => {
           onChange(draft);

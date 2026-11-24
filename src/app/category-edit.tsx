@@ -5,14 +5,22 @@ import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 're
 import { Icon } from '../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
-import { Chip, IconButton, OutlinedField } from '../components/m3';
+import { Button, EmojiAvatar, OutlinedField, TopAppBar } from '../components/material';
 import { ConfirmSheet } from '../components/Overlays';
 import { EMOJIS } from '../lib/emojis';
 import { Haptics } from '../lib/haptics';
 import { useStore, useUi } from '../lib/store';
 import { categoryColors, colourNames } from '../theme/tokens';
-import { shape, typeScale } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { shape } from '../theme/material';
+import { useTheme } from '../theme/theme';
+
+const INCOME_COLOUR = '#76FBB1';
+
+/** Black or white, whichever reads better on a swatch. */
+function onColour(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000 > 150 ? '#000000' : '#FFFFFF';
+}
 
 /** Create or edit a category: emoji, name and colour. */
 export default function CategoryEdit() {
@@ -31,10 +39,10 @@ export default function CategoryEdit() {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [emoji, setEmoji] = useState(existing?.emoji ?? '😄');
-  const [colour, setColour] = useState(existing?.colour ?? (income ? '#76FBB1' : categoryColors[0]));
+  const [colour, setColour] = useState(existing?.colour ?? (income ? INCOME_COLOUR : categoryColors[0]));
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const palette = income ? ['#76FBB1', ...categoryColors.filter((x) => x !== '#76FBB1')] : categoryColors;
+  const palette = income ? [INCOME_COLOUR, ...categoryColors.filter((x) => x !== INCOME_COLOUR)] : categoryColors;
   const txCount = useStore((s) => s.transactions.filter((t) => t.categoryId === id).length);
   const hasBudget = useStore((s) => s.budgets.some((b) => b.categoryId === id));
   // Name only what really goes with the category.
@@ -60,52 +68,41 @@ export default function CategoryEdit() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top }}>
-      {/* M3 full-screen dialog app bar: close, title, and a text "Save" action */}
-      <View style={styles.top}>
-        <IconButton icon="close" onPress={() => goBack()} label="Close" tint={m3.onSurface} />
-        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 8, flex: 1 }}>
-          {existing ? 'Edit category' : 'New category'}
-        </AppText>
-        <Chip label="Save" onPress={save} tint={m3.primary} onTint={m3.onPrimary} accessibilityLabel="Save" style={{ marginRight: 12 }} />
-      </View>
+    <View style={{ flex: 1, backgroundColor: m3.surface }}>
+      <TopAppBar title={existing ? 'Edit category' : 'New category'} close onBack={() => goBack()} actions={<Button variant="text" label="Save" onPress={save} />} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled">
         <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 24 }}>
-          <View style={[styles.preview, { backgroundColor: withAlpha(colour, 0.3) }]}>
-            <AppText size={44} style={{ includeFontPadding: false }}>
-              {emoji}
-            </AppText>
-          </View>
+          <EmojiAvatar emoji={emoji} colour={colour} size={88} />
         </View>
 
         <OutlinedField label="Name" value={name} onChangeText={setName} maxLength={24} width={width - 32} />
 
-        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.section}>
+        <AppText variant="titleSmall" color={m3.onSurfaceVariant} style={styles.section}>
           Colour
         </AppText>
         <View style={styles.grid}>
           {palette.map((col) => (
             <Pressable key={col} onPress={() => setColour(col)} style={[styles.swatch, { backgroundColor: col }]} accessibilityRole="radio" accessibilityState={{ selected: colour === col }} accessibilityLabel={colourNames[col] ?? 'Custom colour'}>
-              {colour === col ? <Icon name="checkmark" size={22} color="#FFFFFF" /> : null}
+              {colour === col ? <Icon name="checkmark" size={22} color={onColour(col)} /> : null}
             </Pressable>
           ))}
         </View>
 
-        <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.section}>
+        <AppText variant="titleSmall" color={m3.onSurfaceVariant} style={styles.section}>
           Emoji
         </AppText>
         <View style={styles.grid}>
           {EMOJIS.map((e) => (
-            <Pressable key={e} onPress={() => setEmoji(e)} style={[styles.emoji, emoji === e && { backgroundColor: m3.secondaryContainer }]}>
-              <AppText size={26}>{e}</AppText>
+            <Pressable key={e} onPress={() => setEmoji(e)} accessibilityRole="radio" accessibilityState={{ selected: emoji === e }} accessibilityLabel={e} android_ripple={{ color: `${m3.onSurface}1F`, borderless: true, radius: 24 }} style={[styles.emoji, emoji === e && { backgroundColor: m3.secondaryContainer }]}>
+              <AppText size={24}>{e}</AppText>
             </Pressable>
           ))}
         </View>
 
         {existing ? (
           <View style={{ marginTop: 32, alignItems: 'flex-start' }}>
-            <Chip icon="trash-outline" label="Delete category" onPress={() => setConfirmDelete(true)} tint={m3.errorContainer} onTint={m3.onErrorContainer} />
+            <Button variant="danger" icon="trash-outline" label="Delete category" onPress={() => setConfirmDelete(true)} />
           </View>
         ) : null}
       </ScrollView>
@@ -127,10 +124,8 @@ export default function CategoryEdit() {
 }
 
 const styles = StyleSheet.create({
-  top: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
-  preview: { width: 88, height: 88, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  section: { marginTop: 28, marginBottom: 12, letterSpacing: 0.1 },
+  section: { marginTop: 28, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  swatch: { width: 44, height: 44, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  emoji: { width: 48, height: 48, borderRadius: shape.medium, alignItems: 'center', justifyContent: 'center' },
+  swatch: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
+  emoji: { width: 48, height: 48, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
 });

@@ -11,11 +11,12 @@ import { currencySymbol, fmtFull } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
 import type { Transaction } from '../lib/types';
-import { m3Easing, shape, typeScale } from '../theme/material';
+import { m3Easing } from '../theme/material';
 import { springs } from '../theme/motion';
-import { useTheme, withAlpha } from '../theme/theme';
+import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { StateLayer } from './m3';
+import { EmojiAvatar } from './material/List';
 import { Popover, PopoverItem, useAnchor, anchorProps } from './Overlays';
 
 // Dime's swipe-to-delete: past 20% of the screen a confirmation card opens on release; past 42% the row flies off and deletes.
@@ -119,7 +120,7 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
   const amountColor = future ? m3.onSurfaceVariant : t.income ? m3.success : m3.onSurface;
   const when = future ? dayLabel(new Date(futureDate ?? t.date)) : showDate ? `${shortDate(new Date(t.date))}, ${timeLabel(t.date)}` : timeLabel(t.date);
   const subtitle = t.asset && t.qty !== undefined ? `${qtyLabel(t.asset, t.qty)} · ${when}` : when;
-  const tint = category?.colour ?? '#A6A6A6';
+  const tint = category?.colour ?? m3.outline;
 
   return (
     <View>
@@ -152,23 +153,19 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
               {({ pressed }) => (
                 <>
                   <StateLayer pressed={pressed} color={m3.onSurface} />
-                  <View style={[styles.avatar, { backgroundColor: withAlpha(tint, future ? 0.16 : 0.3) }]}>
-                    <AppText size={20} style={{ includeFontPadding: false }}>
-                      {category?.emoji ?? '❓'}
-                    </AppText>
-                  </View>
+                  <EmojiAvatar emoji={category?.emoji ?? '❓'} colour={tint} dimmed={future} />
                   <View style={styles.texts}>
-                    <AppText size={typeScale.bodyLarge.size} color={future ? m3.onSurfaceVariant : m3.onSurface} numberOfLines={1} style={{ letterSpacing: typeScale.bodyLarge.tracking }}>
+                    <AppText variant="bodyLarge" color={future ? m3.onSurfaceVariant : m3.onSurface} numberOfLines={1}>
                       {t.note}
                     </AppText>
                     <View style={styles.supporting}>
                       {t.recurringType > 0 ? <Icon name="repeat" size={14} color={m3.onSurfaceVariant} /> : null}
-                      <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} numberOfLines={1} style={{ letterSpacing: typeScale.bodyMedium.tracking }}>
+                      <AppText variant="bodyMedium" color={m3.onSurfaceVariant} numberOfLines={1}>
                         {subtitle}
                       </AppText>
                     </View>
                   </View>
-                  <AppText size={typeScale.titleMedium.size} weight="semibold" color={amountColor} numberOfLines={1} style={{ marginLeft: 12, letterSpacing: typeScale.titleMedium.tracking }}>
+                  <AppText variant="titleMedium" color={amountColor} numberOfLines={1} style={{ marginLeft: 12 }}>
                     {sign}
                     {currencySymbol(currency)}
                     {fmtFull(t.amount)}
@@ -217,7 +214,6 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
 
 const styles = StyleSheet.create({
   row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, overflow: 'hidden' },
-  avatar: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
   texts: { flex: 1, marginLeft: 16 },
   supporting: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   reveal: { ...StyleSheet.absoluteFill, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 24 },

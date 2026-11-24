@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { SectionList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { Icon } from '../components/Icon';
-import { SearchBar, StateLayer } from '../components/m3';
+import { Card, ListItem, SearchBar, Subheader } from '../components/material';
 import { PageScaffold } from '../components/SettingsBits';
 import { CURRENCIES } from '../lib/currencies';
 import { currencySymbol } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { goBack } from '../lib/nav';
 import { useStore } from '../lib/store';
-import { radius, typeScale } from '../theme/material';
+import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
 const COMMON = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'SGD', 'AUD'];
@@ -59,53 +59,37 @@ export default function CurrencyScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
           q ? undefined : (
-            <View style={[styles.current, { backgroundColor: m3.primaryContainer }]} accessible accessibilityLabel={`Current currency: ${selected.name}`}>
+            <Card style={[styles.current, { backgroundColor: m3.primaryContainer }]}>
               <SymbolCircle code={selected.code} background={m3.primary} ink={m3.onPrimary} />
               <View style={{ flex: 1 }}>
-                <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onPrimaryContainer} numberOfLines={1}>
+                <AppText variant="titleMedium" color={m3.onPrimaryContainer} numberOfLines={1}>
                   {selected.name}
                 </AppText>
-                <AppText size={typeScale.bodyMedium.size} color={m3.onPrimaryContainer}>
+                <AppText variant="bodyMedium" color={m3.onPrimaryContainer}>
                   {selected.code}
                 </AppText>
               </View>
               <Icon name="checkmark-circle" size={24} color={m3.onPrimaryContainer} />
-            </View>
+            </Card>
           )
         }
         ListEmptyComponent={
-          <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 48 }}>
+          <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 48 }}>
             No currencies match “{query.trim()}”
           </AppText>
         }
-        renderSectionHeader={({ section }) => (
-          <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant} style={styles.header}>
-            {section.title}
-          </AppText>
-        )}
+        renderSectionHeader={({ section }) => <Subheader text={section.title} />}
         renderItem={({ item }) => (
-          <Pressable
+          <ListItem
+            headline={item.name}
+            leading={<SymbolCircle code={item.code} background={m3.surfaceContainerHigh} ink={m3.onSurface} />}
+            trailingText={item.code}
+            trailing={item.code === current ? <Icon name="checkmark" size={24} color={m3.primary} /> : undefined}
             onPress={() => choose(item.code)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: item.code === current }}
+            role="radio"
+            checked={item.code === current}
             accessibilityLabel={`${item.name}, ${item.code}`}
-            android_ripple={{ color: `${m3.onSurface}1F` }}
-            style={styles.row}
-          >
-            {({ pressed }) => (
-              <>
-                <StateLayer pressed={pressed} color={m3.onSurface} />
-                <SymbolCircle code={item.code} background={m3.surfaceContainerHigh} ink={m3.onSurface} />
-                <AppText size={typeScale.bodyLarge.size} color={m3.onSurface} numberOfLines={1} style={{ flex: 1 }}>
-                  {item.name}
-                </AppText>
-                {item.code === current ? <Icon name="checkmark" size={22} color={m3.primary} /> : null}
-                <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant}>
-                  {item.code}
-                </AppText>
-              </>
-            )}
-          </Pressable>
+          />
         )}
       />
     </PageScaffold>
@@ -126,8 +110,6 @@ function SymbolCircle({ code, background, ink }: { code: string; background: str
 }
 
 const styles = StyleSheet.create({
-  current: { flexDirection: 'row', alignItems: 'center', gap: 16, marginHorizontal: 16, padding: 16, borderRadius: radius.card },
-  header: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
-  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, overflow: 'hidden' },
-  circle: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  current: { flexDirection: 'row', alignItems: 'center', gap: 16, marginHorizontal: 16, padding: 16 },
+  circle: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
 });

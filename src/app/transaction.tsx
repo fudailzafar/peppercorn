@@ -12,7 +12,7 @@ import { BigAmount } from '../components/Bits';
 import { useDeleteFlow } from '../components/DeleteFlow';
 import { useDateTimePicker } from '../components/DateTimeField';
 import { EnterSlide } from '../components/EnterSlide';
-import { BottomSheet, Chip, FilledButton, IconButton, PillField, SegmentedButton } from '../components/m3';
+import { AssistChip, BottomSheet, Button, ChoiceCard, EmojiAvatar, FilterChip, IconButton, PillField, SegmentedButton } from '../components/material';
 import { NumberPad } from '../components/NumberPad';
 import { Popover, PopoverItem, useAnchor, anchorProps } from '../components/Overlays';
 import { assetById, assetCategoryId, fundQuote, latestQuote, metalQuote } from '../lib/assets';
@@ -26,8 +26,8 @@ import { useStore, useUi } from '../lib/store';
 import { useNow } from '../lib/useNow';
 import type { AssetId, Category, RecurringType } from '../lib/types';
 import { springs } from '../theme/motion';
-import { m3Duration, m3Easing, shape, typeScale } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { m3Duration, m3Easing, shape } from '../theme/material';
+import { useTheme } from '../theme/theme';
 
 const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'Don’t repeat', 1: 'Daily', 2: 'Weekly', 3: 'Monthly' };
 const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
@@ -323,7 +323,7 @@ export default function TransactionScreen() {
       {/* Amount and note */}
       <Pressable accessible={false} style={styles.middle} onPress={() => { noteRef.current?.blur(); Keyboard.dismiss(); }}>
         <View style={{ alignSelf: 'stretch', paddingHorizontal: 56, alignItems: 'center' }}>
-          <BigAmount value={display(raw, entryType)} currency={settings.currency} suffix={metal ? 'g' : undefined} size={57} color={income && amount > 0 ? 'IncomeGreen' : 'PrimaryText'} />
+          <BigAmount value={display(raw, entryType)} currency={settings.currency} suffix={metal ? 'g' : undefined} size={57} income={income && amount > 0} />
           {/* Backspace sits beside the amount (the keypad itself is just digits, the point and the check). */}
           {entryType === 2 && raw.length > 0 ? (
             <View style={styles.backspace}>
@@ -333,7 +333,7 @@ export default function TransactionScreen() {
         </View>
 
         {assetHint ? (
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 4, textAlign: 'center' }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 4, textAlign: 'center' }}>
             {assetHint}
           </AppText>
         ) : null}
@@ -357,11 +357,9 @@ export default function TransactionScreen() {
 
         {repeat > 0 || editing ? (
           <View {...(editing ? anchorProps(repeatMenu) : {})}>
-            <Chip
+            <AssistChip
               icon="repeat"
               label={repeat === 0 ? 'Doesn’t repeat' : every === 1 ? `Repeats ${REPEAT_LABELS[repeat].toLowerCase()}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
-              tint={repeat > 0 ? m3.secondaryContainer : undefined}
-              onTint={m3.onSecondaryContainer}
               onPress={repeatMenu.open}
               style={{ marginTop: 16 }}
             />
@@ -371,7 +369,7 @@ export default function TransactionScreen() {
         {suggestions.length > 0 ? (
           <View style={{ marginTop: 14, gap: 8, alignItems: 'center' }}>
             {suggestions.map((s) => (
-              <Chip
+              <AssistChip
                 key={s.id}
                 label={s.note}
                 onPress={() => {
@@ -380,8 +378,6 @@ export default function TransactionScreen() {
                   if (raw === '') setRaw(fromNumber(s.amount, entryType));
                   Keyboard.dismiss();
                 }}
-                tint={m3.surfaceContainerHigh}
-                onTint={m3.onSurface}
               />
             ))}
           </View>
@@ -402,18 +398,18 @@ export default function TransactionScreen() {
           />
         ) : null}
         <View style={styles.pillRow}>
-          <Chip icon="calendar-outline" label={`${dateText}  ${time24(date)}`} onPress={datePicker.open} accessibilityLabel="Change date" style={{ flex: 1 }} />
+          <Button variant="outlined" icon="calendar-outline" label={`${dateText}  ${time24(date)}`} onPress={datePicker.open} accessibilityLabel="Change date" style={{ flex: 1 }} />
 
           {pickingCategory ? (
-            <Chip label="Close" icon="close" onPress={() => setPickingCategory(false)} tint={m3.errorContainer} onTint={m3.onErrorContainer} style={{ minWidth: 120 }} />
+            <Button variant="outlined" label="Close" icon="close" onPress={() => setPickingCategory(false)} style={{ minWidth: 120 }} />
           ) : (
             <Animated.View style={{ minWidth: 120, maxWidth: 176, flexShrink: 0, transform: [{ translateX: shake }] }}>
-              <Chip
+              <Button
+                variant={category ? 'tonal' : 'outlined'}
                 accessibilityLabel="Choose category"
                 icon={category ? undefined : 'apps-outline'}
-                label={category ? `${category.emoji}  ${category.asset ? category.name.replace(/ Fund$/, '') : category.name}` : 'Category'}
-                tint={category ? withAlpha(category.colour, 0.3) : undefined}
-                onTint={category ? m3.onSurface : undefined}
+                leading={category ? <AppText size={16}>{category.emoji}</AppText> : undefined}
+                label={category ? shortName(category) : 'Category'}
                 onPress={() => {
                   Keyboard.dismiss();
                   setPickingCategory(true);
@@ -423,7 +419,7 @@ export default function TransactionScreen() {
               {category ? null : (
                 <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: flash, backgroundColor: m3.errorContainer, borderRadius: shape.full, borderWidth: 1, borderColor: m3.error, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]}>
                   <Icon name="apps-outline" size={18} color={m3.onErrorContainer} />
-                  <AppText size={14} weight="semibold" color={m3.onErrorContainer}>
+                  <AppText variant="labelLarge" color={m3.onErrorContainer}>
                     Category
                   </AppText>
                 </Animated.View>
@@ -436,6 +432,7 @@ export default function TransactionScreen() {
           <EnterSlide from="right">
             <CategoryGrid
               categories={typeCategories}
+              selectedId={categoryId}
               onPick={(cat) => {
                 Haptics.selection();
                 pickCategory(cat.id);
@@ -469,66 +466,44 @@ export default function TransactionScreen() {
   );
 }
 
-/** A single scrolling row of category chips; the chosen one is filled and outlined in its colour. */
+const shortName = (cat: Category) => (cat.asset ? cat.name.replace(/ Fund$/, '') : cat.name);
+
+/** A single scrolling row of filter chips, one per category. */
 function CategoryChips({ categories, selectedId, onPick }: { categories: Category[]; selectedId: string | null; onPick: (c: Category) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 15, paddingBottom: 10 }}>
-      {categories.map((cat) => {
-        const on = cat.id === selectedId;
-        return (
-          <Pressable
-            key={cat.id}
-            accessibilityRole="button"
-            accessibilityState={{ selected: on }}
-            accessibilityLabel={`Category ${cat.name}`}
-            onPress={() => onPick(cat)}
-            style={({ pressed }) => [styles.quickChip, { backgroundColor: withAlpha(cat.colour, on ? 0.55 : pressed ? 0.4 : 0.22), borderColor: on ? cat.colour : 'transparent' }]}
-          >
-            <AppText size={14} weight={on ? 'semibold' : 'medium'} color={on ? 'PrimaryText' : 'SubtitleText'}>
-              {cat.emoji}  {cat.name}
-            </AppText>
-          </Pressable>
-        );
-      })}
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
+      {categories.map((cat) => (
+        <FilterChip key={cat.id} emoji={cat.emoji} label={shortName(cat)} selected={cat.id === selectedId} accessibilityLabel={`Category ${cat.name}`} onPress={() => onPick(cat)} />
+      ))}
     </ScrollView>
   );
 }
 
-/** Categories as tinted pills, filled from the bottom-right so they sit under the thumb. */
-function CategoryGrid({ categories, onPick }: { categories: Category[]; onPick: (c: Category) => void }) {
+/** Every category as a two-column grid of choice cards, in the keypad's place. */
+function CategoryGrid({ categories, selectedId, onPick }: { categories: Category[]; selectedId: string | null; onPick: (c: Category) => void }) {
   const { m3 } = useTheme();
   const rows: Category[][] = [];
   for (let i = 0; i < categories.length; i += 2) rows.push(categories.slice(i, i + 2));
-  rows.reverse();
 
   return (
-    <View style={{ height: 66 * 4 + 30 }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', gap: 10, paddingHorizontal: 15, paddingBottom: 64 }}>
+    <View style={styles.grid}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}>
         {categories.length === 0 ? (
-          <AppText size={18} weight="medium" color="SubtitleText" style={{ textAlign: 'center' }}>
+          <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center', marginTop: 24 }}>
             No categories yet
           </AppText>
         ) : null}
-        {rows.map((row, i) => (
-          <View key={i} style={{ flexDirection: 'row-reverse', gap: 14 }}>
+        {rows.map((row) => (
+          <View key={row[0].id} style={{ flexDirection: 'row', gap: 8 }}>
             {row.map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => onPick(cat)}
-                style={({ pressed }) => [styles.gridPill, { backgroundColor: withAlpha(cat.colour, pressed ? 0.5 : 0.3) }]}
-              >
-                <AppText size={20}>{cat.emoji}</AppText>
-                <AppText size={cat.asset ? 15 : 20} weight="semibold" color={m3.onSurface} numberOfLines={1} style={{ flexShrink: 1 }}>
-                  {cat.asset ? cat.name.replace(/ Fund$/, '') : cat.name}
-                </AppText>
-              </Pressable>
+              <ChoiceCard key={cat.id} label={shortName(cat)} leading={<EmojiAvatar emoji={cat.emoji} colour={cat.colour} size={36} />} selected={cat.id === selectedId} onPress={() => onPick(cat)} style={{ flex: 1 }} />
             ))}
             {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
           </View>
         ))}
       </ScrollView>
-      <View style={styles.editPill}>
-        <Chip icon="create-outline" label="Edit" accessibilityLabel="Edit categories" tint={m3.surfaceContainerHigh} onTint={m3.onSurface} onPress={() => router.push('/categories')} />
+      <View style={{ alignItems: 'center', paddingTop: 4 }}>
+        <Button variant="text" icon="create-outline" label="Edit categories" onPress={() => router.push('/categories')} />
       </View>
     </View>
   );
@@ -554,12 +529,12 @@ function CustomRepeat({
 
   return (
     <BottomSheet visible={visible} onClose={onCancel} bottomInset={insets.bottom}>
-      <AppText size={typeScale.titleLarge.size} color={m3.onSurface}>
+      <AppText variant="titleLarge" color={m3.onSurface}>
         Repeat every
       </AppText>
       <View style={styles.counter}>
         <IconButton icon="remove" onPress={() => setN(Math.max(1, n - 1))} label="Fewer" tint={m3.onSurface} />
-        <AppText size={typeScale.displaySmall.size} color={m3.onSurface}>
+        <AppText variant="displaySmall" color={m3.onSurface}>
           {n}
         </AppText>
         <IconButton icon="add" onPress={() => setN(Math.min(99, n + 1))} label="More" tint={m3.onSurface} />
@@ -571,31 +546,19 @@ function CustomRepeat({
         onChange={(i) => setType((i + 1) as 1 | 2 | 3)}
       />
       <View style={{ marginTop: 24 }}>
-        <FilledButton label="Set repeat" onPress={() => onDone(type, n)} />
+        <Button large label="Set repeat" onPress={() => onDone(type, n)} />
       </View>
     </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
-  segWrap: { flexDirection: 'row', borderWidth: 1.5, borderRadius: 100, padding: 3 },
-  seg: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 100 },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   middle: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   // Pinned to the right edge, level with the amount, so it never sits on top of the digits.
   backspace: { position: 'absolute', right: 8, top: 0, bottom: 0, justifyContent: 'center' },
-  // Fully rounded like the Expense | Income capsule, with the text centred and no leading icon.
-  notePill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 3, marginTop: 12, minWidth: 0, maxWidth: 280 },
-  noteInput: { fontSize: 18, flexShrink: 1, minWidth: 84, paddingVertical: 4, textAlign: 'center' },
-  repeatChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, marginTop: 12 },
-  suggestion: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 100 },
-  pillRow: { flexDirection: 'row', gap: 9, paddingHorizontal: 15, marginBottom: 10, height: 44 },
-  datePill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: 12 },
-  catPill: { minWidth: 120, maxWidth: 170, flexShrink: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingHorizontal: 14 },
-  quickChip: { height: 40, paddingHorizontal: 14, borderRadius: shape.full, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-  gridPill: { flex: 1, height: 48, borderRadius: shape.medium, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
-  editPill: { position: 'absolute', alignSelf: 'center', bottom: 6 },
-  sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 24, paddingTop: 28, gap: 20 },
+  pillRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12, height: 40 },
+  // The same height as the keypad it replaces.
+  grid: { height: 280 },
   counter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 30 },
-  bigButton: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 });

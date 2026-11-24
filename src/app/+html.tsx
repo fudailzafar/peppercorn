@@ -11,7 +11,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#060A07" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#131314" media="(prefers-color-scheme: dark)" />
         <meta name="color-scheme" content="light dark" />
         <meta name="apple-mobile-web-app-title" content="Dime" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -31,4 +31,4 @@ export default function Root({ children }: PropsWithChildren) {
 }
 
 // Match the app's background before JS loads, so there is no white flash in dark mode.
-const PAGE_BACKGROUND = `html,body{background-color:#FFFFFF}@media (prefers-color-scheme: dark){html,body{background-color:#060A07}}`;
+const PAGE_BACKGROUND = `html,body{background-color:#FFFFFF}@media (prefers-color-scheme: dark){html,body{background-color:#131314}}`;

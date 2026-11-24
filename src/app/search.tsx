@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { useDeleteFlow } from '../components/DeleteFlow';
 import { Icon } from '../components/Icon';
-import { IconButton, SearchBar } from '../components/m3';
+import { IconButton, SearchBar } from '../components/material';
 import { TransactionRow } from '../components/TransactionRow';
 import { groupByDay } from '../lib/calc';
 import { dayLabel, isSameDay } from '../lib/dates';
@@ -13,7 +13,7 @@ import { currencySymbol, fmtFull } from '../lib/format';
 import { useStore } from '../lib/store';
 import { useNow } from '../lib/useNow';
 import type { Transaction } from '../lib/types';
-import { shape, typeScale } from '../theme/material';
+import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
 type Row = { kind: 'header'; key: string; label: string; net: number } | { kind: 'item'; key: string; t: Transaction };
@@ -68,10 +68,10 @@ export default function SearchScreen() {
               <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
                 <Icon name="search" size={40} color={m3.onSurfaceVariant} />
               </View>
-              <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ marginTop: 20 }}>
+              <AppText variant="headlineSmall" color={m3.onSurface} style={{ marginTop: 20 }}>
                 No entries found
               </AppText>
-              <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 8 }}>
+              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ marginTop: 8 }}>
                 Try another note, category or amount.
               </AppText>
             </View>
@@ -80,10 +80,10 @@ export default function SearchScreen() {
         renderItem={({ item }) =>
           item.kind === 'header' ? (
             <View style={styles.subheader}>
-              <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant}>
+              <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
                 {item.label}
               </AppText>
-              <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.onSurfaceVariant}>
+              <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
                 {showSign ? (item.net >= 0 ? '+' : '-') : ''}
                 {currencySymbol(currency)}
                 {fmtFull(Math.abs(item.net))}

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type ComponentRef, type ReactNode, type Ref } from 'react';
-import { Modal, Pressable, StyleSheet, TextInput, View, useWindowDimensions, type DimensionValue, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { Modal, Pressable, StyleSheet, TextInput, View, useWindowDimensions, type DimensionValue, type TextInputProps } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { scheduleOnRN } from 'react-native-worklets';
 import Animated, { Easing, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { m3Duration, m3Easing, radius, shape, stateLayer, typeScale } from '../theme/material';
 import { useKeyboardLift } from '../lib/useKeyboardLift';
-import { useTheme } from '../theme/theme';
+import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
 
 /** Material 3 building blocks used across the app. Reference: https://m3.material.io/components */
@@ -28,10 +28,10 @@ export function StateLayer({ pressed, color, radius }: { pressed: boolean; color
 // MARK: Icon button
 
 /** M3 standard icon button: no container, a 40dp state layer inside a 48dp touch target. */
-export function IconButton({ icon, onPress, label, tint }: { icon: IconName; onPress: () => void; label: string; tint?: string }) {
+export function IconButton({ icon, onPress, label, tint, disabled = false }: { icon: IconName; onPress: () => void; label: string; tint?: string; disabled?: boolean }) {
   const { m3 } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.touch} android_ripple={{ color: `${m3.onSurface}1F`, radius: 24 }}>
+    <Pressable onPress={onPress} disabled={disabled} accessibilityRole="button" accessibilityState={{ disabled }} accessibilityLabel={label} style={[styles.touch, { opacity: disabled ? 0.38 : 1 }]} android_ripple={{ color: `${m3.onSurface}1F`, radius: 24 }}>
       {({ pressed }) => (
         <View style={styles.iconContainer}>
           <StateLayer pressed={pressed} color={m3.onSurface} radius={shape.full} />
@@ -76,7 +76,7 @@ function Segment({ label, selected, divider, onPress, fullWidth }: { label: stri
           <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: m3.secondaryContainer }, bg]} />
           <StateLayer pressed={pressed} color={m3.onSurface} />
           {selected ? <Icon name="checkmark" size={18} color={m3.onSecondaryContainer} /> : null}
-          <AppText size={typeScale.labelLarge.size} weight="semibold" color={selected ? m3.onSecondaryContainer : m3.onSurface} style={{ letterSpacing: typeScale.labelLarge.tracking }}>
+          <AppText variant="labelLarge" color={selected ? m3.onSecondaryContainer : m3.onSurface}>
             {label}
           </AppText>
         </>
@@ -85,51 +85,7 @@ function Segment({ label, selected, divider, onPress, fullWidth }: { label: stri
   );
 }
 
-// MARK: Chip
-
-/** M3 chip (assist / filter): a 48dp-tall touch target, outlined or filled with a tint. */
-export function Chip({
-  label,
-  icon,
-  onPress,
-  tint,
-  onTint,
-  style,
-  accessibilityLabel,
-  trailing,
-}: {
-  label?: string;
-  icon?: IconName;
-  onPress: () => void;
-  /** Container colour when selected/filled; omit for an outlined chip. */
-  tint?: string;
-  /** Content colour on `tint`. */
-  onTint?: string;
-  style?: StyleProp<ViewStyle>;
-  accessibilityLabel?: string;
-  trailing?: ReactNode;
-}) {
-  const { m3 } = useTheme();
-  const content = tint ? (onTint ?? m3.onSecondaryContainer) : m3.onSurfaceVariant;
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} android_ripple={{ color: `${content}22` }} style={[styles.chip, tint ? { backgroundColor: tint } : { borderWidth: 1, borderColor: m3.outlineVariant }, style]}>
-      {({ pressed }) => (
-        <>
-          <StateLayer pressed={pressed} color={content} radius={shape.full} />
-          {icon ? <Icon name={icon} size={18} color={content} /> : null}
-          {label ? (
-            <AppText size={typeScale.labelLarge.size} weight="semibold" color={content} numberOfLines={1} style={{ flexShrink: 1, letterSpacing: typeScale.labelLarge.tracking }}>
-              {label}
-            </AppText>
-          ) : null}
-          {trailing}
-        </>
-      )}
-    </Pressable>
-  );
-}
-
-// MARK: Search bar and filled button
+// MARK: Search bar
 
 /** Space the Home search pill leaves for the profile picture beside it. */
 export const SEARCH_SIDE = 52;
@@ -186,29 +142,6 @@ export function SearchBar({
         </Pressable>
       ) : null}
     </Animated.View>
-  );
-}
-
-/** M3 filled button (primary): 56dp tall for the main call to action on a screen. */
-export function FilledButton({ label, onPress, accessibilityLabel }: { label: string; onPress: () => void; accessibilityLabel?: string }) {
-  const { m3 } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      android_ripple={{ color: `${m3.onPrimary}33` }}
-      style={[styles.filled, { backgroundColor: m3.primary }]}
-    >
-      {({ pressed }) => (
-        <>
-          <StateLayer pressed={pressed} color={m3.onPrimary} radius={shape.full} />
-          <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onPrimary} style={{ letterSpacing: typeScale.titleMedium.tracking }}>
-            {label}
-          </AppText>
-        </>
-      )}
-    </Pressable>
   );
 }
 
@@ -286,7 +219,7 @@ export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { v
 
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.32)' }, scrimStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha(m3.scrim, 0.32) }, scrimStyle]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss" />
       </Animated.View>
       <Animated.View onLayout={onLayout} style={[styles.sheetWrap, raiseStyle]} pointerEvents="box-none">
@@ -402,14 +335,12 @@ const styles = StyleSheet.create({
   handle: { width: 32, height: 4, borderRadius: 2, alignSelf: 'center', opacity: 0.4, marginBottom: 16 },
   searchBar: { height: SEARCH_HEIGHT, flexDirection: 'row', alignItems: 'center', borderRadius: shape.full, marginLeft: 16, overflow: 'hidden' },
   searchInput: { flex: 1, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, height: SEARCH_HEIGHT, paddingVertical: 0, paddingHorizontal: 0, includeFontPadding: false, textAlignVertical: 'center', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
-  filled: { height: 56, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   switchTrack: { width: 52, height: 32, borderRadius: 16, borderWidth: 2, justifyContent: 'center' },
   switchThumb: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   touch: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   iconContainer: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   segmented: { flexDirection: 'row', height: 40, borderWidth: 1, borderRadius: shape.full, overflow: 'hidden' },
   segment: { width: 108, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
-  chip: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16, borderRadius: shape.full, overflow: 'hidden' },
   pillField: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, borderRadius: radius.action, borderWidth: 2 },
   pillInput: { flex: 1, height: 52, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center', fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   field: { height: 52, justifyContent: 'center', paddingHorizontal: 14 },

@@ -8,7 +8,7 @@ import { BigAmount } from '../../components/Bits';
 import { CapsuleProgress } from '../../components/Charts';
 import { useDeleteFlow } from '../../components/DeleteFlow';
 import { Icon, type IconName } from '../../components/Icon';
-import { SEARCH_HEIGHT, StateLayer } from '../../components/m3';
+import { Button, Card, SEARCH_HEIGHT, StateLayer } from '../../components/material';
 import { TransactionRow } from '../../components/TransactionRow';
 import { budgetProgress, mainBudgetSpent, totalsSince } from '../../lib/calc';
 import { startOfCustomMonth } from '../../lib/dates';
@@ -18,7 +18,7 @@ import { useStore } from '../../lib/store';
 import { BUDGET_LABELS } from '../../lib/types';
 import { useFabScroll } from '../../lib/useFabScroll';
 import { useNow } from '../../lib/useNow';
-import { radius, shape, typeScale } from '../../theme/material';
+import { shape } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
 const RECENT = 6;
@@ -68,7 +68,7 @@ export default function HomeScreen() {
             style={[styles.search, { backgroundColor: m3.surfaceContainerHigh }]}
           >
             <Icon name="search" size={22} color={m3.onSurface} />
-            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ includeFontPadding: false }}>
+            <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ includeFontPadding: false }}>
               Search entries
             </AppText>
           </Pressable>
@@ -78,8 +78,8 @@ export default function HomeScreen() {
         </View>
 
         {/* This month */}
-        <View style={[styles.card, { backgroundColor: m3.surfaceContainer }]}>
-          <AppText size={typeScale.titleSmall.size} color={m3.onSurfaceVariant}>
+        <Card hero style={styles.card}>
+          <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
             Spent this month
           </AppText>
           <View style={{ marginTop: 4 }}>
@@ -98,19 +98,19 @@ export default function HomeScreen() {
           >
             {budget && mainBudget ? (
               <View style={{ flex: 1 }}>
-                <AppText size={typeScale.bodyMedium.size} color={budget.over ? m3.error : m3.onSurface}>
+                <AppText variant="bodyMedium" color={budget.over ? m3.error : m3.onSurface}>
                   {money(budget.left)} {budget.over ? 'over your' : 'left in your'} {BUDGET_LABELS[mainBudget.type].toLowerCase()} budget
                 </AppText>
                 <CapsuleProgress fraction={budget.fraction} elapsed={budget.elapsed} colour={budget.over ? m3.error : m3.primary} height={8} />
               </View>
             ) : (
-              <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.primary} style={{ flex: 1 }}>
+              <AppText variant="labelLarge" color={m3.primary} style={{ flex: 1 }}>
                 Set a monthly budget
               </AppText>
             )}
             <Icon name="chevron-forward" size={20} color={m3.onSurfaceVariant} />
           </Pressable>
-        </View>
+        </Card>
 
         {/* Shortcuts */}
         <View style={styles.grid}>
@@ -123,37 +123,34 @@ export default function HomeScreen() {
               }}
               accessibilityRole="button"
               accessibilityLabel={s.label.replace('\n', ' ')}
-              android_ripple={{ color: `${m3.primary}1F`, borderless: true, radius: 44 }}
               style={styles.shortcut}
             >
-              <Icon name={s.icon} size={28} color={m3.primary} />
-              <AppText size={typeScale.bodySmall.size} color={m3.onSurface} style={{ textAlign: 'center' }}>
-                {s.label}
-              </AppText>
+              {({ pressed }) => (
+                <>
+                  <View style={[styles.shortcutIcon, { backgroundColor: m3.secondaryContainer }]}>
+                    <StateLayer pressed={pressed} color={m3.onSecondaryContainer} radius={shape.full} />
+                    <Icon name={s.icon} size={24} color={m3.onSecondaryContainer} />
+                  </View>
+                  <AppText variant="labelMedium" color={m3.onSurface} style={{ textAlign: 'center' }}>
+                    {s.label}
+                  </AppText>
+                </>
+              )}
             </Pressable>
           ))}
         </View>
 
         {/* Latest entries */}
         <View style={styles.sectionTitle}>
-          <AppText size={20} color={m3.onSurface} accessibilityRole="header">
+          <AppText variant="titleLarge" color={m3.onSurface} accessibilityRole="header">
             Recent
           </AppText>
           {transactions.length > 0 ? (
-            <Pressable onPress={() => router.push('/history')} accessibilityRole="button" hitSlop={10}>
-              {({ pressed }) => (
-                <>
-                  <StateLayer pressed={pressed} color={m3.primary} radius={shape.full} />
-                  <AppText size={typeScale.labelLarge.size} weight="semibold" color={m3.primary}>
-                    See all
-                  </AppText>
-                </>
-              )}
-            </Pressable>
+            <Button variant="text" label="See all" onPress={() => router.push('/history')} />
           ) : null}
         </View>
         {recent.length === 0 ? (
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ paddingHorizontal: 16, paddingTop: 4 }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ paddingHorizontal: 16, paddingTop: 4 }}>
             No entries yet. Tap Add entry to add your first one.
           </AppText>
         ) : (
@@ -169,10 +166,10 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
   const { m3 } = useTheme();
   return (
     <View style={{ flex: 1 }}>
-      <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant}>
+      <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
         {label}
       </AppText>
-      <AppText size={typeScale.titleMedium.size} weight="semibold" color={color} numberOfLines={1}>
+      <AppText variant="titleMedium" color={color} numberOfLines={1}>
         {value}
       </AppText>
     </View>
@@ -182,10 +179,11 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   search: { flex: 1, height: SEARCH_HEIGHT, borderRadius: shape.full, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-  card: { marginHorizontal: 16, marginTop: 20, borderRadius: radius.hero, padding: 20, paddingBottom: 12 },
+  card: { marginHorizontal: 16, marginTop: 20, padding: 20, paddingBottom: 12 },
   split: { flexDirection: 'row', gap: 16, marginTop: 12 },
   budget: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 12, minHeight: 52, borderTopWidth: StyleSheet.hairlineWidth },
   grid: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 12 },
   shortcut: { width: '25%', alignItems: 'center', gap: 8, paddingVertical: 12 },
-  sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 16, marginBottom: 4 },
+  shortcutIcon: { width: 56, height: 56, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 4, marginTop: 8 },
 });

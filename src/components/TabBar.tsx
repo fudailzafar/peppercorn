@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import type { ComponentProps } from 'react';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useUi } from '../lib/store';
-import { m3Duration, m3Easing, shape, typeScale } from '../theme/material';
+import { m3Duration, m3Easing, shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
@@ -43,10 +43,10 @@ function Destination({ focused, icon, label, onPress }: { focused: boolean; icon
             </View>
           </View>
           <AppText
-            size={typeScale.labelMedium.size}
+            variant="labelMedium"
             weight={focused ? 'semibold' : 'medium'}
             color={focused ? m3.onSurface : m3.onSurfaceVariant}
-            style={{ letterSpacing: typeScale.labelMedium.tracking }}
+           
           >
             {label}
           </AppText>

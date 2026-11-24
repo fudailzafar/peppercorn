@@ -1,20 +1,20 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useFabScroll } from '../../lib/useFabScroll';
 import { Icon } from '../../components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { CapsuleProgress } from '../../components/Charts';
-import { Chip, IconButton, StateLayer } from '../../components/m3';
+import { Button, Card, EmojiAvatar, IconButton, TopAppBar } from '../../components/material';
 import { ConfirmSheet, Popover, PopoverItem, useAnchor, anchorProps } from '../../components/Overlays';
 import { budgetProgress, budgetSpent, mainBudgetSpent } from '../../lib/calc';
 import { BUDGET_PERIOD_PHRASE, type Budget } from '../../lib/types';
 import { currencySymbol, fmtFull, fmtSmart } from '../../lib/format';
 import { Haptics } from '../../lib/haptics';
 import { useStore } from '../../lib/store';
-import { shape, typeScale } from '../../theme/material';
-import { useTheme, withAlpha } from '../../theme/theme';
+import { shape } from '../../theme/material';
+import { useTheme } from '../../theme/theme';
 
 export default function BudgetScreen() {
   const { m3 } = useTheme();
@@ -36,26 +36,20 @@ export default function BudgetScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
       <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
-        {/* M3 small top app bar with an add action */}
-        <View style={styles.topBar}>
-          <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ flex: 1, marginLeft: 16 }}>
-            Budgets
-          </AppText>
-          <IconButton icon="add" onPress={() => router.push('/new-budget')} label="New budget" tint={m3.onSurface} />
-        </View>
+        <TopAppBar title="Budgets" inset={false} actions={<IconButton icon="add" onPress={() => router.push('/new-budget')} label="New budget" tint={m3.onSurface} />} />
 
         {nothing ? (
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
               <Icon name="wallet-outline" size={44} color={m3.onSurfaceVariant} />
             </View>
-            <AppText size={typeScale.headlineSmall.size} color={m3.onSurface} style={{ marginTop: 24 }}>
+            <AppText variant="headlineSmall" color={m3.onSurface} style={{ marginTop: 24 }}>
               No budgets yet
             </AppText>
-            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 8, textAlign: 'center' }}>
+            <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ marginTop: 8, textAlign: 'center' }}>
               Set an overall budget, or one per category, and watch your pace.
             </AppText>
-            <Chip icon="add" label="New budget" tint={m3.secondaryContainer} onTint={m3.onSecondaryContainer} onPress={() => router.push('/new-budget')} style={{ marginTop: 24 }} />
+            <Button variant="tonal" icon="add" label="New budget" onPress={() => router.push('/new-budget')} style={{ marginTop: 24 }} />
           </View>
         ) : null}
 
@@ -65,20 +59,18 @@ export default function BudgetScreen() {
               const p = budgetProgress(mainBudget, spent);
               return (
                 // The overall budget: a tonal card with the amount left and a linear progress indicator.
-                <Pressable
+                <Card
+                  hero
+                  hasActions
                   onPress={() => router.push({ pathname: '/budget-detail', params: { id: 'main' } })}
                   onLongPress={() => {
                     Haptics.light();
                     mainMenu.open();
                   }}
-                  android_ripple={{ color: `${m3.onSurface}1F` }}
-                  style={[styles.overall, { backgroundColor: m3.surfaceContainerLow, borderColor: m3.outlineVariant }]}
+                  style={styles.overall}
                 >
-                  {({ pressed }) => (
-                    <>
-                      <StateLayer pressed={pressed} color={m3.onSurface} radius={shape.extraLarge} />
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurfaceVariant} style={{ letterSpacing: typeScale.titleMedium.tracking }}>
+                        <AppText variant="titleMedium" color={m3.onSurfaceVariant}>
                           Overall budget
                         </AppText>
                         <View {...anchorProps(mainMenu)}>
@@ -86,30 +78,28 @@ export default function BudgetScreen() {
                         </View>
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
-                        <AppText size={typeScale.titleLarge.size} color={m3.onSurfaceVariant}>
+                        <AppText variant="titleLarge" color={m3.onSurfaceVariant}>
                           {sym}
                         </AppText>
-                        <AppText size={typeScale.displayMedium.size} color={p.over ? m3.error : m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+                        <AppText variant="displayMedium" color={p.over ? m3.error : m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                           {fmtSmart(Math.abs(p.left), settings.showCents)}
                         </AppText>
                       </View>
-                      <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginBottom: 12, letterSpacing: typeScale.bodyLarge.tracking }}>
+                      <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ marginBottom: 12 }}>
                         {p.over ? 'over' : 'left'} {BUDGET_PERIOD_PHRASE[mainBudget.type]} · {p.daysLeft} {p.daysLeft === 1 ? 'day' : 'days'} left
                       </AppText>
                       <CapsuleProgress fraction={p.fraction} elapsed={p.elapsed} colour={p.over ? m3.error : m3.primary} height={12} />
                       <View style={styles.overallFoot}>
-                        <AppText size={typeScale.labelMedium.size} weight="semibold" color={m3.onSurfaceVariant}>
+                        <AppText variant="labelMedium" color={m3.onSurfaceVariant}>
                           {sym}
                           {fmtFull(spent)} spent
                         </AppText>
-                        <AppText size={typeScale.labelMedium.size} weight="semibold" color={p.over ? m3.error : m3.onSurfaceVariant}>
+                        <AppText variant="labelMedium" color={p.over ? m3.error : m3.onSurfaceVariant}>
                           {Math.round(p.fraction * 100)}% of {sym}
                           {fmtFull(mainBudget.amount)}
                         </AppText>
                       </View>
-                    </>
-                  )}
-                </Pressable>
+                </Card>
               );
             })()
           : null}
@@ -184,30 +174,22 @@ function BudgetCard({ budget, spent, category, showDays, onDelete }: { budget: B
 
   return (
     <View {...anchorProps(menu)} style={{ width: '48.5%' }}>
-      <Pressable
+      <Card
         onPress={() => router.push({ pathname: '/budget-detail', params: { id: budget.id } })}
         onLongPress={() => {
           Haptics.light();
           menu.open();
         }}
-        android_ripple={{ color: `${m3.onSurface}1F` }}
-        style={[styles.card, { backgroundColor: m3.surfaceContainerLow, borderColor: m3.outlineVariant }]}
+        style={styles.card}
       >
-        {({ pressed }) => (
-          <>
-            <StateLayer pressed={pressed} color={m3.onSurface} radius={shape.large} />
             <View style={styles.cardHead}>
-              <View style={[styles.cardAvatar, { backgroundColor: withAlpha(tint, 0.3) }]}>
-                <AppText size={18} style={{ includeFontPadding: false }}>
-                  {category?.emoji ?? '❓'}
-                </AppText>
-              </View>
+              <EmojiAvatar emoji={category?.emoji ?? '❓'} colour={tint} size={32} />
               <View style={{ flex: 1 }}>
-                <AppText size={typeScale.titleMedium.size} weight="semibold" color={m3.onSurface} numberOfLines={1}>
+                <AppText variant="titleMedium" color={m3.onSurface} numberOfLines={1}>
                   {category?.name ?? 'Unknown'}
                 </AppText>
                 {showDays ? (
-                  <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant}>
+                  <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
                     {p.daysLeft} {p.daysLeft === 1 ? 'day' : 'days'} left
                   </AppText>
                 ) : null}
@@ -217,25 +199,23 @@ function BudgetCard({ budget, spent, category, showDays, onDelete }: { budget: B
             <View style={{ flex: 1, minHeight: 16 }} />
             {/* Status by pace, not just by how much is spent: over budget, spending ahead of the calendar, or on track. */}
             <View style={[styles.status, { backgroundColor: status.bg }]}>
-              <AppText size={typeScale.labelSmall.size} weight="semibold" color={status.fg} style={{ letterSpacing: 0.5 }}>
+              <AppText variant="labelSmall" color={status.fg}>
                 {percent}% · {status.label}
               </AppText>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, marginTop: 8 }}>
-              <AppText size={typeScale.titleMedium.size} color={m3.onSurfaceVariant}>
+              <AppText variant="titleMedium" color={m3.onSurfaceVariant}>
                 {sym}
               </AppText>
-              <AppText size={typeScale.headlineMedium.size} color={m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+              <AppText variant="headlineMedium" color={m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                 {fmtSmart(Math.abs(p.left), settings.showCents)}
               </AppText>
             </View>
-            <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ marginBottom: 8 }}>
+            <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ marginBottom: 8 }}>
               {p.over ? 'over' : 'left'} {BUDGET_PERIOD_PHRASE[budget.type]}
             </AppText>
             <CapsuleProgress fraction={p.fraction} elapsed={p.elapsed} colour={p.over ? m3.error : tint} height={8} />
-          </>
-        )}
-      </Pressable>
+      </Card>
 
       <Popover visible={menu.visible} anchor={menu.anchor} onClose={menu.close} align="center" width={180}>
         <PopoverItem
@@ -261,14 +241,12 @@ function BudgetCard({ budget, spent, category, showDays, onDelete }: { budget: B
 }
 
 const styles = StyleSheet.create({
-  topBar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingRight: 4 },
   empty: { alignItems: 'center', paddingTop: 72, paddingHorizontal: 32 },
   emptyIcon: { width: 96, height: 96, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  overall: { marginHorizontal: 16, marginTop: 8, padding: 20, paddingTop: 12, borderRadius: shape.extraLarge, borderWidth: 1, overflow: 'hidden' },
+  overall: { marginHorizontal: 16, marginTop: 8, padding: 20, paddingTop: 12 },
   overallFoot: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12, marginTop: 16, paddingHorizontal: 16 },
-  card: { borderRadius: shape.large, padding: 16, minHeight: 210, borderWidth: 1, overflow: 'hidden' },
+  card: { padding: 16, minHeight: 210 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardAvatar: { width: 32, height: 32, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
   status: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: shape.extraSmall },
 });

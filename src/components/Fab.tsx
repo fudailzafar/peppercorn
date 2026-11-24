@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Haptics } from '../lib/haptics';
 import { useStore, useUi } from '../lib/store';
 import { elevation, m3Duration, m3Easing, shape, stateLayer } from '../theme/material';
-import { useTheme } from '../theme/theme';
+import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
 import { NAV_BAR_HEIGHT } from './TabBar';
 
@@ -38,7 +38,7 @@ export function Fab() {
         }}
         accessibilityRole="button"
         accessibilityLabel="Add entry"
-        android_ripple={{ color: 'rgba(255,255,255,0.18)' }}
+        android_ripple={{ color: withAlpha(m3.onPrimary, 0.18) }}
         style={({ pressed }) => [styles.fab, { backgroundColor: m3.primary }, elevation(3), empty && styles.extended]}
       >
         {({ pressed }) => (
@@ -46,7 +46,7 @@ export function Fab() {
             <View style={[StyleSheet.absoluteFill, { backgroundColor: m3.onPrimary, opacity: pressed ? stateLayer.pressed : 0, borderRadius: shape.large }]} />
             <Icon name="add" size={24} color={m3.onPrimary} />
             {empty ? (
-              <AppText size={14} weight="semibold" color={m3.onPrimary} style={{ letterSpacing: 0.1 }}>
+              <AppText variant="labelLarge" color={m3.onPrimary}>
                 Add entry
               </AppText>
             ) : null}

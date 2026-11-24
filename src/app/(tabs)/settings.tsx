@@ -5,17 +5,16 @@ import { useFabScroll } from '../../lib/useFabScroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { Avatar } from '../../components/Avatar';
-import { BottomSheet, FilledButton, PillField } from '../../components/m3';
+import { BottomSheet, Button, PillField } from '../../components/material';
 import { ConfirmSheet } from '../../components/Overlays';
 import { SettingsRow, SettingsSection } from '../../components/SettingsBits';
 import { currencySymbol } from '../../lib/format';
 import { exportCsv } from '../../lib/csv';
 import { useStore, useUi } from '../../lib/store';
-import { typeScale } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
 const THEME_LABEL = { system: 'System', light: 'Light', dark: 'Dark' } as const;
-const ENTRY_LABEL = { 1: 'Fill in cents first', 2: 'Type the decimal point' } as const;
+const ENTRY_LABEL = { 1: 'Cents first', 2: 'Decimal point' } as const;
 const HAPTIC_LABEL = ['Off', 'Subtle', 'Heavy'] as const;
 
 export default function SettingsScreen() {
@@ -56,11 +55,11 @@ export default function SettingsScreen() {
         <View style={{ alignItems: 'center', paddingTop: 24, paddingHorizontal: 24 }}>
           <Pressable onPress={openName} accessibilityRole="button" accessibilityLabel={settings.profileName ? 'Edit your name' : 'Add your name'} style={{ alignItems: 'center' }}>
             <Avatar name={settings.profileName} size={88} />
-            <AppText size={typeScale.titleLarge.size} color={settings.profileName ? m3.onSurface : m3.primary} style={{ marginTop: 12 }}>
+            <AppText variant="titleLarge" color={settings.profileName ? m3.onSurface : m3.primary} style={{ marginTop: 12 }}>
               {settings.profileName || 'Add your name'}
             </AppText>
           </Pressable>
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant} style={{ marginTop: 2 }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 2 }}>
             {entryCount} {entryCount === 1 ? 'entry' : 'entries'} on this phone
           </AppText>
         </View>
@@ -128,22 +127,23 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         <View style={{ alignItems: 'center', marginTop: 28, gap: 2 }}>
-          <AppText size={typeScale.bodyMedium.size} color={m3.onSurfaceVariant}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
             Version 1.0.0
           </AppText>
-          <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+          <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
             A React Native port of Dime by Rafael Soh
           </AppText>
         </View>
       </ScrollView>
 
       <BottomSheet visible={naming} onClose={() => setNaming(false)} bottomInset={insets.bottom}>
-        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginBottom: 20 }}>
+        <AppText variant="titleLarge" color={m3.onSurface} style={{ marginBottom: 20 }}>
           Your name
         </AppText>
         <View style={{ gap: 20 }}>
           <PillField icon="person" placeholder="Name" value={name} onChangeText={setName} maxLength={40} autoFocus autoCapitalize="words" returnKeyType="done" />
-          <FilledButton
+          <Button
+            large
             label="Save name"
             onPress={() => {
               updateSettings({ profileName: name.trim() });

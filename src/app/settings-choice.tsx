@@ -2,7 +2,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { OptionRow, PageScaffold } from '../components/SettingsBits';
 import { AppText } from '../components/AppText';
 import { Haptics } from '../lib/haptics';
-import { typeScale } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { useStore } from '../lib/store';
 
@@ -73,7 +72,7 @@ export default function SettingsChoice() {
         />
       ))}
       {footer ? (
-        <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ marginTop: 12, marginHorizontal: 16 }}>
+        <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ marginTop: 12, marginHorizontal: 16 }}>
           {footer}
         </AppText>
       ) : null}

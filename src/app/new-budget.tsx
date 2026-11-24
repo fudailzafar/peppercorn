@@ -5,15 +5,14 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { BigAmount } from '../components/Bits';
-import { Chip, IconButton, SegmentedButton } from '../components/m3';
+import { FilterChip, IconButton, SegmentedButton, TopAppBar } from '../components/material';
 import { NumberPad } from '../components/NumberPad';
 import { display, fromNumber, toNumber, type EntryType } from '../lib/amount';
 import { startOfCustomMonth, startOfDay, startOfWeek, startOfYear } from '../lib/dates';
 import { Haptics } from '../lib/haptics';
 import { useStore, useUi } from '../lib/store';
 import { BUDGET_LABELS, type BudgetType } from '../lib/types';
-import { typeScale } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { useTheme } from '../theme/theme';
 
 function periodStart(type: BudgetType, firstWeekday: number, firstDayOfMonth: number, now = new Date()): number {
   switch (type) {
@@ -71,14 +70,8 @@ export default function NewBudget() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top }}>
-      {/* M3 full-screen dialog app bar: close, title */}
-      <View style={styles.top}>
-        <IconButton icon="close" onPress={() => goBack()} label="Close" tint={m3.onSurface} />
-        <AppText size={typeScale.titleLarge.size} color={m3.onSurface} style={{ marginLeft: 8 }}>
-          {editing ? 'Edit budget' : 'New budget'}
-        </AppText>
-      </View>
+    <View style={{ flex: 1, backgroundColor: m3.surface }}>
+      <TopAppBar title={editing ? 'Edit budget' : 'New budget'} close onBack={() => goBack()} />
 
       {!editing ? (
         <View style={styles.padded}>
@@ -101,7 +94,7 @@ export default function NewBudget() {
       {!overall ? (
         <View style={{ marginBottom: 12 }}>
           {available.length === 0 ? (
-            <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+            <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
               Every category already has a budget.
             </AppText>
           ) : (
@@ -109,12 +102,11 @@ export default function NewBudget() {
               {available.map((cat) => {
                 const selected = cat.id === categoryId;
                 return (
-                  <Chip
+                  <FilterChip
                     key={cat.id}
-                    icon={selected ? 'checkmark' : undefined}
-                    label={`${cat.emoji}  ${cat.name}`}
-                    tint={selected ? withAlpha(cat.colour, 0.3) : undefined}
-                    onTint={selected ? m3.onSurface : undefined}
+                    emoji={cat.emoji}
+                    label={cat.name}
+                    selected={selected}
                     onPress={() => {
                       if (editing) return;
                       Haptics.selection();
@@ -140,7 +132,6 @@ export default function NewBudget() {
 }
 
 const styles = StyleSheet.create({
-  top: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
   padded: { paddingHorizontal: 16 },
   amountArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // Pinned to the right edge, level with the amount, so it never sits on top of the digits.
