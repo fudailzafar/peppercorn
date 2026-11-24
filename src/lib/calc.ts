@@ -72,6 +72,30 @@ export function groupByDay(transactions: Transaction[]): DayGroup[] {
     });
 }
 
+export interface MonthGroup {
+  /** Start of the month, epoch ms. */
+  month: number;
+  items: Transaction[];
+  net: number;
+}
+
+/** Groups transactions by calendar month, newest first. */
+export function groupByMonth(transactions: Transaction[]): MonthGroup[] {
+  const map = new Map<number, Transaction[]>();
+  for (const t of transactions) {
+    const key = startOfMonth(t.date).getTime();
+    const list = map.get(key);
+    if (list) list.push(t);
+    else map.set(key, [t]);
+  }
+  return [...map.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([month, items]) => {
+      items.sort((a, b) => b.date - a.date);
+      return { month, items, net: items.reduce((n, t) => n + (t.income ? t.amount : -t.amount), 0) };
+    });
+}
+
 export interface Upcoming {
   transaction: Transaction;
   date: number;

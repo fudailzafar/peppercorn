@@ -26,13 +26,13 @@ export function StateLayer({ pressed, color, radius }: { pressed: boolean; color
 
 // MARK: Icon button
 
-/** M3 tonal icon button: a 40dp container inside a 48dp touch target. */
+/** M3 standard icon button: no container, a 40dp state layer inside a 48dp touch target. */
 export function IconButton({ icon, onPress, label, tint }: { icon: IconName; onPress: () => void; label: string; tint?: string }) {
   const { m3 } = useTheme();
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.touch} android_ripple={{ color: `${m3.onSurface}1F`, radius: 24 }}>
       {({ pressed }) => (
-        <View style={[styles.iconContainer, { backgroundColor: m3.surfaceContainerHighest }]}>
+        <View style={styles.iconContainer}>
           <StateLayer pressed={pressed} color={m3.onSurface} radius={shape.full} />
           <Icon name={icon} size={24} color={tint ?? m3.onSurfaceVariant} />
         </View>
@@ -367,7 +367,7 @@ export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width =
       {/* The floating label sits on the outline, with a surface-coloured plate that "cuts" the border. */}
       <Animated.View pointerEvents="none" style={[styles.fieldLabel, labelStyle]}>
         <View style={[styles.labelPlate, { backgroundColor: raised ? m3.surface : 'transparent' }]}>
-          <Animated.Text style={[{ fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking }, labelColor]}>{label}</Animated.Text>
+          <Animated.Text style={[{ fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking }, labelColor]}>{label}</Animated.Text>
         </View>
       </Animated.View>
     </View>
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: shape.extraLarge, borderTopRightRadius: shape.extraLarge, paddingHorizontal: 24, paddingTop: 12 },
   handle: { width: 32, height: 4, borderRadius: 2, alignSelf: 'center', opacity: 0.4, marginBottom: 16 },
   searchBar: { height: 56, flexDirection: 'row', alignItems: 'center', borderRadius: shape.full, marginHorizontal: 16 },
-  searchInput: { flex: 1, fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, height: 56, outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  searchInput: { flex: 1, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, height: 56, outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   filled: { height: 56, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   switchTrack: { width: 52, height: 32, borderRadius: 16, borderWidth: 2, justifyContent: 'center' },
   switchThumb: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
@@ -389,10 +389,10 @@ const styles = StyleSheet.create({
   segment: { width: 108, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
   chip: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16, borderRadius: shape.full, overflow: 'hidden' },
   pillField: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, borderRadius: radius.action, borderWidth: 2 },
-  pillInput: { flex: 1, height: 56, paddingVertical: 0, fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  pillInput: { flex: 1, height: 56, paddingVertical: 0, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   field: { height: 52, justifyContent: 'center', paddingHorizontal: 14 },
   outline: { borderRadius: radius.field },
-  fieldInput: { fontFamily: 'Roboto_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, paddingVertical: 0, flex: 1, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  fieldInput: { fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, paddingVertical: 0, flex: 1, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   fieldLabel: { position: 'absolute', left: 12, top: 13 },
   labelPlate: { paddingHorizontal: 4 },
 });

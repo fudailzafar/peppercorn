@@ -10,9 +10,9 @@ import { AppText } from './AppText';
 import { Icon } from './Icon';
 
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
-type TabKey = 'log' | 'insights' | 'budget' | 'settings';
-const ROUTE_ICON: Record<string, TabKey> = { index: 'log', insights: 'insights', budget: 'budget', settings: 'settings' };
-const ROUTE_LABEL: Record<string, string> = { index: 'Log', insights: 'Insights', budget: 'Budget', settings: 'Settings' };
+type TabKey = 'home' | 'insights' | 'budget' | 'person';
+const ROUTE_ICON: Record<string, TabKey> = { index: 'home', insights: 'insights', budget: 'budget', settings: 'person' };
+const ROUTE_LABEL: Record<string, string> = { index: 'Home', insights: 'Insights', budget: 'Budget', settings: 'You' };
 
 /** Height of the bar's content, from the M3 navigation bar spec (80dp), excluding the system inset. */
 export const NAV_BAR_HEIGHT = 80;
@@ -68,7 +68,7 @@ export function DimeTabBar({ state, navigateToTab, emitter, insets }: BottomTabB
         <Destination
           key={route.key}
           focused={state.index === index}
-          icon={ROUTE_ICON[route.name] ?? 'log'}
+          icon={ROUTE_ICON[route.name] ?? 'home'}
           label={ROUTE_LABEL[route.name] ?? route.name}
           onPress={() => {
             const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });

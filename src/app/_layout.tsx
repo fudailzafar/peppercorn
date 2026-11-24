@@ -1,4 +1,4 @@
-import { Roboto_400Regular, Roboto_500Medium, Roboto_700Bold, useFonts } from '@expo-google-fonts/roboto';
+import { GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold, useFonts } from '@expo-google-fonts/google-sans';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,7 +18,7 @@ function useHydrated() {
 
 export default function RootLayout() {
   const hydrated = useHydrated();
-  const [fontsLoaded, fontError] = useFonts({ Roboto_400Regular, Roboto_500Medium, Roboto_700Bold });
+  const [fontsLoaded, fontError] = useFonts({ GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold });
   const { m3, dark } = useTheme();
 
   // Once the saved data is loaded: create default categories on first run, then

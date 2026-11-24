@@ -71,7 +71,13 @@ const MATERIAL = {
   'trending-up': 'trending-up',
   wallet: 'account-balance-wallet',
   'wallet-outline': 'account-balance-wallet',
+  // Home and profile
+  person: 'person-outline',
+  history: 'history',
+  expense: 'north-east',
+  income: 'south-west',
   // Bottom navigation destinations
+  home: 'home',
   log: 'receipt-long',
   insights: 'bar-chart',
   budget: 'account-balance-wallet',

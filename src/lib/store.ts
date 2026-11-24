@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { addPeriod, nextTransactionDate, recurrenceDate, startOfTomorrow } from './dates';
-import { defaultCurrency } from './format';
+import { defaultCurrency, setGroupingCurrency } from './format';
 import type { Budget, BudgetType, Category, MainBudget, RecurringType, Settings, Transaction } from './types';
 
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
@@ -22,6 +22,7 @@ export const defaultSettings = (): Settings => ({
   logTimeFrame: 2,
   logHeading: 1,
   welcomed: false,
+  profileName: '',
 });
 
 const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'order' | 'dateCreated'>[] = [
@@ -265,12 +266,25 @@ export const useStore = create<State>()(
       storage: createJSONStorage(() => AsyncStorage),
       // Layer saved settings over the defaults so new options appear after updates.
       merge: (persisted, current) => {
-        const saved = (persisted ?? {}) as Partial<State>;
+        const { payees, ...saved } = (persisted ?? {}) as Partial<State> & { payees?: { id: string; name: string }[] };
+        // A short-lived test build had payees: keep their names as the entries' notes.
+        if (payees?.length && saved.transactions) {
+          saved.transactions = saved.transactions.map((t) => {
+            const { payeeId, ...rest } = t as Transaction & { payeeId?: string | null };
+            const name = payees.find((p) => p.id === payeeId)?.name;
+            if (!name) return rest;
+            const category = saved.categories?.find((c) => c.id === rest.categoryId)?.name;
+            return { ...rest, note: rest.note && rest.note !== category ? `${name} · ${rest.note}` : name };
+          });
+        }
         return { ...current, ...saved, settings: { ...defaultSettings(), ...(saved.settings ?? {}) } };
       },
     },
   ),
 );
+
+// Digit grouping follows the currency (₹1,00,000 but $100,000).
+useStore.subscribe((s) => setGroupingCurrency(s.settings.currency));
 
 // MARK: Transient UI state (not persisted)
 

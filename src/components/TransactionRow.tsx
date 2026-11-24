@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { Easing, Extrapolation, interpolate, interpolateColor, useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { dayLabel, timeLabel } from '../lib/dates';
+import { dayLabel, shortDate, timeLabel } from '../lib/dates';
 import { currencySymbol, fmtFull } from '../lib/format';
 import { Haptics } from '../lib/haptics';
 import { useStore } from '../lib/store';
@@ -31,10 +31,12 @@ interface Props {
   onDelete: (t: Transaction) => void;
   /** Deletes immediately with an Undo toast (a long swipe). Falls back to onDelete. */
   onQuickDelete?: (t: Transaction) => void;
+  /** Show the date, not just the time (for lists that aren't grouped by day). */
+  showDate?: boolean;
 }
 
 /** One log entry: emoji tile, note, time and amount. Swipe left to delete, long-press for a menu. */
-export function TransactionRow({ transaction: t, future = false, futureDate, onDelete, onQuickDelete }: Props) {
+export function TransactionRow({ transaction: t, future = false, futureDate, onDelete, onQuickDelete, showDate = false }: Props) {
   const { m3 } = useTheme();
   const { width } = useWindowDimensions();
   const category = useStore((s) => s.categories.find((x) => x.id === t.categoryId));
@@ -104,7 +106,8 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
   const armed = useDerivedValue(() => withTiming(-x.get() > width * CONFIRM ? 1 : 0, { duration: 100 }));
   const calm = m3.errorContainer;
   const hot = m3.error;
-  const revealStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(armed.get(), [0, 1], [calm, hot]) }));
+  // Invisible at rest, so its colour can't show through as a hairline between rows.
+  const revealStyle = useAnimatedStyle(() => ({ opacity: x.get() < 0 ? 1 : 0, backgroundColor: interpolateColor(armed.get(), [0, 1], [calm, hot]) }));
   const iconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(armed.get(), [0, 1], [1, 1.25]) }, { translateX: interpolate(x.get(), [-96, 0], [0, 24], Extrapolation.CLAMP) }],
   }));
@@ -113,7 +116,7 @@ export function TransactionRow({ transaction: t, future = false, futureDate, onD
 
   const sign = !showSign ? '' : t.income ? '+' : '-';
   const amountColor = future ? m3.onSurfaceVariant : t.income ? m3.success : m3.onSurface;
-  const subtitle = future ? dayLabel(new Date(futureDate ?? t.date)) : timeLabel(t.date);
+  const subtitle = future ? dayLabel(new Date(futureDate ?? t.date)) : showDate ? `${shortDate(new Date(t.date))}, ${timeLabel(t.date)}` : timeLabel(t.date);
   const tint = category?.colour ?? '#A6A6A6';
 
   return (

@@ -114,7 +114,7 @@ export default function NewBudget() {
                     icon={selected ? 'checkmark' : undefined}
                     label={`${cat.emoji}  ${cat.name}`}
                     tint={selected ? withAlpha(cat.colour, 0.3) : undefined}
-                    onTint={selected ? cat.colour : undefined}
+                    onTint={selected ? m3.onSurface : undefined}
                     onPress={() => {
                       if (editing) return;
                       Haptics.selection();

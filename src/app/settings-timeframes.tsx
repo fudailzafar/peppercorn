@@ -45,7 +45,7 @@ export default function TimeFrames() {
         <IconButton icon="add" onPress={() => update({ firstDayOfMonth: Math.min(28, settings.firstDayOfMonth + 1) })} label="Later" tint={m3.onSurface} />
       </View>
       <AppText size={typeScale.bodySmall.size} color={m3.onSurfaceVariant} style={{ marginTop: 12, marginHorizontal: 16 }}>
-        Useful if you are paid mid-month. “This month” on the Log and new monthly budgets start on this day.
+        Useful if you are paid mid-month. “This month” on Home and in your history and new monthly budgets start on this day.
       </AppText>
     </PageScaffold>
   );

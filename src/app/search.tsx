@@ -18,7 +18,7 @@ import { useTheme } from '../theme/theme';
 
 type Row = { kind: 'header'; key: string; label: string; net: number } | { kind: 'item'; key: string; t: Transaction };
 
-/** Full-screen search over notes and category names, as an M3 search view. */
+/** Full-screen search over notes, category names and amounts, as an M3 search view. */
 export default function SearchScreen() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
@@ -35,11 +35,11 @@ export default function SearchScreen() {
     if (q === '') return [];
     const hits = transactions.filter((t) => {
       const cat = categories.find((x) => x.id === t.categoryId)?.name.toLowerCase() ?? '';
-      return t.note.toLowerCase().includes(q) || cat.includes(q);
+      return t.note.toLowerCase().includes(q) || cat.includes(q) || String(t.amount).startsWith(q);
     });
     const out: Row[] = [];
     for (const g of groupByDay(hits)) {
-      out.push({ kind: 'header', key: `h-${g.day}`, label: isSameDay(g.day, now) ? 'TODAY' : dayLabel(new Date(g.day)).toUpperCase(), net: g.net });
+      out.push({ kind: 'header', key: `h-${g.day}`, label: isSameDay(g.day, now) ? 'Today' : dayLabel(new Date(g.day)), net: g.net });
       g.items.forEach((t) => out.push({ kind: 'item', key: t.id, t }));
     }
     return out;
@@ -51,7 +51,7 @@ export default function SearchScreen() {
         autoFocus
         value={query}
         onChangeText={setQuery}
-        placeholder="Search your log"
+        placeholder="Search entries"
         leading={<IconButton icon="arrow-back" onPress={() => goBack()} label="Back" tint={m3.onSurface} />}
       />
 
@@ -71,7 +71,7 @@ export default function SearchScreen() {
                 No entries found
               </AppText>
               <AppText size={typeScale.bodyLarge.size} color={m3.onSurfaceVariant} style={{ marginTop: 8 }}>
-                Try another note or category name.
+                Try another note, category or amount.
               </AppText>
             </View>
           ) : undefined

@@ -9,7 +9,7 @@ interface Props extends TextProps {
   color?: ColorName | (string & {});
 }
 
-/** Text in Roboto (Material's typeface). Sizes are Dime's; see theme/material.ts for the M3 type roles. */
+/** Text in Google Sans. Sizes are Dime's; see theme/material.ts for the M3 type roles. */
 export function AppText({ size = 17, weight = 'medium', color = 'PrimaryText', style, ...rest }: Props) {
   const { c, m3 } = useTheme();
   // Dime's named text colours resolve to their Material 3 roles, which keep proper contrast.

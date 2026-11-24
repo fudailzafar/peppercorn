@@ -27,10 +27,19 @@ export function defaultCurrency(): string {
   return getLocales()[0]?.currencyCode ?? 'USD';
 }
 
+const INDIAN = new Set(['INR', 'PKR', 'BDT', 'NPR', 'LKR']);
+let indian = INDIAN.has(defaultCurrency());
+/** Rupee and taka amounts group as 1,00,000; everything else as 100,000. */
+export function setGroupingCurrency(code: string) {
+  indian = INDIAN.has(code);
+}
+export const groupDigits = (int: string) =>
+  indian && int.length > 3 ? `${int.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${int.slice(-3)}` : int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
 function group(n: number, decimals: number) {
   const fixed = Math.abs(n).toFixed(decimals);
   const [int, frac] = fixed.split('.');
-  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const grouped = groupDigits(int);
   return frac ? `${grouped}.${frac}` : grouped;
 }
 

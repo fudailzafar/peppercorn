@@ -51,7 +51,7 @@ export default function SettingsChoice() {
     }));
   } else if (key === 'upcoming') {
     title = 'Upcoming entries';
-    footer = 'Repeating entries show their next date at the top of your Log.';
+    footer = 'Repeating entries show their next date at the top of your history.';
     options = [
       { label: 'Shown', selected: settings.showUpcoming, apply: () => update({ showUpcoming: true }) },
       { label: 'Hidden', selected: !settings.showUpcoming, apply: () => update({ showUpcoming: false }) },

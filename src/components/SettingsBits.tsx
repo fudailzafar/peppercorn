@@ -3,21 +3,12 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { shape, typeScale } from '../theme/material';
-import { useTheme, withAlpha } from '../theme/theme';
+import { typeScale } from '../theme/material';
+import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { IconButton, M3Switch, StateLayer } from './m3';
 import { SharedAxis } from './SharedAxis';
 
-
-/** A 40dp circle holding a glyph in Dime's accent colour on a tint of that colour (M3 leading icon). */
-export function IconTile({ name, colour }: { name: IconName; colour: string }) {
-  return (
-    <View style={[styles.tile, { backgroundColor: withAlpha(colour, 0.22) }]}>
-      <Icon name={name} size={22} color={colour} />
-    </View>
-  );
-}
 
 /** An M3 list section: a subheader, then flat list items. */
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
@@ -34,7 +25,6 @@ export function SettingsSection({ title, children }: { title: string; children: 
 
 interface RowProps {
   icon: IconName;
-  colour: string;
   label: string;
   /** Trailing supporting text (with a chevron). */
   value?: string;
@@ -44,8 +34,8 @@ interface RowProps {
   destructive?: boolean;
 }
 
-/** An M3 one-line list item: leading icon circle, headline, trailing text / chevron / switch. */
-export function SettingsRow({ icon, colour, label, value, onPress, toggle, destructive }: RowProps) {
+/** An M3 one-line list item: leading line icon, headline, trailing text / chevron / switch. */
+export function SettingsRow({ icon, label, value, onPress, toggle, destructive }: RowProps) {
   const { m3 } = useTheme();
   const ink = destructive ? m3.error : m3.onSurface;
   return (
@@ -59,7 +49,7 @@ export function SettingsRow({ icon, colour, label, value, onPress, toggle, destr
       {({ pressed }) => (
         <>
           <StateLayer pressed={pressed} color={ink} />
-          <IconTile name={icon} colour={destructive ? m3.error : colour} />
+          <Icon name={icon} size={24} color={destructive ? m3.error : m3.onSurfaceVariant} />
           <AppText size={typeScale.bodyLarge.size} color={ink} style={{ flex: 1, marginLeft: 16, letterSpacing: typeScale.bodyLarge.tracking }} numberOfLines={1}>
             {label}
           </AppText>
@@ -133,7 +123,6 @@ export function OptionRow({ label, caption, selected, onPress }: { label: string
 }
 
 const styles = StyleSheet.create({
-  tile: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
   subheader: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, letterSpacing: 0.1 },
   row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, overflow: 'hidden' },
   appBar: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },

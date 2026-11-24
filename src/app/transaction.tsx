@@ -9,6 +9,7 @@ import Reanimated, { Easing as ReEasing, useAnimatedStyle, useSharedValue, withS
 import { scheduleOnRN } from 'react-native-worklets';
 import { AppText } from '../components/AppText';
 import { BigAmount } from '../components/Bits';
+import { useDeleteFlow } from '../components/DeleteFlow';
 import { useDateTimePicker } from '../components/DateTimeField';
 import { EnterSlide } from '../components/EnterSlide';
 import { BottomSheet, Chip, FilledButton, IconButton, PillField, SegmentedButton } from '../components/m3';
@@ -27,9 +28,9 @@ import { useTheme, withAlpha } from '../theme/theme';
 const REPEAT_LABELS: Record<RecurringType, string> = { 0: 'Don’t repeat', 1: 'Daily', 2: 'Weekly', 3: 'Monthly' };
 const UNIT: Record<1 | 2 | 3, string> = { 1: 'day', 2: 'week', 3: 'month' };
 
-/** Add or edit a transaction (full-screen, slides up from the tab bar's "+"). */
+/** Add or edit an entry (full-screen, slides up). `income=1` opens it on Income. */
 export default function TransactionScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, income: startIncome } = useLocalSearchParams<{ id?: string; income?: string }>();
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const existing = useStore((s) => s.transactions.find((t) => t.id === id));
@@ -41,7 +42,7 @@ export default function TransactionScreen() {
   const showToast = useUi((s) => s.showToast);
   const entryType = settings.numberEntryType as EntryType;
 
-  const [income, setIncome] = useState(existing?.income ?? false);
+  const [income, setIncome] = useState(existing?.income ?? startIncome === '1');
   const [raw, setRaw] = useState(() => (existing ? fromNumber(existing.amount, entryType) : ''));
   const [note, setNote] = useState(existing?.note ?? '');
   const [date, setDate] = useState(() => (existing ? new Date(existing.date) : new Date()));
@@ -51,7 +52,11 @@ export default function TransactionScreen() {
   const [pickingCategory, setPickingCategory] = useState(false);
   const [noteFocused, setNoteFocused] = useState(false);
   const [customOpen, setCustomOpen] = useState(false);
+  // Fixed on open, so deleting the entry doesn't turn this into the add screen while it slides away.
+  const [editing] = useState(() => existing !== undefined);
   const now = useNow();
+  const { remove } = useDeleteFlow();
+  const deleteTransaction = useStore((s) => s.deleteTransaction);
   const repeatMenu = useAnchor();
   const datePicker = useDateTimePicker(date, setDate);
 
@@ -174,8 +179,22 @@ export default function TransactionScreen() {
       return;
     }
     const input = { amount, date: date.getTime(), note, income, categoryId, recurringType: repeat, recurringCoefficient: repeat > 0 ? every : 0 };
-    if (existing) updateTransaction(existing.id, input);
-    else addTransaction(input);
+    if (existing) {
+      updateTransaction(existing.id, input);
+      showToast({ title: 'Changes saved', icon: 'checkmark-circle', tone: 'success' }, 2000);
+    } else {
+      const saved = addTransaction(input);
+      showToast(
+        {
+          title: income ? 'Income saved' : 'Expense saved',
+          icon: 'checkmark-circle',
+          tone: 'success',
+          // A repeating entry may have logged past dates too, so it can't be undone as one.
+          onTap: repeat > 0 ? undefined : () => deleteTransaction(saved.id),
+        },
+        3000,
+      );
+    }
     Haptics.success();
     close();
   };
@@ -203,9 +222,20 @@ export default function TransactionScreen() {
           <View />
         )}
 
-        <View {...anchorProps(repeatMenu)}>
-          <IconButton icon="repeat" onPress={repeatMenu.open} label="Repeat" tint={repeat > 0 ? m3.primary : undefined} />
-        </View>
+        {editing ? (
+          <IconButton
+            icon="trash-outline"
+            onPress={() => {
+              if (existing) remove(existing);
+              close();
+            }}
+            label="Delete entry"
+          />
+        ) : (
+          <View {...anchorProps(repeatMenu)}>
+            <IconButton icon="repeat" onPress={repeatMenu.open} label="Repeat" tint={repeat > 0 ? m3.primary : undefined} />
+          </View>
+        )}
       </View>
 
       <Popover visible={repeatMenu.visible} anchor={repeatMenu.anchor} onClose={repeatMenu.close} align="right" width={190}>
@@ -261,15 +291,17 @@ export default function TransactionScreen() {
           />
         </View>
 
-        {repeat > 0 ? (
-          <Chip
-            icon="repeat"
-            label={every === 1 ? `Repeats ${REPEAT_LABELS[repeat].toLowerCase()}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
-            tint={m3.secondaryContainer}
-            onTint={m3.onSecondaryContainer}
-            onPress={repeatMenu.open}
-            style={{ marginTop: 16 }}
-          />
+        {repeat > 0 || editing ? (
+          <View {...(editing ? anchorProps(repeatMenu) : {})}>
+            <Chip
+              icon="repeat"
+              label={repeat === 0 ? 'Doesn’t repeat' : every === 1 ? `Repeats ${REPEAT_LABELS[repeat].toLowerCase()}` : `Every ${every} ${UNIT[repeat as 1 | 2 | 3]}s`}
+              tint={repeat > 0 ? m3.secondaryContainer : undefined}
+              onTint={m3.onSecondaryContainer}
+              onPress={repeatMenu.open}
+              style={{ marginTop: 16 }}
+            />
+          </View>
         ) : null}
 
         {suggestions.length > 0 ? (
@@ -317,7 +349,7 @@ export default function TransactionScreen() {
                 icon={category ? undefined : 'apps-outline'}
                 label={category ? `${category.emoji}  ${category.name}` : 'Category'}
                 tint={category ? withAlpha(category.colour, 0.3) : undefined}
-                onTint={category ? category.colour : undefined}
+                onTint={category ? m3.onSurface : undefined}
                 onPress={() => {
                   Keyboard.dismiss();
                   setPickingCategory(true);
@@ -422,7 +454,7 @@ function CategoryGrid({ categories, onPick }: { categories: Category[]; onPick: 
                 style={({ pressed }) => [styles.gridPill, { backgroundColor: withAlpha(cat.colour, pressed ? 0.5 : 0.3) }]}
               >
                 <AppText size={20}>{cat.emoji}</AppText>
-                <AppText size={20} weight="semibold" style={{ color: cat.colour }} numberOfLines={1}>
+                <AppText size={20} weight="semibold" color={m3.onSurface} numberOfLines={1}>
                   {cat.name}
                 </AppText>
               </Pressable>

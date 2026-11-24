@@ -70,6 +70,8 @@ export interface Settings {
   /** 1 net total, 2 income, 3 spent. */
   logHeading: 1 | 2 | 3;
   welcomed: boolean;
+  /** Shown on the You tab and the home avatar. */
+  profileName: string;
 }
 
 export const BUDGET_LABELS: Record<BudgetType, string> = {

@@ -2,6 +2,8 @@
 //   Type 1: digits shift in as cents ("1","2","5" -> 0.01, 0.12, 1.25)
 //   Type 2: decimal point entry ("12.5"), at most two decimals
 
+import { fmtFull, groupDigits } from './format';
+
 export type EntryType = 1 | 2;
 
 const MAX_DIGITS = 9;
@@ -33,10 +35,10 @@ export function toNumber(raw: string, type: EntryType): number {
 
 /** What the big number shows while typing. */
 export function display(raw: string, type: EntryType): string {
-  if (type === 1) return (Number(raw || '0') / 100).toFixed(2);
+  if (type === 1) return fmtFull(Number(raw || '0') / 100);
   if (raw === '') return '0';
   const [int, frac] = raw.split('.');
-  const grouped = (int === '' ? '0' : int).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const grouped = groupDigits(int === '' ? '0' : int);
   return frac === undefined ? grouped : `${grouped}.${frac}`;
 }
 

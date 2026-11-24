@@ -70,6 +70,14 @@ export const weekdayName = (d: Date) => WEEKDAYS[d.getDay()];
 /** "Fri, 20 Nov" */
 export const dayLabel = (d: Date) => `${weekdayName(d)}, ${d.getDate()} ${monthName(d)}`;
 
+const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** "November 2026" */
+export const monthYear = (d: Date) => `${FULL_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+
+/** "24 Nov", with the year only when it isn't this one. */
+export const shortDate = (d: Date, now = new Date()) => `${d.getDate()} ${monthName(d)}${d.getFullYear() === now.getFullYear() ? '' : ` ${d.getFullYear()}`}`;
+
 /** "1:19 AM" */
 export function timeLabel(ms: number) {
   const d = new Date(ms);

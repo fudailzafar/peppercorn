@@ -48,7 +48,7 @@ export function useDateTimePicker(value: Date, onChange: (d: Date) => void): { o
             const next = new Date(e.target.value);
             if (!Number.isNaN(next.getTime())) setDraft(next);
           },
-          style: { fontSize: 18, padding: 14, borderRadius: 4, border: `1px solid ${m3.outline}`, marginBottom: 8, background: m3.surfaceContainerLow, color: m3.onSurface, fontFamily: 'Roboto_400Regular' },
+          style: { fontSize: 18, padding: 14, borderRadius: 4, border: `1px solid ${m3.outline}`, marginBottom: 8, background: m3.surfaceContainerLow, color: m3.onSurface, fontFamily: 'GoogleSans_400Regular' },
         })
       )}
       <FilledButton

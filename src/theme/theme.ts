@@ -33,12 +33,12 @@ export function withAlpha(hex: string, alpha: number): string {
 export type Weight = 'regular' | 'medium' | 'semibold' | 'bold';
 
 /**
- * Roboto, Material's typeface. Dime's four weights fold onto Roboto's three:
+ * Google Sans. Dime's four weights fold onto three:
  * body text (regular/medium) is Regular, emphasis (semibold) is Medium, headings (bold) are Bold.
  */
 export const fontFamily: Record<Weight, string> = {
-  regular: 'Roboto_400Regular',
-  medium: 'Roboto_400Regular',
-  semibold: 'Roboto_500Medium',
-  bold: 'Roboto_700Bold',
+  regular: 'GoogleSans_400Regular',
+  medium: 'GoogleSans_400Regular',
+  semibold: 'GoogleSans_500Medium',
+  bold: 'GoogleSans_700Bold',
 };
