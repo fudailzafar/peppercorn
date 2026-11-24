@@ -14,8 +14,8 @@ import { useTheme } from '../theme/theme';
 
 const PAGES = [
   { key: 'add', title: 'Add entries in seconds', text: 'Type an amount, tap a category, done.', Preview: AddPreview },
-  { key: 'budget', title: 'Stay on budget', text: 'Set a budget and see if you’re on track or spending fast.', Preview: BudgetPreview },
-  { key: 'insights', title: 'See where it goes', text: 'Your spending by week, month and category.', Preview: InsightsPreview },
+  { key: 'budget', title: 'Stay on budget', text: 'See what’s left, and what’s safe to spend each day.', Preview: BudgetPreview },
+  { key: 'insights', title: 'See where it goes', text: 'How it compares, and what stands out.', Preview: InsightsPreview },
   { key: 'assets', title: 'Track your assets', text: 'Gold, silver and ethical funds, priced once a day.', Preview: AssetsPreview },
 ] as const;
 
