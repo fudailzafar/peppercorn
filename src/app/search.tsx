@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '../lib/nav';
 import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
@@ -27,7 +28,8 @@ export default function SearchScreen() {
   const currency = useStore((s) => s.settings.currency);
   const showSign = useStore((s) => s.settings.showSign);
   const { ask, remove, element } = useDeleteFlow();
-  const [query, setQuery] = useState('');
+  const { q: startQuery } = useLocalSearchParams<{ q?: string }>();
+  const [query, setQuery] = useState(startQuery ?? '');
   const now = useNow();
 
   const rows = useMemo<Row[]>(() => {

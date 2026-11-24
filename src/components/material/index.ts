@@ -2,6 +2,7 @@
 export { Button } from './Button';
 export { AssistChip, FilterChip } from './Chip';
 export { EmojiAvatar, IconAvatar, ListItem, Subheader } from './List';
+export { ListGroup } from './ListGroup';
 export { TopAppBar } from './TopAppBar';
 export { LinearProgress, ProgressRing } from './Progress';
 export { Card, ChoiceCard } from './Card';

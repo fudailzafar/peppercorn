@@ -9,7 +9,7 @@ import { useTheme } from '../../theme/theme';
 const clamp = (n: number) => Math.min(Math.max(n, 0), 1);
 
 /** M3 linear progress: the indicator, a 4dp gap, the track, and a stop dot at the end. */
-export function LinearProgress({ fraction, color, height = 8, track }: { fraction: number; color: string; height?: number; track?: string }) {
+export function LinearProgress({ fraction, color, height = 8, track, stop = true }: { fraction: number; color: string; height?: number; track?: string; /** The dot at the end of the track. */ stop?: boolean }) {
   const { m3 } = useTheme();
   const animated = useStore((s) => s.settings.animatedCharts);
   const value = useAnimatedNumber(clamp(fraction), animated);
@@ -19,7 +19,7 @@ export function LinearProgress({ fraction, color, height = 8, track }: { fractio
       {value > 0 ? <View style={{ flex: value, minWidth: height, borderRadius: shape.full, backgroundColor: color }} /> : null}
       {rest > 0.001 ? (
         <View style={{ flex: rest, minWidth: height, borderRadius: shape.full, backgroundColor: track ?? m3.secondaryContainer, alignItems: 'flex-end', justifyContent: 'center' }}>
-          <View style={{ width: 4, height: 4, marginRight: (height - 4) / 2, borderRadius: shape.full, backgroundColor: color }} />
+          {stop ? <View style={{ width: 4, height: 4, marginRight: (height - 4) / 2, borderRadius: shape.full, backgroundColor: color }} /> : null}
         </View>
       ) : null}
     </View>

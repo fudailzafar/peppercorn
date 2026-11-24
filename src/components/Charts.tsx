@@ -1,135 +1,140 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { fmtAxis, niceMax } from '../lib/format';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { useStore } from '../lib/store';
 import { m3Duration, m3Easing, shape } from '../theme/material';
 import { motion } from '../theme/motion';
-import { useTheme } from '../theme/theme';
+import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
 
-// MARK: Bar chart (Insights)
-
-interface BarChartProps {
-  values: number[];
-  /** Labels under particular bars: { index, text }. */
-  labels: { index: number; text: string }[];
-  /** Bars after this index are drawn faded (the future). Pass values.length for none. */
-  fadeFrom: number;
-  average?: number;
-  height?: number;
-  /** Index of the bar to emphasise in the axis labels. */
-  activeIndex?: number;
-  /** Grow the bars in with Dime's spring, staggered left to right. */
-  animate?: boolean;
-  /** Changing this replays the grow-in (a new period, a new filter). */
-  replayKey?: string;
+export interface ChartColumn {
+  /** Under the bar. */
+  label: string;
+  /** Spoken to screen readers. */
+  name: string;
+  value: number;
+  future?: boolean;
+  /** Stands out when nothing is picked. */
+  current?: boolean;
 }
 
-/** One bar that springs up from zero, after a delay of index * 0.1s, like Dime's AnimatedBarGraph. */
-function GrowingBar({ fraction, index, animate, color }: { fraction: number; index: number; animate: boolean; color: string }) {
+/** One bar, growing in from the baseline a beat after its neighbour. */
+function Bar({ height, index, animate, color }: { height: number; index: number; animate: boolean; color: string }) {
   const [progress] = useState(() => new Animated.Value(animate ? 0 : 1));
   useEffect(() => {
     if (!animate) return;
-    // Bars grow with M3's emphasized-decelerate curve over 500ms, each one a beat after its neighbour.
     const run = Animated.timing(progress, { toValue: 1, delay: index * motion.barStagger, duration: m3Duration.long2, easing: Easing.bezier(...m3Easing.emphasizedDecelerate), useNativeDriver: false });
     run.start();
     return () => run.stop();
   }, [animate, index, progress]);
-  return (
-    <Animated.View
-      style={{
-        height: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', `${fraction * 100}%`] }),
-        borderRadius: shape.small,
-        backgroundColor: color,
-      }}
-    />
-  );
+  return <Animated.View style={[styles.bar, { height: progress.interpolate({ inputRange: [0, 1], outputRange: [0, height] }), backgroundColor: color }]} />;
 }
 
-/** Vertical capsule bars with a dashed average line, as in Dime's Insights. */
-export function BarChart({ values, labels, fadeFrom, average, height = 220, activeIndex, animate = false, replayKey = '' }: BarChartProps) {
+/**
+ * A column chart that reads at a glance: one column stands out (the current one, or the one you pick), the average is a
+ * dashed line with its value in words, and the whole height of a column is its touch target.
+ */
+export function ColumnChart({
+  columns,
+  height = 144,
+  average,
+  averageLabel,
+  selected,
+  onSelect,
+  format,
+  replayKey = '',
+}: {
+  columns: ChartColumn[];
+  height?: number;
+  average?: number;
+  averageLabel?: string;
+  selected?: number | null;
+  onSelect?: (index: number) => void;
+  format?: (value: number) => string;
+  /** Changing this replays the grow-in. */
+  replayKey?: string;
+}) {
   const { m3 } = useTheme();
-  const max = niceMax(Math.max(...values, average ?? 0));
-  const n = values.length;
-  const gap = n > 12 ? 4 : 8;
-  const avgY = average !== undefined && average > 0 ? (1 - Math.min(average / max, 1)) * height : null;
-  // M3 bar chart: tonal tracks, primary bars, rounded 8dp ends, secondary text for axes.
-  const radius = shape.small;
+  const animate = useStore((s) => s.settings.animatedCharts);
+  const max = Math.max(...columns.map((c) => c.value), average ?? 0, 1);
+  const picked = selected ?? null;
+  const anyCurrent = columns.some((c) => c.current);
+  // Room above the tallest bar for the picked bar's value.
+  const top = 20;
+  const scale = (v: number) => (v / max) * (height - top);
 
   return (
     <View>
-      <View style={{ flexDirection: 'row', height }}>
-        <View style={{ width: 38, justifyContent: 'space-between' }}>
-          <AppText variant="labelMedium" color={m3.onSurfaceVariant}>
-            {fmtAxis(max)}
-          </AppText>
-          <AppText variant="labelMedium" color={m3.onSurfaceVariant}>
-            0
-          </AppText>
-        </View>
-
-        <View style={{ flex: 1 }}>
-          <View style={{ flex: 1, flexDirection: 'row', gap }}>
-            {values.map((v, i) => {
-              const faded = i >= fadeFrom;
-              const selected = activeIndex === i;
-              return (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    borderRadius: radius,
-                    backgroundColor: faded ? m3.surfaceContainerLow : m3.surfaceContainerHigh,
-                    justifyContent: 'flex-end',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {v > 0 ? <GrowingBar key={`${replayKey}-${i}`} fraction={Math.max(Math.min(v / max, 1), 0.04)} index={i} animate={animate} color={activeIndex === undefined || selected ? m3.primary : m3.outline} /> : null}
-                </View>
-              );
-            })}
+      <View style={{ height, flexDirection: 'row' }}>
+        {average !== undefined && average > 0 && picked === null ? (
+          <View pointerEvents="none" style={[styles.average, { bottom: scale(average) }]}>
+            <View style={[styles.dash, { borderColor: m3.outline }]} />
           </View>
-
-          {avgY !== null ? (
-            <View pointerEvents="none" style={[StyleSheet.absoluteFill]}>
-              <View style={{ position: 'absolute', left: 0, right: 0, top: avgY, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: m3.outline }} />
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      {avgY !== null ? (
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: avgY - 12 }}>
-          <View style={[styles.avgPill, { backgroundColor: m3.inverseSurface }]}>
-            <AppText variant="labelMedium" color={m3.inverseOnSurface}>
-              {fmtAxis(average ?? 0)}
-            </AppText>
-          </View>
-        </View>
-      ) : null}
-
-      <View style={{ flexDirection: 'row', marginTop: 8, marginLeft: 38 }}>
-        {values.map((_, i) => {
-          const label = labels.find((l) => l.index === i);
-          return (
-            <View key={i} style={{ flex: 1, marginHorizontal: gap / 2, alignItems: 'center', overflow: 'visible' }}>
-              {label ? (
-                <AppText
-                  variant="labelMedium"
-                  weight={i === activeIndex ? 'bold' : 'semibold'}
-                  color={i >= fadeFrom ? m3.outline : i === activeIndex ? m3.onSurface : m3.onSurfaceVariant}
-                  style={{ width: 40, textAlign: 'center' }}
-                >
-                  {label.text}
+        ) : null}
+        {columns.map((c, i) => {
+          const strong = picked === null ? c.current || !anyCurrent : picked === i;
+          const color = strong ? m3.primary : withAlpha(m3.primary, 0.36);
+          const body = (
+            <>
+              {picked === i && format ? (
+                <AppText variant="labelMedium" numberOfLines={1} style={styles.value}>
+                  {format(c.value)}
                 </AppText>
               ) : null}
+              {c.value > 0 ? (
+                <Bar key={`${replayKey}-${i}`} height={Math.max(scale(c.value), 6)} index={i} animate={animate} color={color} />
+              ) : (
+                <View style={[styles.bar, { height: 4, backgroundColor: c.future ? m3.surfaceContainerHighest : m3.outlineVariant }]} />
+              )}
+            </>
+          );
+          return onSelect ? (
+            <Pressable
+              key={i}
+              onPress={() => onSelect(i)}
+              disabled={c.future}
+              accessibilityRole="button"
+              accessibilityState={{ selected: picked === i, disabled: c.future }}
+              accessibilityLabel={`${c.name}${format ? `, ${format(c.value)}` : ''}`}
+              style={styles.column}
+            >
+              {body}
+            </Pressable>
+          ) : (
+            <View key={i} style={styles.column}>
+              {body}
             </View>
           );
         })}
       </View>
+      <View style={{ flexDirection: 'row', marginTop: 8 }}>
+        {columns.map((c, i) => {
+          const strong = picked === null ? c.current : picked === i;
+          return (
+            <AppText key={i} variant="labelMedium" weight={strong ? 'bold' : 'regular'} color={strong ? m3.onSurface : c.future ? m3.outline : m3.onSurfaceVariant} numberOfLines={1} style={styles.label}>
+              {c.label}
+            </AppText>
+          );
+        })}
+      </View>
+      {averageLabel ? (
+        <View style={styles.legend}>
+          <View style={[styles.legendDash, { borderColor: m3.outline }]} />
+          <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
+            {averageLabel}
+          </AppText>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  avgPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: shape.small, minWidth: 30, alignItems: 'center' },
+  column: { flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 3 },
+  bar: { width: '100%', maxWidth: 36, borderRadius: shape.small },
+  value: { position: 'absolute', top: 0, width: 88, textAlign: 'center' },
+  average: { position: 'absolute', left: 0, right: 0, zIndex: 1 },
+  dash: { borderTopWidth: 1, borderStyle: 'dashed' },
+  label: { flex: 1, textAlign: 'center', letterSpacing: 0 },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  legendDash: { width: 20, borderTopWidth: 1, borderStyle: 'dashed' },
 });

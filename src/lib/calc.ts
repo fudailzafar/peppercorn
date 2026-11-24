@@ -4,7 +4,6 @@ import {
   addDays,
   addMonths,
   addPeriod,
-  daysInMonth,
   differenceInCalendarDays,
   nextTransactionDate,
   startOfCustomMonth,
@@ -14,7 +13,7 @@ import {
   startOfYear,
   monthName,
 } from './dates';
-import type { Budget, BudgetType, Category, MainBudget, Settings, Transaction } from './types';
+import type { Budget, BudgetType, MainBudget, Settings, Transaction } from './types';
 
 // MARK: Log
 
@@ -136,106 +135,6 @@ export function insightsLabel(type: InsightsType, start: Date): string {
   }
   if (type === 2) return `${monthName(start)} ${start.getFullYear()}`;
   return String(start.getFullYear());
-}
-
-function inPeriod(transactions: Transaction[], from: Date, to: Date, income?: boolean) {
-  const a = from.getTime();
-  const b = to.getTime();
-  return transactions.filter((t) => t.date >= a && t.date < b && (income === undefined || t.income === income));
-}
-
-export interface InsightsData {
-  amount: number;
-  maximum: number;
-  average: number;
-  dates: Date[];
-  values: number[];
-}
-
-/** Per-bucket totals (days for week/month, months for year) for the bar chart. */
-export function getInsights(transactions: Transaction[], type: InsightsType, start: Date, income: boolean, now = new Date()): InsightsData {
-  const end = insightsEnd(type, start);
-  const txs = inPeriod(transactions, start, end, income);
-  const dates: Date[] = [];
-  const values: number[] = [];
-  const bucketCount = type === 1 ? 7 : type === 2 ? daysInMonth(start) : 12;
-
-  for (let i = 0; i < bucketCount; i++) {
-    const from = type === 3 ? new Date(start.getFullYear(), i, 1) : addDays(start, i);
-    const to = type === 3 ? new Date(start.getFullYear(), i + 1, 1) : addDays(start, i + 1);
-    dates.push(from);
-    values.push(txs.filter((t) => t.date >= from.getTime() && t.date < to.getTime()).reduce((n, t) => n + t.amount, 0));
-  }
-
-  const amount = values.reduce((n, v) => n + v, 0);
-  const maximum = Math.max(0, ...values);
-  const elapsed = elapsedBuckets(type, start, end, now, bucketCount);
-  return { amount, maximum, average: amount / elapsed, dates, values };
-}
-
-/** How many buckets of the period have happened (so the average ignores the future). */
-function elapsedBuckets(type: InsightsType, start: Date, end: Date, now: Date, bucketCount: number) {
-  if (now >= end) return bucketCount;
-  if (now < start) return bucketCount;
-  if (type === 3) return now.getMonth() + 1;
-  return differenceInCalendarDays(now, start) + 1;
-}
-
-export interface InsightsSummary {
-  spent: number;
-  income: number;
-  /** Absolute net and its sign. */
-  net: number;
-  positive: boolean;
-  average: number;
-}
-
-export function getInsightsSummary(transactions: Transaction[], type: InsightsType, start: Date, now = new Date()): InsightsSummary {
-  const end = insightsEnd(type, start);
-  let spent = 0;
-  let income = 0;
-  for (const t of inPeriod(transactions, start, end)) {
-    if (t.income) income += t.amount;
-    else spent += t.amount;
-  }
-  const net = income - spent;
-  const bucketCount = type === 1 ? 7 : type === 2 ? daysInMonth(start) : 12;
-  const elapsed = elapsedBuckets(type, start, end, now, bucketCount);
-  return { spent, income, net: Math.abs(net), positive: net >= 0, average: Math.abs(net) / elapsed };
-}
-
-export interface CategoryShare {
-  category: Category;
-  amount: number;
-  percent: number;
-}
-
-export function categoryBreakdown(
-  transactions: Transaction[],
-  categories: Category[],
-  type: InsightsType,
-  start: Date,
-  income: boolean,
-): CategoryShare[] {
-  const txs = inPeriod(transactions, start, insightsEnd(type, start), income);
-  const totals = new Map<string, number>();
-  for (const t of txs) if (t.categoryId) totals.set(t.categoryId, (totals.get(t.categoryId) ?? 0) + t.amount);
-  const sum = [...totals.values()].reduce((n, v) => n + v, 0);
-  return [...totals.entries()]
-    .map(([id, amount]) => ({ category: categories.find((c) => c.id === id), amount }))
-    .filter((x): x is { category: Category; amount: number } => x.category !== undefined)
-    .sort((a, b) => b.amount - a.amount)
-    .map((x) => ({ ...x, percent: sum === 0 ? 0 : (x.amount / sum) * 100 }));
-}
-
-/** Signed % change of net vs the previous period; null when there is nothing to compare. */
-export function netChange(transactions: Transaction[], type: InsightsType, offset: number, settings: Settings, now = new Date()) {
-  const cur = getInsightsSummary(transactions, type, insightsStart(type, offset, settings, now), now);
-  const prev = getInsightsSummary(transactions, type, insightsStart(type, offset - 1, settings, now), now);
-  const curNet = cur.positive ? cur.net : -cur.net;
-  const prevNet = prev.positive ? prev.net : -prev.net;
-  if (prevNet === 0) return null;
-  return ((curNet - prevNet) / Math.abs(prevNet)) * 100;
 }
 
 // MARK: Budgets

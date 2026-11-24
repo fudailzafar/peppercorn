@@ -8,7 +8,7 @@ import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { inr } from './AssetBits';
 import { BigAmount } from './Bits';
-import { BarChart } from './Charts';
+import { ColumnChart } from './Charts';
 import { Button, Card, EmojiAvatar, FilterChip, LinearProgress, ListItem, ProgressRing } from './material';
 
 /*
@@ -123,7 +123,7 @@ export function InsightsPreview() {
         <AppText variant="headlineMedium" style={{ marginBottom: 12 }}>
           {symbol}2,810
         </AppText>
-        <BarChart values={values} labels={['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((text, index) => ({ index, text }))} fadeFrom={values.length} height={96} />
+        <ColumnChart columns={values.map((value, i) => ({ value, label: 'MTWTFSS'[i], name: '', current: i === 5 }))} height={104} />
       </Surface>
       <Surface padded={false}>
         <ListItem headline="Food" leading={<EmojiAvatar emoji="🍔" colour="#FE724E" />} trailingText={`${symbol}1,240`} trailing={<AppText variant="labelLarge">44%</AppText>} />

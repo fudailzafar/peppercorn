@@ -54,21 +54,3 @@ export const fmtFull = (n: number) => group(n, 2);
 
 /** Cents only for small values (< 100) when enabled: headline numbers. */
 export const fmtSmart = (n: number, showCents: boolean) => group(n, showCents && Math.abs(n) < 100 ? 2 : 0);
-
-/** Two decimals under 1000, none above: the Insights summary blocks. */
-export const fmtBlock = (n: number, showCents: boolean) => group(n, showCents && Math.abs(n) < 1000 ? 2 : 0);
-
-/** "3.1k" style, for chart axes. */
-export function fmtAxis(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '')}k`;
-  return String(Math.round(n));
-}
-
-/** Rounds an axis maximum up to a friendly number. */
-export function niceMax(n: number) {
-  if (n <= 0) return 10;
-  const exp = Math.pow(10, Math.floor(Math.log10(n)));
-  const f = n / exp;
-  const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : f <= 7.5 ? 7.5 : 10;
-  return Math.round(nice * exp * 100) / 100;
-}

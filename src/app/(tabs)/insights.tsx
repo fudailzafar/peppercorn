@@ -1,324 +1,292 @@
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useFabScroll } from '../../lib/useFabScroll';
-import { Icon } from '../../components/Icon';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { BigAmount } from '../../components/Bits';
-import { Card, EmojiAvatar, IconButton, ListItem, SegmentedButton, Subheader, TopAppBar } from '../../components/material';
-import { BarChart } from '../../components/Charts';
+import { ColumnChart } from '../../components/Charts';
+import { Icon, type IconName } from '../../components/Icon';
+import { CategoryRow, Comparison, useMoney } from '../../components/InsightBits';
+import { Button, Card, EmojiAvatar, FilterChip, IconAvatar, IconButton, LinearProgress, ListGroup, ListItem, SegmentedButton, Subheader, TopAppBar } from '../../components/material';
 import { PeriodSwiper } from '../../components/PeriodSwiper';
-import {
-  categoryBreakdown,
-  getInsights,
-  getInsightsSummary,
-  insightsEnd,
-  insightsLabel,
-  insightsStart,
-  netChange,
-  type InsightsType } from '../../lib/calc';
-import { dayLabel, monthName } from '../../lib/dates';
-import { currencySymbol, fmtBlock, fmtFull, fmtSmart } from '../../lib/format';
+import { insightsEnd, insightsLabel, insightsStart, type InsightsType } from '../../lib/calc';
+import { shortDate } from '../../lib/dates';
+import { fmtSmart } from '../../lib/format';
 import { Haptics } from '../../lib/haptics';
+import { categoryLines, columns, elapsedUnits, highlights, period, periodPhrase, total, UNIT, type Highlight } from '../../lib/insights';
 import { useStore } from '../../lib/store';
+import { useFabScroll } from '../../lib/useFabScroll';
 import { useNow } from '../../lib/useNow';
 import { shape } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
-const TYPES: { type: InsightsType; label: string }[] = [
-  { type: 1, label: 'week' },
-  { type: 2, label: 'month' },
-  { type: 3, label: 'year' },
-];
+const TYPES: InsightsType[] = [1, 2, 3];
+/** Categories shown before "Show all". */
+const FEW = 5;
 
-const WEEK_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTH_LETTERS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-
+/**
+ * Answers, in the order people ask: how much, is that a lot, what stands out, where it went, and what's left of what
+ * came in. Anything deeper is one tap away.
+ */
 export default function InsightsScreen() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const fabScroll = useFabScroll();
-  const transactions = useStore((s) => s.transactions);
+  const money = useMoney();
+  const everything = useStore((s) => s.transactions);
   const categories = useStore((s) => s.categories);
+  const mainBudget = useStore((s) => s.mainBudget);
   const settings = useStore((s) => s.settings);
-
-  const [type, setType] = useState<InsightsType>(1);
-  const [offset, setOffset] = useState(0);
-  const [income, setIncome] = useState(false);
-  const [filtering, setFiltering] = useState(false);
-  const [selectedBar, setSelectedBar] = useState<number | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   const nowMs = useNow();
   const now = useMemo(() => new Date(nowMs), [nowMs]);
-  const start = useMemo(() => insightsStart(type, offset, settings, now), [type, offset, settings, now]);
 
-  // Without a filter the chart and list show spending, as in Dime.
-  const showIncome = filtering && income;
-  const data = useMemo(() => getInsights(transactions, type, start, showIncome, now), [transactions, type, start, showIncome, now]);
-  const summary = useMemo(() => getInsightsSummary(transactions, type, start, now), [transactions, type, start, now]);
-  const change = useMemo(() => netChange(transactions, type, offset, settings, now), [transactions, type, offset, settings, now]);
-  const shares = useMemo(() => categoryBreakdown(transactions, categories, type, start, showIncome), [transactions, categories, type, start, showIncome]);
+  const [type, setType] = useState<InsightsType>(2);
+  const [offset, setOffset] = useState(0);
+  const [income, setIncome] = useState(false);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [everyday, setEveryday] = useState(false);
 
-  const fadeFrom = useMemo(() => {
-    const idx = data.dates.findIndex((d) => d.getTime() > nowMs);
-    return idx === -1 ? data.dates.length : idx;
-  }, [data.dates, nowMs]);
+  const p = useMemo(() => period(type, offset, settings, now), [type, offset, settings, now]);
+  // One gold purchase can dwarf a month of everyday spending, so it can be left out. Home's totals always include it.
+  const hasAssets = !income && everything.some((t) => t.asset && t.date >= p.start.getTime() && t.date < p.until);
+  const without = hasAssets && everyday;
+  const transactions = useMemo(() => (without ? everything.filter((t) => !t.asset) : everything), [everything, without]);
+  const cols = useMemo(() => columns(transactions, type, p, income, now), [transactions, type, p, income, now]);
+  const sums = useMemo(() => total(transactions, p, income), [transactions, p, income]);
+  const column = picked !== null ? cols[picked] : undefined;
+  const lines = useMemo(() => categoryLines(transactions, categories, p, income, column), [transactions, categories, p, income, column]);
+  // Always from everything: budgets count assets, so a forecast without them would mislead.
+  const notable = useMemo(() => highlights(everything, categories, type, p, income, mainBudget, now), [everything, categories, type, p, income, mainBudget, now]);
+  const spent = useMemo(() => total(everything, p, false).now, [everything, p]);
+  const earned = useMemo(() => total(everything, p, true).now, [everything, p]);
 
-  const labels = useMemo(() => {
-    if (type === 1) return data.dates.map((d, i) => ({ index: i, text: WEEK_LETTERS[d.getDay()] }));
-    if (type === 2) return data.dates.map((_, i) => i).filter((i) => i % 7 === 0).map((i) => ({ index: i, text: String(i + 1) }));
-    return data.dates.map((_, i) => ({ index: i, text: MONTH_LETTERS[i] }));
-  }, [type, data.dates]);
-
-  // The oldest period worth showing is the one holding the first transaction (Swift: "That's all, buddy.").
-  const minOffset = useMemo(() => {
-    if (transactions.length === 0) return 0;
-    const earliest = transactions.reduce((m, t) => Math.min(m, t.date), Infinity);
+  // The oldest period worth showing holds the first entry.
+  const oldest = useMemo(() => {
+    const first = everything.reduce((m, t) => Math.min(m, t.date), Infinity);
+    if (first === Infinity) return 0;
     let o = 0;
-    while (o > -600 && insightsEnd(type, insightsStart(type, o - 1, settings, now)).getTime() > earliest) o--;
+    while (o > -600 && insightsEnd(type, insightsStart(type, o - 1, settings, now)).getTime() > first) o--;
     return o;
-  }, [transactions, type, settings, now]);
+  }, [everything, type, settings, now]);
 
-  const go = (delta: number) => {
+  const reset = () => {
+    setPicked(null);
+    setShowAll(false);
+  };
+  const move = (delta: number) => {
+    setOffset((o) => Math.max(oldest, Math.min(0, o + delta)));
+    reset();
+  };
+  const step = (delta: number) => {
     Haptics.selection();
-    setOffset((o) => Math.max(minOffset, Math.min(0, o + delta)));
-    setSelectedBar(null);
-    setSelectedCategory(null);
+    move(delta);
   };
+  const neighbour = (delta: number) => insightsLabel(type, insightsStart(type, offset + delta, settings, now));
 
-  const neighbour = (delta: number) => {
-    const d = insightsStart(type, offset + delta, settings, now);
-    if (type === 1) return `${d.getDate()} ${monthName(d)}`.toUpperCase();
-    if (type === 2) return `${monthName(d)} ${String(d.getFullYear()).slice(-2)}`.toUpperCase();
-    return String(d.getFullYear());
-  };
-
-  // Swiping is Swift's gesture: it already settles the haptic and the slide, so the period is changed silently.
-  const swipeTo = (delta: -1 | 1) => {
-    setOffset((o) => Math.max(minOffset, Math.min(0, o + delta)));
-    setSelectedBar(null);
-    setSelectedCategory(null);
-  };
-
-  const sym = currencySymbol(settings.currency);
-  const netSigned = summary.positive ? summary.net : -summary.net;
-  const selectedShare = shares.find((s) => s.category.id === selectedCategory);
-  const barAmount = selectedBar !== null ? data.values[selectedBar] : null;
-  const barLabel =
-    selectedBar !== null
-      ? type === 3
-        ? `${monthName(data.dates[selectedBar])} ${data.dates[selectedBar].getFullYear()}`
-        : dayLabel(data.dates[selectedBar])
-      : '';
-
-  let sideLabel: string;
-  let sideValue: number;
-  if (selectedShare) {
-    sideLabel = selectedShare.category.name;
-    sideValue = selectedShare.amount;
-  } else if (barAmount !== null) {
-    sideLabel = barLabel;
-    sideValue = barAmount;
-  } else if (filtering) {
-    sideLabel = `${income ? 'Income' : 'Spent'} per ${type === 3 ? 'month' : 'day'}`;
-    sideValue = data.average;
-  } else {
-    sideLabel = type === 3 ? 'Average per month' : 'Average per day';
-    sideValue = summary.average;
-  }
-
-  // Income / Expenses cards double as filters: a selected card gets a 2dp primary outline.
-  const block = (isIncome: boolean, amount: number) => {
-    const selected = filtering && income === isIncome;
-    // Only income is tinted (green). Spending stays neutral: red is kept for errors and going over a budget.
-    const container = isIncome ? m3.successContainer : m3.surfaceContainerHigh;
-    const ink = isIncome ? m3.success : m3.onSurfaceVariant;
-    return (
-      <Card
-        key={String(isIncome)}
-        accessibilityLabel={`${isIncome ? 'Income' : 'Expenses'}${selected ? ', selected' : ''}`}
-        onPress={() => {
-          Haptics.selection();
-          setSelectedBar(null);
-          setSelectedCategory(null);
-          if (filtering && income === isIncome) setFiltering(false);
-          else {
-            setIncome(isIncome);
-            setFiltering(true);
-          }
-        }}
-        style={[styles.block, selected ? { backgroundColor: m3.secondaryContainer } : null]}
-      >
-            <View style={[styles.blockIcon, { backgroundColor: container }]}>
-              <Icon name={isIncome ? 'arrow-up' : 'arrow-down'} size={20} color={ink} style={{ transform: [{ rotate: isIncome ? '45deg' : '-45deg' }] }} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <AppText variant="labelMedium" color={m3.onSurfaceVariant} numberOfLines={1}>
-                {isIncome ? 'Income' : 'Expenses'}
-              </AppText>
-              <AppText variant="titleMedium" color={m3.onSurface} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-                {sym}
-                {fmtBlock(amount, settings.showCents)}
-              </AppText>
-            </View>
-      </Card>
-    );
-  };
+  const phrase = periodPhrase(type, offset, p.start);
+  const against = offset === 0 ? `this time last ${UNIT[type]}` : `the ${UNIT[type]} before`;
+  const average = sums.now / elapsedUnits(type, p, now);
+  const perColumn = type === 2 ? average * 7 : average;
+  const verb = income ? 'Earned' : 'Spent';
+  const shown = showAll ? lines : lines.slice(0, FEW);
+  const openCategory = (id: string) => router.push({ pathname: '/insight-category', params: { id, type: String(type), offset: String(offset), ...(income ? { income: '1' } : {}) } });
 
   return (
     <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      <PeriodSwiper canGoBack={offset > minOffset} canGoForward={offset < 0} backLabel={neighbour(-1)} forwardLabel={neighbour(1)} onChange={swipeTo}>
+      <PeriodSwiper canGoBack={offset > oldest} canGoForward={offset < 0} backLabel={neighbour(-1)} forwardLabel={neighbour(1)} onChange={move}>
         <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
           <TopAppBar title="Insights" inset={false} />
-
-          {/* Period type: a three-option segmented button */}
-          <View style={styles.padded}>
+          <View style={{ paddingHorizontal: 16 }}>
             <SegmentedButton
               fullWidth
-              options={TYPES.map((t) => t.label[0].toUpperCase() + t.label.slice(1))}
-              index={TYPES.findIndex((t) => t.type === type)}
+              options={['Week', 'Month', 'Year']}
+              index={TYPES.indexOf(type)}
               onChange={(i) => {
                 Haptics.selection();
-                setType(TYPES[i].type);
+                setType(TYPES[i]);
                 setOffset(0);
-                setSelectedBar(null);
-                setSelectedCategory(null);
+                reset();
               }}
             />
           </View>
 
-          {/* Period navigator */}
           <View style={styles.navigator}>
-            <IconButton icon="chevron-back" onPress={() => go(-1)} label="Previous period" />
-            <AppText variant="titleMedium" color={m3.onSurface}>
-              {insightsLabel(type, start)}
-            </AppText>
-            <IconButton icon="chevron-forward" onPress={() => go(1)} disabled={offset >= 0} label="Next period" />
+            <IconButton icon="chevron-back" onPress={() => step(-1)} disabled={offset <= oldest} label={`Previous ${UNIT[type]}`} />
+            <AppText variant="titleMedium">{insightsLabel(type, p.start)}</AppText>
+            <IconButton icon="chevron-forward" onPress={() => step(1)} disabled={offset >= 0} label={`Next ${UNIT[type]}`} />
           </View>
 
-          {/* Summary card: the period total with its change, and the average beside it */}
-          <Card hero style={styles.summary}>
-            <View style={{ flex: 1 }}>
-              <AppText variant="labelLarge" color={m3.onSurfaceVariant}>
-                Net
-              </AppText>
-              <BigAmount
-                value={fmtSmart(summary.net, settings.showCents)}
-                sign={settings.showSign ? (netSigned >= 0 ? '+' : '-') : ''}
-                currency={settings.currency}
-                size={36}
-                align="flex-start"
-              />
-              {change !== null ? (
-                <View style={[styles.badge, { backgroundColor: change >= 0 ? m3.successContainer : m3.surfaceContainerHigh }]}>
-                  <Icon name={change >= 0 ? 'trending-up' : 'trending-down'} size={16} color={change >= 0 ? m3.success : m3.onSurfaceVariant} />
-                  <AppText variant="labelMedium" color={change >= 0 ? m3.success : m3.onSurfaceVariant}>
-                    {Math.min(Math.round(Math.abs(change)), 999)}% vs last {TYPES.find((t) => t.type === type)?.label}
-                  </AppText>
-                </View>
-              ) : null}
+          {/* How much, and is that a lot? */}
+          <Card hero style={styles.hero}>
+            {settings.incomeTracking || hasAssets ? (
+              <View style={styles.chips}>
+                {(settings.incomeTracking ? [false, true] : []).map((i) => (
+                  <FilterChip
+                    key={String(i)}
+                    label={i ? 'Earned' : 'Spent'}
+                    selected={income === i}
+                    onPress={() => {
+                      Haptics.selection();
+                      setIncome(i);
+                      reset();
+                    }}
+                  />
+                ))}
+                {hasAssets ? (
+                  <FilterChip
+                    label="No assets"
+                    accessibilityLabel="Leave out assets"
+                    selected={without}
+                    onPress={() => {
+                      Haptics.selection();
+                      setEveryday(!everyday);
+                      reset();
+                    }}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+            <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
+              {column ? `${verb} ${column.name}` : `${verb} ${phrase}`}
+              {without ? ', without assets' : ''}
+            </AppText>
+            <View style={{ marginTop: 4 }}>
+              <BigAmount value={fmtSmart(column ? column.value : sums.now, settings.showCents)} currency={settings.currency} size={44} align="flex-start" income={income && sums.now > 0} />
             </View>
-            <Pressable
-              style={{ alignItems: 'flex-end', maxWidth: '45%' }}
-              onPress={() => {
-                setSelectedBar(null);
-                setSelectedCategory(null);
-              }}
-            >
-              <AppText variant="labelLarge" color={m3.onSurfaceVariant} numberOfLines={1}>
-                {sideLabel}
-              </AppText>
-              <BigAmount value={fmtSmart(sideValue, settings.showCents)} currency={settings.currency} size={28} align="flex-end" />
-            </Pressable>
+            <View style={styles.compare}>
+              {column ? (
+                <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
+                  {sums.now > 0 ? `${Math.round((column.value / sums.now) * 100)}% of what you ${verb.toLowerCase()} ${phrase}` : ''}
+                </AppText>
+              ) : (
+                <Comparison now={sums.now} before={sums.before} income={income} against={against} />
+              )}
+            </View>
+            <View style={{ marginTop: 16 }}>
+              <ColumnChart
+                columns={cols}
+                average={sums.now > 0 ? perColumn : undefined}
+                averageLabel={sums.now > 0 && !column ? `Average ${money(average)} a ${type === 3 ? 'month' : 'day'}` : undefined}
+                selected={picked}
+                onSelect={(i) => {
+                  Haptics.selection();
+                  setPicked(picked === i ? null : i);
+                }}
+                format={money}
+                replayKey={`${type}-${offset}-${income}`}
+              />
+            </View>
+            {column ? (
+              <View style={{ alignItems: 'flex-start', marginLeft: -12, marginTop: 4 }}>
+                <Button variant="text" icon="close" label={`Back to the whole ${UNIT[type]}`} onPress={() => setPicked(null)} />
+              </View>
+            ) : null}
           </Card>
 
-          {settings.incomeTracking ? (
-            <View style={[styles.blocks, styles.padded]}>
-              {block(true, summary.income)}
-              {block(false, summary.spent)}
+          {sums.now === 0 ? (
+            <View style={styles.empty}>
+              <View style={[styles.emptyIcon, { backgroundColor: m3.secondaryContainer }]}>
+                <Icon name="insights" size={40} color={m3.onSecondaryContainer} />
+              </View>
+              <AppText variant="titleLarge" style={{ textAlign: 'center' }}>
+                Nothing {verb.toLowerCase()} {phrase}
+              </AppText>
+              <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+                Add an entry and it will show up here.
+              </AppText>
             </View>
           ) : null}
 
-          {/* Chart */}
-          <View style={[styles.padded, { marginTop: 24 }]}>
-            <BarChart
-              values={data.values}
-              labels={labels}
-              fadeFrom={offset === 0 ? fadeFrom : data.values.length}
-              average={selectedBar === null ? data.average : undefined}
-              height={160}
-              activeIndex={selectedBar ?? undefined}
-              animate={settings.animatedCharts}
-              replayKey={`${type}-${offset}-${income ? 'in' : 'out'}`}
-            />
-            {/* Tap targets over the bars to pick a day. */}
-            <View style={[styles.hitRow, { height: 160 }]}>
-              {data.values.map((_, i) => (
-                <Pressable
-                  key={i}
-                  style={{ flex: 1 }}
-                  onPress={() => {
-                    Haptics.selection();
-                    setSelectedCategory(null);
-                    setSelectedBar(selectedBar === i ? null : i);
-                  }}
-                  accessibilityLabel={type === 3 ? `${monthName(data.dates[i])} ${data.dates[i].getFullYear()}` : dayLabel(data.dates[i])}
-                />
-              ))}
-            </View>
-          </View>
-
-          {/* Categories: a stacked share bar, then M3 list items */}
-          <View style={{ marginTop: 32 }}>
-            <Subheader text="Categories" style={{ paddingTop: 0 }} />
-            {shares.length === 0 ? (
-              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={[styles.padded, { marginTop: 12 }]}>
-                Nothing logged in {insightsLabel(type, start)} yet.
-              </AppText>
-            ) : (
-              <>
-                <View style={[styles.colourBar, styles.padded]}>
-                  {shares.map((s) => (
-                    <View key={s.category.id} style={{ flex: Math.max(s.percent, 2), height: 12, borderRadius: shape.full, backgroundColor: s.category.colour, opacity: selectedCategory && selectedCategory !== s.category.id ? 0.3 : 1 }} />
-                  ))}
-                </View>
-                {shares.map((s) => (
-                  <ListItem
-                    key={s.category.id}
-                    onPress={() => {
-                      Haptics.selection();
-                      setSelectedBar(null);
-                      setSelectedCategory(selectedCategory === s.category.id ? null : s.category.id);
-                    }}
-                    headline={s.category.name}
-                    leading={<EmojiAvatar emoji={s.category.emoji} colour={s.category.colour} />}
-                    trailingText={`${sym}${s.amount < 100 ? fmtFull(s.amount) : fmtSmart(s.amount, false)}`}
-                    trailing={
-                      <AppText variant="labelLarge" color={m3.onSurface} style={{ minWidth: 40, textAlign: 'right' }}>
-                        {Math.round(s.percent)}%
-                      </AppText>
-                    }
-                    style={selectedCategory === s.category.id ? { backgroundColor: m3.secondaryContainer } : undefined}
-                  />
+          {/* What stands out? */}
+          {!column && notable.length > 0 ? (
+            <>
+              <Subheader text="What stands out" />
+              <ListGroup>
+                {notable.map((h) => (
+                  <HighlightRow key={h.kind} h={h} onCategory={openCategory} />
                 ))}
-              </>
-            )}
-          </View>
+              </ListGroup>
+            </>
+          ) : null}
+
+          {/* Where did it go? */}
+          {lines.length > 0 ? (
+            <>
+              <Subheader text={`${income ? 'Where it came from' : 'Where it went'}${column ? `, ${column.name}` : ''}`} />
+              <ListGroup>
+                {shown.map((line) => (
+                  <CategoryRow key={line.category.id} line={line} biggest={lines[0].amount} compare={!column && sums.before > 0} income={income} onPress={() => openCategory(line.category.id)} />
+                ))}
+              </ListGroup>
+              {lines.length > FEW ? (
+                <View style={{ alignItems: 'center', marginTop: 8 }}>
+                  <Button variant="text" icon={showAll ? 'chevron-up' : 'chevron-down'} label={showAll ? 'Show fewer' : `Show all ${lines.length} categories`} onPress={() => setShowAll(!showAll)} />
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* What's left of what came in? */}
+          {settings.incomeTracking && !column && earned > 0 ? (
+            <>
+              <Subheader text="Earned and spent" />
+              <Card style={styles.kept}>
+                <AppText variant="titleMedium">{earned >= spent ? `You kept ${money(earned - spent)} of ${money(earned)}` : `You spent ${money(spent - earned)} more than you earned`}</AppText>
+                <LinearProgress fraction={spent / earned} color={earned >= spent ? m3.primary : m3.error} height={12} />
+                <View style={styles.keptFoot}>
+                  <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
+                    {money(spent)} spent{hasAssets ? ', with assets' : ''}
+                  </AppText>
+                  <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
+                    {money(earned)} earned
+                  </AppText>
+                </View>
+              </Card>
+            </>
+          ) : null}
         </ScrollView>
       </PeriodSwiper>
     </View>
   );
 }
 
+/** One thing worth noticing, in a sentence, leading to where it can be looked into. */
+function HighlightRow({ h, onCategory }: { h: Highlight; onCategory: (id: string) => void }) {
+  const money = useMoney();
+  const row = (icon: IconName, headline: string, supporting: string, onPress: () => void) => <ListItem leading={<IconAvatar icon={icon} />} headline={headline} supporting={supporting} chevron onPress={onPress} />;
+  switch (h.kind) {
+    case 'assets':
+      return row('assets', `${money(h.amount)} went into assets`, 'Gold, silver and funds: still yours', () => router.navigate('/portfolio'));
+    case 'forecast': {
+      const over = h.budget !== null ? h.amount - h.budget : 0;
+      return row('calendar', `On pace for ${money(h.amount)}`, h.budget === null ? 'By the end of the month' : over > 0 ? `${money(over)} over your budget` : `${money(over)} inside your budget`, () => router.navigate('/budget'));
+    }
+    case 'up':
+    case 'down':
+      return (
+        <ListItem
+          leading={<EmojiAvatar emoji={h.category.emoji} colour={h.category.colour} />}
+          headline={`${h.category.name} is ${h.kind} ${money(h.change)}`}
+          supporting={`${money(h.amount)}, ${h.kind} from ${money(h.kind === 'up' ? h.amount - h.change : h.amount + h.change)}`}
+          chevron
+          onPress={() => onCategory(h.category.id)}
+        />
+      );
+    case 'biggest':
+      return row('arrow-up', `Biggest: ${h.entry.note}, ${money(h.entry.amount)}`, shortDate(new Date(h.entry.date)), () => router.push({ pathname: '/transaction', params: { id: h.entry.id } }));
+    case 'often':
+      return row('repeat', `${h.note}, ${h.times} times`, `${money(h.amount)} in all`, () => router.push({ pathname: '/search', params: { q: h.note } }));
+  }
+}
+
 const styles = StyleSheet.create({
-  padded: { paddingHorizontal: 16 },
-  navigator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, marginTop: 8 },
-  summary: { marginHorizontal: 16, marginTop: 4, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: shape.small, marginTop: 8 },
-  blocks: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  block: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  blockIcon: { width: 40, height: 40, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  hitRow: { position: 'absolute', left: 54, right: 16, top: 0, flexDirection: 'row' },
-  colourBar: { flexDirection: 'row', gap: 4, marginTop: 12, marginBottom: 8 },
+  navigator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: 8 },
+  hero: { marginHorizontal: 16, marginTop: 4, padding: 20 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  compare: { minHeight: 24, justifyContent: 'center', marginTop: 4 },
+  empty: { alignItems: 'center', gap: 8, paddingHorizontal: 32, paddingTop: 40 },
+  emptyIcon: { width: 80, height: 80, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  kept: { marginHorizontal: 16, padding: 16, gap: 12 },
+  keptFoot: { flexDirection: 'row', justifyContent: 'space-between' },
 });
