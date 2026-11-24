@@ -283,6 +283,12 @@ export function budgetProgress(b: { amount: number; startDate: number; type: Bud
   };
 }
 
+/** Over the limit, spending faster than the period is passing (by more than a tenth), or fine. */
+export function budgetPace(p: BudgetProgress): 'over' | 'fast' | 'ok' {
+  if (p.over) return 'over';
+  return p.fraction > p.elapsed + 0.1 ? 'fast' : 'ok';
+}
+
 /** The transactions that count toward a budget, newest first. */
 export function budgetTransactions(
   b: { startDate: number; type: BudgetType; categoryId?: string },

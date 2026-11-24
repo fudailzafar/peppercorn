@@ -8,8 +8,8 @@ import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { inr } from './AssetBits';
 import { BigAmount } from './Bits';
-import { BarChart, CapsuleProgress } from './Charts';
-import { Button, Card, EmojiAvatar, FilterChip, ListItem } from './material';
+import { BarChart } from './Charts';
+import { Button, Card, EmojiAvatar, FilterChip, LinearProgress, ListItem, ProgressRing } from './material';
 
 /*
  * The onboarding pictures are the app's own components with sample numbers, so they always look like the real thing.
@@ -85,23 +85,21 @@ export function BudgetPreview() {
             {label}
           </AppText>
         </View>
-        <CapsuleProgress fraction={percent / 100} elapsed={0.6} colour={colour} height={8} />
+        <LinearProgress fraction={percent / 100} color={ink === m3.warning ? m3.warning : m3.primary} />
       </Surface>
     </View>
   );
   return (
     <Frame>
       <Surface>
-        <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
-          Monthly budget
-        </AppText>
-        <AppText variant="displaySmall" style={{ marginTop: 4 }}>
-          {symbol}8,400
-        </AppText>
-        <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginBottom: 8 }}>
-          left · 12 days to go
-        </AppText>
-        <CapsuleProgress fraction={0.44} elapsed={0.6} colour={m3.primary} height={12} />
+        <View style={{ alignItems: 'center' }}>
+          <ProgressRing fraction={0.44} color={m3.primary} size={148} stroke={12}>
+            <AppText variant="headlineSmall">{symbol}8,400</AppText>
+            <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
+              left of {symbol}15,000
+            </AppText>
+          </ProgressRing>
+        </View>
       </Surface>
       <View style={{ flexDirection: 'row', gap: 12 }}>
         {small('🍔', 'Food', '#FE724E', 48, 'On track', m3.successContainer, m3.success)}

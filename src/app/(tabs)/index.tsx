@@ -5,12 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { Avatar } from '../../components/Avatar';
 import { BigAmount } from '../../components/Bits';
-import { CapsuleProgress } from '../../components/Charts';
 import { useDeleteFlow } from '../../components/DeleteFlow';
 import { Icon, type IconName } from '../../components/Icon';
-import { Button, Card, SEARCH_HEIGHT, StateLayer } from '../../components/material';
+import { Button, Card, LinearProgress, SEARCH_HEIGHT, StateLayer } from '../../components/material';
 import { TransactionRow } from '../../components/TransactionRow';
-import { budgetProgress, mainBudgetSpent, totalsSince } from '../../lib/calc';
+import { budgetPace, budgetProgress, mainBudgetSpent, totalsSince } from '../../lib/calc';
 import { startOfCustomMonth } from '../../lib/dates';
 import { currencySymbol, fmtSmart } from '../../lib/format';
 import { Haptics } from '../../lib/haptics';
@@ -97,11 +96,11 @@ export default function HomeScreen() {
             style={[styles.budget, { borderTopColor: m3.outlineVariant }]}
           >
             {budget && mainBudget ? (
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, gap: 8 }}>
                 <AppText variant="bodyMedium" color={budget.over ? m3.error : m3.onSurface}>
                   {money(budget.left)} {budget.over ? 'over your' : 'left in your'} {BUDGET_LABELS[mainBudget.type].toLowerCase()} budget
                 </AppText>
-                <CapsuleProgress fraction={budget.fraction} elapsed={budget.elapsed} colour={budget.over ? m3.error : m3.primary} height={8} />
+                <LinearProgress fraction={budget.fraction} color={budgetPace(budget) === 'over' ? m3.error : budgetPace(budget) === 'fast' ? m3.warning : m3.primary} />
               </View>
             ) : (
               <AppText variant="labelLarge" color={m3.primary} style={{ flex: 1 }}>

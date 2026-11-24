@@ -25,7 +25,7 @@ function periodStart(type: BudgetType, firstWeekday: number, firstDayOfMonth: nu
 
 /** Create or edit a budget: overall or per category, with a period and an amount. */
 export default function NewBudget() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, kind } = useLocalSearchParams<{ id?: string; kind?: 'overall' | 'category' }>();
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const settings = useStore((s) => s.settings);
@@ -42,7 +42,7 @@ export default function NewBudget() {
   const source = editingMain ? mainBudget : editingBudget;
   const editing = Boolean(source);
 
-  const [overall, setOverall] = useState(editingMain || (!editing && !mainBudget && budgets.length === 0));
+  const [overall, setOverall] = useState(editingMain || (!editing && (kind ? kind === 'overall' : !mainBudget && budgets.length === 0)));
   const [type, setType] = useState<BudgetType>(source?.type ?? 3);
   const [categoryId, setCategoryId] = useState<string | null>(editingBudget?.categoryId ?? null);
   const [raw, setRaw] = useState(() => (source ? fromNumber(source.amount, entryType) : ''));
