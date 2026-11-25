@@ -5,7 +5,7 @@ pnpm check                         # lint, types, all tests
 npx jest src/__tests__/store.test.ts
 ```
 
-Tests are in `src/__tests__`. They run in Indian time (`jest.setup.js`); `zones.test.ts` covers others.
+Tests are in `src/__tests__`. They run in Indian time (`jest.global-setup.js`); `pnpm test:zones` covers others.
 
 | File                          | What                                                        |
 | ----------------------------- | ----------------------------------------------------------- |

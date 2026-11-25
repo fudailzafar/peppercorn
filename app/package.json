@@ -47,7 +47,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "check": "expo lint && tsc --noEmit && jest",
+    "test:zones": "TEST_ZONE=Asia/Dubai jest zones && TEST_ZONE=America/New_York jest zones && TEST_ZONE=Pacific/Auckland jest zones",
+    "check": "expo lint && tsc --noEmit && jest && pnpm test:zones",
     "build:web": "sh scripts/build-web.sh"
   },
   "private": true,
@@ -56,9 +57,7 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFiles": [
-      "<rootDir>/jest.setup.js"
-    ],
+    "globalSetup": "<rootDir>/jest.global-setup.js",
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/",

@@ -1,18 +1,18 @@
 import { current, endOf } from '@/domain/budgets';
-import { addPeriod, startOf, toDay } from '@/domain/dates';
+import { addPeriod, toDay } from '@/domain/dates';
 import { caughtUp, upcoming } from '@/domain/entries';
 import type { Budget } from '@/domain/model';
 import { entry, ids } from './fakes';
 
-const home = process.env.TZ;
-afterEach(() => {
-  process.env.TZ = home;
-});
+/* Run in several zones (`pnpm test:zones`), as someone who set these up in India would find them after travelling. */
 
-test.each(['Asia/Dubai', 'America/New_York', 'Pacific/Auckland'])('days stay put in %s', (place) => {
+const zone = process.env.TEST_ZONE ?? 'Asia/Kolkata';
+const midnightInIndia = Date.UTC(2026, 10, 24, 18, 30);
+
+test(`days stay put in ${zone}`, () => {
+  expect(Intl.DateTimeFormat().resolvedOptions().timeZone.replace('Calcutta', 'Kolkata')).toBe(zone);
   const budget: Budget = { id: 'o', categoryId: null, amount: 1, period: 'month', start: '2026-11-01' };
-  const rent = entry('r', 1, startOf('2026-11-25'), { repeat: { unit: 'month', every: 1, next: '2026-12-25', day: 25 } });
-  process.env.TZ = place;
+  const rent = entry('r', 1, midnightInIndia, { repeat: { unit: 'month', every: 1, next: '2026-12-25', day: 25 } });
   expect(endOf(budget)).toBe('2026-12-01');
   expect(current(budget, '2026-12-10').start).toBe('2026-12-01');
   expect(current(budget, '2026-11-20')).toBe(budget);
