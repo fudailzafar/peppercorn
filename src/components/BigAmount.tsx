@@ -34,7 +34,7 @@ export function BigAmount({ digits, currency, size = 48, sign = '', centred = fa
     </AppText>
   );
   return (
-    <View style={styles.box} onLayout={(e) => setRoom(e.nativeEvent.layout.width)} accessible accessibilityLabel={`${sign}${unit ? '' : symbol}${digits}${unit ? ` ${unit}` : ''}`}>
+    <View style={[styles.box, { minHeight: size * 1.18 }]} onLayout={(e) => setRoom(e.nativeEvent.layout.width)} accessible accessibilityLabel={`${sign}${unit ? '' : symbol}${digits}${unit ? ` ${unit}` : ''}`}>
       {/* The same thing at full size, unseen, to know how wide it would be. */}
       <View style={styles.ruler} pointerEvents="none" aria-hidden>
         <View
@@ -52,7 +52,7 @@ export function BigAmount({ digits, currency, size = 48, sign = '', centred = fa
           </AppText>
         </View>
       </View>
-      <View style={[styles.line, centred && styles.centred, { minHeight: size * 1.18 }]} importantForAccessibility="no-hide-descendants">
+      <View style={[styles.line, centred && styles.centred]} importantForAccessibility="no-hide-descendants">
         {sign ? part(sign, small, m3.onSurfaceVariant, { marginRight: 2 }) : null}
         {unit ? null : part(symbol, small, m3.onSurfaceVariant, { marginRight: size * (symbol.length > 1 ? 0.1 : 0.06) })}
         {part(whole, size, ink)}
@@ -64,7 +64,7 @@ export function BigAmount({ digits, currency, size = 48, sign = '', centred = fa
 }
 
 const styles = StyleSheet.create({
-  box: { alignSelf: 'stretch', overflow: 'hidden' },
+  box: { alignSelf: 'stretch', justifyContent: 'center', overflow: 'hidden' },
   ruler: { position: 'absolute', opacity: 0, width: 4000, flexDirection: 'row' },
   line: { flexDirection: 'row', alignItems: 'baseline' },
   centred: { justifyContent: 'center' },

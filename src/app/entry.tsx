@@ -1,7 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Keyboard, Pressable, StyleSheet, View, type TextInput } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
 import { CategoryButton, CategoryChips, CategoryGrid, type CategoryButtonHandle } from '../components/CategoryPicker';
@@ -20,7 +19,6 @@ import type { Key } from '../domain/keypad';
 import { haptics } from '../hooks/haptics';
 import { useDateTime } from '../hooks/useDateTime';
 import { useKeyboardLift } from '../hooks/useKeyboardLift';
-import { m3Duration } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
 const SAID: Record<DraftProblem, string> = {
@@ -214,13 +212,9 @@ export default function EntryPage() {
           </View>
 
           {picking ? (
-            <Animated.View entering={FadeIn.duration(m3Duration.short4)}>
-              <CategoryGrid options={options} selected={draft.categoryId} onPick={pick} />
-            </Animated.View>
+            <CategoryGrid options={options} selected={draft.categoryId} onPick={pick} />
           ) : typingNote ? null : (
-            <Animated.View entering={FadeIn.duration(m3Duration.short4)}>
-              <NumberPad pad={draft.pad} onKey={type} onSubmit={() => save(close)} submitLabel="Save entry" />
-            </Animated.View>
+            <NumberPad pad={draft.pad} onKey={type} onSubmit={() => save(close)} submitLabel="Save entry" />
           )}
           {dateSheet}
         </View>

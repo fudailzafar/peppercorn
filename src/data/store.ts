@@ -69,7 +69,7 @@ const isEntries = (v: unknown): v is Entry[] => isList(v) && v.every((e) => Numb
 export const isSaved = (v: unknown): v is Saved => isRecord(v) && isList(v.categories) && isEntries(v.entries) && isList(v.budgets) && isList(v.owned) && isRecord(v.settings);
 
 /** Reads what was saved. Throws if it can't be understood. */
-export function readData(text: string, currency: string): AppData {
+function readData(text: string, currency: string): AppData {
   const file = JSON.parse(text) as unknown;
   if (!isRecord(file) || file.version !== VERSION || !isSaved(file.data)) throw new Error('Not Peppercorn’s data');
   const { prices, priceError, ...saved } = file.data as AppData;

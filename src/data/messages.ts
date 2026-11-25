@@ -8,7 +8,8 @@ export interface Message {
 }
 
 const PLAIN = 3000;
-const WITH_UNDO = 5000;
+/** Time to read what went wrong, or to undo. */
+const LONGER = 5000;
 
 /** The message showing now, if any. */
 export class Messages {
@@ -18,7 +19,7 @@ export class Messages {
   show(text: string, options: Omit<Message, 'text'> = {}) {
     clearTimeout(this.timer);
     this.state.setState({ current: { text, ...options } });
-    this.timer = setTimeout(() => this.dismiss(), options.undo ? WITH_UNDO : PLAIN);
+    this.timer = setTimeout(() => this.dismiss(), options.undo || options.error ? LONGER : PLAIN);
   }
 
   warn(text: string) {
