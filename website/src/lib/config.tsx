@@ -251,24 +251,8 @@ export const siteConfig = {
   ],
   footer: [
     { href: "#feature-highlight", text: "Features" },
-    { href: "#why-peppercorn", text: "Why Peppercorn" },
     { href: "#pricing", text: "Pricing" },
     { href: "#faq", text: "FAQ" },
-  ],
-  /** What the app does, in cards. These are facts about the app, not reviews. */
-  reasons: [
-    { emoji: "⚡️", title: "Quick to add", text: "An amount and a category are enough. The note and the date are there if you want them." },
-    { emoji: "↩️", title: "Undo, not regret", text: "Saved the wrong amount or deleted too much? Undo is right there." },
-    { emoji: "🧭", title: "Safe per day", text: "Not just what’s left, but what you can spend each day until the period ends." },
-    { emoji: "🔎", title: "Found in a moment", text: "Search a note, a category, or an amount the way it’s written: ₹1,240." },
-    { emoji: "🥇", title: "Grams, not guesses", text: "Type the grams of gold you bought. The day’s price does the rest." },
-    { emoji: "🌱", title: "Already own some?", text: "Add what you had before. It counts toward your assets, not your spending." },
-    { emoji: "📅", title: "Your payday, your month", text: "Paid on the 25th? Let your month start there, everywhere in the app." },
-    { emoji: "🔁", title: "Set and forget", text: "Daily, weekly, monthly, or every few weeks. Repeats add themselves when due." },
-    { emoji: "🧾", title: "Your data, your file", text: "Export every entry as a CSV that opens in any spreadsheet." },
-    { emoji: "🔒", title: "No bank logins", text: "It never asks for a card, a password or a bank account." },
-    { emoji: "🌙", title: "Light and dark", text: "Follows your phone, or stays the way you like it." },
-    { emoji: "🪶", title: "Only what’s useful", text: "No feeds, no offers, no streaks. Open it, add, close it." },
   ],
 };
 
