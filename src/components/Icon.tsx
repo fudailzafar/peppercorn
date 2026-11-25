@@ -71,6 +71,10 @@ const MATERIAL = {
   'trending-up': 'trending-up',
   wallet: 'account-balance-wallet',
   'wallet-outline': 'account-balance-wallet',
+  // Saving to Drive
+  cloud: 'cloud-done',
+  'cloud-off': 'cloud-off',
+  sync: 'sync',
   // Home and profile
   lock: 'lock-outline',
   person: 'person-outline',

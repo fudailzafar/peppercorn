@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, BackHandler, FlatList, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
-import { GoogleG } from '../components/GoogleG';
+import { GoogleButton, problemText } from '../components/Account';
 import { LogoMark, Logotype } from '../components/Logo';
 import { Button } from '../components/material';
 import { AddPreview, AssetsPreview, BudgetPreview, InsightsPreview } from '../components/OnboardingPreviews';
+import { continueWithoutAccount, signIn } from '../lib/account';
 import { Haptics } from '../lib/haptics';
 import { goBack } from '../lib/nav';
 import { useStore, useUi } from '../lib/store';
@@ -64,9 +65,22 @@ export default function Welcome() {
 
   const enter = () => {
     Haptics.light();
+    void continueWithoutAccount();
     update({ welcomed: true });
-    goBack();
   };
+
+  const withGoogle = async () => {
+    Haptics.selection();
+    const problem = await signIn();
+    if (problem && problem !== 'cancelled') showToast({ title: problemText(problem), icon: 'alert-circle', tone: 'error' });
+  };
+
+  // Both ways in set this, also when it takes choosing between saved data and this phone's first.
+  const welcomed = useStore((s) => s.settings.welcomed);
+  const [arrivedNew] = useState(!welcomed);
+  useEffect(() => {
+    if (arrivedNew && welcomed) goBack();
+  }, [arrivedNew, welcomed]);
 
   const last = page === LAST;
 
@@ -138,18 +152,9 @@ export default function Welcome() {
         {last ? (
           <>
             <Button large label="Continue without an account" onPress={enter} />
-            <Button
-              large
-              variant="outlined"
-              label="Continue with Google"
-              leading={<GoogleG size={20} />}
-              onPress={() => {
-                Haptics.selection();
-                showToast({ title: 'Google sign-in isn’t available yet. Continue without an account.', icon: 'logo-google', tone: 'info' }, 2200);
-              }}
-            />
+            <GoogleButton onPress={withGoogle} />
             <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-              Your entries stay on this phone.
+              With Google, your data is saved to your Drive.
             </AppText>
           </>
         ) : (

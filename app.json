@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.peppercorn.money"
+      "package": "app.peppercorn.money",
+      "allowBackup": false
     },
     "web": {
       "bundler": "metro",
@@ -31,6 +32,9 @@
       "expo-font",
       "@react-native-community/datetimepicker"
     ],
-    "scheme": "peppercorn"
+    "scheme": "peppercorn",
+    "extra": {
+      "googleWebClientId": ""
+    }
   }
 }

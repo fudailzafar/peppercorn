@@ -4,7 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useEffect, useSyncExternalStore } from 'react';
 import { AppState, Platform } from 'react-native';
+import { AccountChoice } from '../components/Account';
 import { ToastHost } from '../components/Overlays';
+import { startSaving } from '../lib/account';
 import { refreshPrices } from '../lib/prices';
 import { useStore } from '../lib/store';
 import { useTheme } from '../theme/theme';
@@ -38,7 +40,11 @@ export default function RootLayout() {
         void refreshPrices();
       }
     });
-    return () => sub.remove();
+    const stopSaving = startSaving();
+    return () => {
+      sub.remove();
+      stopSaving();
+    };
   }, [hydrated]);
 
   useEffect(() => {
@@ -70,6 +76,7 @@ export default function RootLayout() {
         <Stack.Screen name="category-edit" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="welcome" options={{ presentation: 'fullScreenModal', animation: 'none' }} />
       </Stack>
+      <AccountChoice />
       <ToastHost />
     </GestureHandlerRootView>
   );

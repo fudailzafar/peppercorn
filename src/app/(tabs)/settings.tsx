@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Share, View } from 'react-native';
 import { useFabScroll } from '../../lib/useFabScroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccountSection } from '../../components/Account';
 import { AppText } from '../../components/AppText';
 import { Avatar } from '../../components/Avatar';
 import { Logotype } from '../../components/Logo';
@@ -10,6 +11,7 @@ import { BottomSheet, Button, PillField } from '../../components/material';
 import { ConfirmSheet } from '../../components/Overlays';
 import { SettingsRow, SettingsSection } from '../../components/SettingsBits';
 import { currencySymbol } from '../../lib/format';
+import { useAccount } from '../../lib/account';
 import { exportCsv } from '../../lib/csv';
 import { useStore, useUi } from '../../lib/store';
 import { useTheme } from '../../theme/theme';
@@ -27,9 +29,9 @@ export default function SettingsScreen() {
   const eraseAll = useStore((s) => s.eraseAll);
   const showToast = useUi((s) => s.showToast);
   const [erasing, setErasing] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
+  const email = useAccount((s) => s.user?.email);
   const entryCount = useStore((s) => s.transactions.length);
   const openName = () => {
     setName(settings.profileName);
@@ -61,7 +63,7 @@ export default function SettingsScreen() {
             </AppText>
           </Pressable>
           <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 2 }}>
-            {entryCount} {entryCount === 1 ? 'entry' : 'entries'} on this phone
+            {email || `${entryCount} ${entryCount === 1 ? 'entry' : 'entries'} on this phone`}
           </AppText>
         </View>
 
@@ -123,9 +125,7 @@ export default function SettingsScreen() {
           <SettingsRow icon="trash-bin" label="Erase data" destructive onPress={() => setErasing(true)} />
         </SettingsSection>
 
-        <SettingsSection title="Account">
-          <SettingsRow icon="log-out" label="Log out" onPress={() => setLoggingOut(true)} />
-        </SettingsSection>
+        <AccountSection />
 
         <View style={{ alignItems: 'center', marginTop: 28, gap: 2 }}>
           <View style={{ marginBottom: 8 }}>
@@ -133,9 +133,6 @@ export default function SettingsScreen() {
           </View>
           <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
             Version 1.0.0
-          </AppText>
-          <AppText variant="bodySmall" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-            Based on Dime by Rafael Soh
           </AppText>
         </View>
       </ScrollView>
@@ -157,21 +154,9 @@ export default function SettingsScreen() {
         </View>
       </BottomSheet>
       <ConfirmSheet
-        visible={loggingOut}
-        title="Log out?"
-        message="You’ll return to the welcome screen. Your entries, assets and budgets stay on this phone."
-        confirmLabel="Log out"
-        onCancel={() => setLoggingOut(false)}
-        onConfirm={() => {
-          setLoggingOut(false);
-          // The Home tab watches this flag and opens the welcome screen again.
-          updateSettings({ welcomed: false });
-        }}
-      />
-      <ConfirmSheet
         visible={erasing}
         title="Erase all entries, assets and budgets?"
-        message="Your categories are kept. You can’t undo this."
+        message={`Your categories are kept. ${email ? 'The copy in your Google Drive is erased too. ' : ''}You can’t undo this.`}
         confirmLabel="Erase data"
         onCancel={() => setErasing(false)}
         onConfirm={() => {

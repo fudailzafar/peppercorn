@@ -126,6 +126,7 @@ export function ConfirmSheet({
   title,
   message,
   confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
   destructive = true,
   onConfirm,
   onCancel,
@@ -134,6 +135,7 @@ export function ConfirmSheet({
   title: string;
   message: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   destructive?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -151,7 +153,7 @@ export function ConfirmSheet({
             {message}
           </AppText>
           <View style={styles.dialogActions}>
-            <Button variant="text" label="Cancel" onPress={onCancel} />
+            <Button variant="text" label={cancelLabel} onPress={onCancel} />
             <Button variant={destructive ? 'dangerText' : 'text'} label={confirmLabel} onPress={onConfirm} />
           </View>
         </Reanimated.View>

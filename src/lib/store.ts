@@ -89,7 +89,14 @@ interface State {
 
   updateSettings: (patch: Partial<Settings>) => void;
   eraseAll: () => void;
+  /** Puts saved data in place of what's on this phone. */
+  restore: (data: SavedData) => void;
+  /** Back to a fresh install: nothing on this phone, and the welcome screen. */
+  reset: () => void;
 }
+
+/** What is saved for someone who signs in. Prices are left out: they are fetched again. */
+export type SavedData = Pick<State, 'categories' | 'transactions' | 'budgets' | 'mainBudget' | 'holdings'> & { settings: Partial<Settings> };
 
 /**
  * Logs every occurrence of a recurring transaction that has come due, then hands
@@ -303,6 +310,16 @@ export const useStore = create<State>()(
           holdings: [],
           categories: s.categories,
         })),
+      restore: (data) => {
+        set({ ...data, settings: { ...defaultSettings(), ...data.settings, welcomed: true } });
+        get().seedDefaults();
+        get().runRecurring();
+        get().rollBudgets();
+      },
+      reset: () => {
+        set({ categories: [], transactions: [], budgets: [], mainBudget: null, holdings: [], priceError: false, settings: defaultSettings() });
+        get().seedDefaults();
+      },
     }),
     {
       // The key predates the name Peppercorn; changing it would lose everyone's data.

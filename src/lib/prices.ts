@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { ASSETS, fundQuote, isoDay, latestQuote, metalQuote } from './assets';
 import { useStore } from './store';
 import type { AssetId } from './types';
@@ -7,7 +8,8 @@ import type { AssetId } from './types';
  *   Gold (22K) and silver, per gram, Chennai: LiveChennai's rate page, updated each morning.
  *   Funds: the closing NAV from AMFI, through mfapi.in, published late each evening.
  */
-const METALS_URL = 'https://www.livechennai.com/gold_silverrate.asp';
+// Browsers may not read that page directly, so the website asks its own address, which passes it on (scripts/build-web.sh).
+const METALS_URL = Platform.OS === 'web' ? '/metals' : 'https://www.livechennai.com/gold_silverrate.asp';
 const FUND_URL = 'https://api.mfapi.in/mf';
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
