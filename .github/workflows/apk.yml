@@ -27,7 +27,7 @@ jobs:
       - run: npx expo prebuild --platform android --no-install
       - name: Build
         working-directory: app/android
-        run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+        run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64 --no-daemon
       # Only here: nothing the app is built with gets to see the key.
       - name: Sign
         env:
@@ -38,15 +38,26 @@ jobs:
           TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           printf %s "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/key.p12"
           mkdir -p "$RUNNER_TEMP/out"
-          "$TOOLS/zipalign" -P 16 -f 4 android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/aligned.apk"
-          "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/key.p12" --ks-type PKCS12 --ks-key-alias peppercorn \
-            --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/out/peppercorn.apk" "$RUNNER_TEMP/aligned.apk"
+          cd "$RUNNER_TEMP/out"
+          cp "$GITHUB_WORKSPACE/app/android/app/build/outputs/apk/release/app-release.apk" try.apk
+          # The same app, without what only an emulator needs.
+          cp try.apk peppercorn.apk
+          zip -q -d peppercorn.apk 'lib/x86_64/*'
+          for apk in try peppercorn; do
+            "$TOOLS/zipalign" -P 16 -f 4 $apk.apk aligned.apk
+            "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/key.p12" --ks-type PKCS12 --ks-key-alias peppercorn \
+              --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD --out $apk.apk aligned.apk
+            rm aligned.apk
+          done
           rm "$RUNNER_TEMP/key.p12"
-          "$TOOLS/apksigner" verify --print-certs "$RUNNER_TEMP/out/peppercorn.apk"
-          "$TOOLS/aapt2" dump badging "$RUNNER_TEMP/out/peppercorn.apk" | grep -E "^package|[sS]dkVersion|uses-permission|native-code|application-label:"
-          ls -l "$RUNNER_TEMP/out"
+          "$TOOLS/apksigner" verify --print-certs peppercorn.apk
+          "$TOOLS/aapt2" dump badging peppercorn.apk | grep -E "^package|[sS]dkVersion|uses-permission|native-code|application-label:"
+          "$TOOLS/zipalign" -c -P 16 4 peppercorn.apk
+          ls -l
       - uses: actions/upload-artifact@v4
         with: { name: peppercorn-apk, path: "${{ runner.temp }}/out/peppercorn.apk", if-no-files-found: error }
+      - uses: actions/upload-artifact@v4
+        with: { name: peppercorn-try, path: "${{ runner.temp }}/out/try.apk", if-no-files-found: error }
 
   try:
     needs: build
