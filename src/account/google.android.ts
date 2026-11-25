@@ -1,8 +1,6 @@
 import { isRunningInExpoGo } from 'expo';
 import Constants from 'expo-constants';
-import { AccountError, type GoogleUser } from './googleSignInTypes';
-
-export { AccountError, type AccountProblem, type GoogleUser } from './googleSignInTypes';
+import { AccountError, type Google, type GoogleUser } from './types';
 
 /** Only Peppercorn's own hidden folder: it gives no access to the person's other files. */
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
@@ -37,7 +35,7 @@ function problem(error: unknown): AccountError {
   return new AccountError('failed');
 }
 
-export async function googleSignIn(): Promise<GoogleUser> {
+async function signIn(): Promise<GoogleUser> {
   const { GoogleOneTapSignIn, isSuccessResponse } = google();
   let user: GoogleUser;
   try {
@@ -53,36 +51,39 @@ export async function googleSignIn(): Promise<GoogleUser> {
     const { accessToken } = await GoogleOneTapSignIn.requestScopes([DRIVE_SCOPE]);
     if (!accessToken) throw new AccountError('permission');
   } catch (error) {
-    await googleSignOut();
+    await signOut();
     const p = problem(error);
     throw p.problem === 'cancelled' ? new AccountError('permission') : p;
   }
   return user;
 }
 
-export async function googleToken(): Promise<string> {
-  const { GoogleOneTapSignIn } = google();
-  try {
-    return (await GoogleOneTapSignIn.getTokens()).accessToken;
-  } catch (error) {
-    throw problem(error);
-  }
-}
-
-/** These three never fail: leaving works even when Google can't be reached. */
-const quietly = async (work: (g: Library['GoogleOneTapSignIn']) => Promise<void>) => {
+/** These never fail: leaving works even when Google can't be reached. */
+async function quietly(work: (g: Library['GoogleOneTapSignIn']) => Promise<void>): Promise<void> {
   try {
     await work(google().GoogleOneTapSignIn);
   } catch {
     // Nothing more to do on this phone.
   }
-};
-
-export const dropGoogleToken = (token: string) => quietly((g) => g.clearCachedAccessToken(token));
-
-export const googleSignOut = () => quietly((g) => g.signOut());
-
-export async function googleRevoke(email: string): Promise<void> {
-  await quietly((g) => g.revokeAccess(email));
-  await googleSignOut();
 }
+
+const signOut = () => quietly((g) => g.signOut());
+
+/** Google sign-in on Android, with permission for Peppercorn's own hidden folder in Drive (nothing else there). */
+export const googleAccount: Google = {
+  signIn,
+  token: async () => {
+    const { GoogleOneTapSignIn } = google();
+    try {
+      return (await GoogleOneTapSignIn.getTokens()).accessToken;
+    } catch (error) {
+      throw problem(error);
+    }
+  },
+  dropToken: (token) => quietly((g) => g.clearCachedAccessToken(token)),
+  signOut,
+  revoke: async (email) => {
+    await quietly((g) => g.revokeAccess(email));
+    await signOut();
+  },
+};
