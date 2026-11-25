@@ -1,0 +1,36 @@
+# Tries a built APK on an emulator: adds an entry, stops the app and opens it again, as a person would.
+name: Try
+on:
+  workflow_call:
+    inputs: { run: { type: string, required: true } }
+  workflow_dispatch:
+    inputs: { run: { description: The APK run to try, type: string, required: true } }
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with: { name: peppercorn-apk, run-id: "${{ inputs.run }}", github-token: "${{ github.token }}" }
+      - run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 4096M
+          disable-animations: true
+          script: python3 app/scripts/try-apk.py peppercorn.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: try, path: try }

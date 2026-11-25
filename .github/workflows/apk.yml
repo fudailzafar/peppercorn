@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
@@ -42,31 +43,12 @@ jobs:
             --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/out/peppercorn.apk" "$RUNNER_TEMP/aligned.apk"
           rm "$RUNNER_TEMP/key.p12"
           "$TOOLS/apksigner" verify --print-certs "$RUNNER_TEMP/out/peppercorn.apk"
-          "$TOOLS/aapt2" dump badging "$RUNNER_TEMP/out/peppercorn.apk" | grep -E "^package|sdkVersion|targetSdk|uses-permission|native-code|application-label:"
+          "$TOOLS/aapt2" dump badging "$RUNNER_TEMP/out/peppercorn.apk" | grep -E "^package|[sS]dkVersion|uses-permission|native-code|application-label:"
           ls -l "$RUNNER_TEMP/out"
       - uses: actions/upload-artifact@v4
         with: { name: peppercorn-apk, path: "${{ runner.temp }}/out/peppercorn.apk", if-no-files-found: error }
 
-  # Adds an entry, stops the app and opens it again, as a person would.
   try:
     needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
-        with: { name: peppercorn-apk }
-      - run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          script: python3 app/scripts/try-apk.py peppercorn.apk
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with: { name: try, path: try }
+    uses: ./.github/workflows/try.yml
+    with: { run: "${{ github.run_id }}" }

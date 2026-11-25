@@ -44,14 +44,22 @@ def wait(words, seconds=60):
         place = find(words)
         if place:
             return place
+        # A slow emulator's own complaint, over the app.
+        slow = find('Wait')
+        if slow:
+            press(slow)
         time.sleep(1)
     picture('missing')
     raise SystemExit(f'Not on screen: {words}\nThere is: {[n.get("text") or n.get("content-desc") for n in screen() if n.get("text") or n.get("content-desc")]}')
 
 
-def tap(words):
-    x1, y1, x2, y2 = wait(words)
+def press(place):
+    x1, y1, x2, y2 = place
     adb('shell', 'input', 'tap', str((x1 + x2) // 2), str((y1 + y2) // 2))
+
+
+def tap(words):
+    press(wait(words))
     time.sleep(1.5)
 
 
@@ -60,9 +68,11 @@ def start():
 
 
 try:
+    # A phone that has just started is busy with itself.
+    time.sleep(45)
     adb('install', '-r', sys.argv[1])
     start()
-    wait('Skip', 120)
+    wait('Skip', 180)
     picture('1-welcome')
     tap('Skip')
     tap('Continue without an account')
