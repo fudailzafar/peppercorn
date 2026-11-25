@@ -7,7 +7,7 @@ export async function shareCsv(name: string, text: string): Promise<boolean> {
   const file = new File(Paths.cache, name);
   if (file.exists) file.delete();
   file.create();
-  file.write(text);
+  await file.write(text);
   await shareAsync(file.uri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text', dialogTitle: 'Export data' });
   return true;
 }

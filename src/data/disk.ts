@@ -24,14 +24,14 @@ export function fileDisk(name: string): Disk {
     write: async (text) => {
       if (fresh.exists) fresh.delete();
       fresh.create();
-      fresh.write(text);
+      await fresh.write(text);
       if ((await fresh.text()).length !== text.length) throw new Error('Only part of it was written');
       await new File(folder, `${name}.new`).move(file, { overwrite: true });
     },
     setAside: async (text) => {
       const aside = new File(folder, `${name}.unreadable-${Date.now()}`);
       aside.create();
-      aside.write(text);
+      await aside.write(text);
     },
   };
 }
