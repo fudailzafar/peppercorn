@@ -13,8 +13,6 @@ jobs:
     defaults: { run: { working-directory: app } }
     env:
       VERSION_CODE: ${{ github.run_number }}
-      KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -22,14 +20,18 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version-file: app/.nvmrc, cache: pnpm, cache-dependency-path: app/pnpm-lock.yaml }
       - uses: actions/setup-java@v5
-        with: { distribution: temurin, java-version: 17, cache: gradle }
+        with: { distribution: temurin, java-version: 17 }
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: npx expo prebuild --platform android --no-install
       - name: Build
         working-directory: app/android
         run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+      # Only here: nothing the app is built with gets to see the key.
       - name: Sign
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           set -e
           TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
