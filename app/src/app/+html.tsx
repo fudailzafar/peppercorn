@@ -3,6 +3,8 @@ import type { PropsWithChildren } from 'react';
 
 const LIGHT = '#FFFFFF';
 const DARK = '#131314';
+/** Where the app is, when it isn't at the top of its address. */
+const BASE = process.env.EXPO_BASE_URL ?? '';
 
 /** The web page around the app. Its background is the app's own, so nothing flashes before the app is there. */
 export default function Html({ children }: PropsWithChildren) {
@@ -18,8 +20,8 @@ export default function Html({ children }: PropsWithChildren) {
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content={DARK} />
         <meta name="apple-mobile-web-app-title" content="Peppercorn" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href={`${BASE}/manifest.json`} />
+        <link rel="apple-touch-icon" href={`${BASE}/apple-touch-icon.png`} />
         <style>{`html, body { background: ${LIGHT} } @media (prefers-color-scheme: dark) { html, body { background: ${DARK} } }`}</style>
         <ScrollViewStyleReset />
         {page.headNodes}

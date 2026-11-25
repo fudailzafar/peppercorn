@@ -15,7 +15,7 @@ const now = () => Date.now();
 /** Unique on this phone and, in practice, anywhere. */
 const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`;
 
-// A browser can't read another site's page, so the website passes it on (see scripts/build-web.sh).
+// A browser can't read another site's page, so the website passes it on (see website/src/app/metals).
 const METALS = Platform.OS === 'web' ? '/metals' : 'https://www.livechennai.com/gold_silverrate.asp';
 
 export const store = new Store({ disk: fileDisk('peppercorn.json'), now, newId, currency: () => phoneCurrency() });
