@@ -1,8 +1,9 @@
-import { Account, type Keep } from '../account/account';
-import { makeBackup, readBackup } from '../account/backup';
-import { AccountError, type AccountProblem, type Cloud, type Google, type GoogleUser, type SavedFile } from '../account/types';
-import { writeData, type Store } from '../data/store';
-import type { AppData, Saved } from '../domain/model';
+import { Account, type Keep } from '@/account/account';
+import { makeBackup, readBackup } from '@/account/backup';
+import { AccountError, type AccountProblem, type Cloud, type Google, type GoogleUser, type SavedFile } from '@/account/types';
+import type { Store } from '@/data/store';
+import type { AppData, Saved } from '@/domain/model';
+import { writeData } from '@/domain/saved';
 import { entry, FakeDisk, ids, openStore, sample } from './fakes';
 
 class FakeGoogle implements Google {
@@ -82,7 +83,7 @@ async function rig(notes: string[] = [], parts: Partial<Pick<Rig, 'google' | 'cl
   const google = parts.google ?? new FakeGoogle();
   const cloud = parts.cloud ?? new FakeCloud();
   const remembered = parts.remembered ?? new FakeDisk();
-  const account = new Account(store, google, cloud, remembered, () => 7, ids());
+  const account = new Account({ store, google, cloud, disk: remembered, now: () => 7, newId: ids() });
   await account.open();
   return { store, phone, remembered, google, cloud, account };
 }
@@ -302,13 +303,13 @@ test('data kept after logging out isn’t saved to someone else without asking',
 
   first.google.user = { id: '2', email: 'x@example.com', name: 'X' };
   const theirs = new FakeCloud();
-  const account = new Account(first.store, first.google, theirs, first.remembered, () => 7, ids());
+  const account = new Account({ store: first.store, google: first.google, cloud: theirs, disk: first.remembered, now: () => 7, newId: ids() });
   await account.open();
   const now = () => account.state.getState();
   expect(now().user).toBeNull();
   // Closing the app at the question is no answer.
   await account.signIn();
-  const later = new Account(first.store, first.google, theirs, first.remembered, () => 7, ids());
+  const later = new Account({ store: first.store, google: first.google, cloud: theirs, disk: first.remembered, now: () => 7, newId: ids() });
   await later.open();
   expect(later.state.getState().user).toBeNull();
   await later.save();

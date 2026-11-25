@@ -1,5 +1,5 @@
 import { useColorScheme } from 'react-native';
-import { useSettings } from '../data/hooks';
+import { useSettings } from '@/state/hooks';
 import { m3Dark, m3Light, type M3Roles } from './material';
 
 export interface Theme {
@@ -23,12 +23,3 @@ export const withAlpha = (hex: string, alpha: number): string =>
   Math.round(alpha * 255)
     .toString(16)
     .padStart(2, '0');
-
-export type Weight = 'regular' | 'medium' | 'bold';
-
-/** Google Sans, one file for each weight. */
-export const FONTS: Record<Weight, string> = {
-  regular: 'GoogleSans_400Regular',
-  medium: 'GoogleSans_500Medium',
-  bold: 'GoogleSans_700Bold',
-};

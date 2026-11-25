@@ -3,7 +3,7 @@
 - `app`: Peppercorn itself, for Android and the browser (Expo, React Native).
 - `website`: the page about it (Next.js), with the browser version of the app under `/app`.
 
-Each folder has its own README and dependencies. Both need Node 22.13 or later and pnpm.
+Each folder has its own README, `AGENTS.md` and dependencies. Both need Node 22.13 or later and pnpm.
 
 ## On the phone
 

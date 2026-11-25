@@ -1,4 +1,4 @@
-import { fileDisk } from '../data/disk';
+import { fileDisk } from '@/data/disk';
 
 /** The phone's files. Writing takes a moment, as it does on a phone, and the file is empty until then. */
 const mockFiles = new Map<string, string>();

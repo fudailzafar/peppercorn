@@ -28,22 +28,13 @@ pnpm check
 
 That runs the linter, the type checker and the tests.
 
-## Where things are
+## How it is put together
 
-| Folder           | What's in it                                                                        |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| `src/domain`     | What the app knows about money, days, budgets and assets. Plain functions, no React |
-| `src/data`       | Saving to the phone, daily prices, messages, and the hooks screens read them with   |
-| `src/account`    | Google sign-in and saving to Drive                                                  |
-| `src/app`        | The screens, one file each (Expo Router)                                            |
-| `src/components` | What screens are made of. `material` has the Material 3 ones                        |
-| `src/hooks`      | What screens share that isn't drawn                                                 |
-| `src/theme`      | Colours, type, shapes and motion                                                    |
-| `src/__tests__`  | The tests                                                                           |
+`AGENTS.md` has the folders and how to write code for them. The rest is in `docs`:
 
-Everything saved is one file, `peppercorn.json` (`src/domain/model.ts` is its format). It is never written over while it
-can't be opened, and a damaged one is kept aside.
-
-## The website
-
-`pnpm build:web` makes `dist`, ready for Vercel.
+- `architecture.md`: the layers, and how data moves through them
+- `data.md`: what is saved, where, and how it is kept safe
+- `design.md`: how it looks and behaves
+- `testing.md`: what is tested, and what to check by hand
+- `releasing.md`: builds for Google Play, and the website
+- `decisions.md`: why things are as they are

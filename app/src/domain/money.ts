@@ -1,5 +1,4 @@
-import { getCalendars, getLocales } from 'expo-localization';
-import { CURRENCIES, SYMBOLS } from './currencies';
+import { SYMBOLS } from './currencies';
 
 /** Currencies written 1,00,000. Everything else is 100,000. */
 const LAKHS = new Set(['INR', 'PKR', 'BDT', 'NPR', 'LKR']);
@@ -56,8 +55,5 @@ export function money(code: string, cents: boolean): Money {
 /** Asset prices are always in rupees. */
 export const rupees = (cents = true): Money => money('INR', cents);
 
-/** The currency for a first launch: rupees in India, whatever the phone's language, or else the region's. */
-export function phoneCurrency(zone = getCalendars()[0]?.timeZone, region = getLocales()[0]?.currencyCode): string {
-  if (zone === 'Asia/Kolkata' || zone === 'Asia/Calcutta') return 'INR';
-  return CURRENCIES.some((c) => c.code === region) ? (region as string) : 'USD';
-}
+/** "₹1,200.00", as asset prices are written whatever the app's currency is. */
+export const inr = rupees().full;

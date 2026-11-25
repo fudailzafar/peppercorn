@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
-import type { Disk } from '../data/disk';
-import type { Store } from '../data/store';
+import type { Disk } from '@/data/disk';
+import type { Store } from '@/data/store';
 import { fingerprint, isEmpty, makeBackup, readBackup, type Backup } from './backup';
 import { AccountError, problemOf, type AccountProblem, type Cloud, type Google, type GoogleUser, type SavedFile } from './types';
 
@@ -53,6 +53,19 @@ const QUIET = 4000;
 
 export type Keep = 'saved' | 'phone' | 'neither';
 
+/** What the account works with. */
+export interface AccountNeeds {
+  store: Store;
+  google: Google;
+  cloud: Cloud;
+  /** Where it remembers who is signed in. */
+  disk: Disk;
+  now: () => number;
+  newId: () => string;
+  /** After saved data took the place of what was here. */
+  onRestored?: () => void;
+}
+
 /**
  * Signing in with Google saves everything to the person's own Drive, and brings it back when they sign in again. Without
  * an account nothing leaves the phone. Two phones are not kept in step: if another phone saved in between, Peppercorn
@@ -64,15 +77,7 @@ export class Account {
   private turn: Promise<unknown> = Promise.resolve();
   private timer: ReturnType<typeof setTimeout> | undefined;
 
-  constructor(
-    private readonly store: Store,
-    private readonly google: Google,
-    private readonly cloud: Cloud,
-    private readonly disk: Disk,
-    private readonly now: () => number,
-    private readonly newId: () => string,
-    private readonly onRestored: () => void = () => {},
-  ) {}
+  constructor(private readonly needs: AccountNeeds) {}
 
   private get s(): AccountState {
     return this.state.getState();
@@ -88,12 +93,12 @@ export class Account {
     return run;
   }
 
-  // MARK: Remembering
+  // Remembering
 
   /** Reads who is signed in. */
   async open(): Promise<void> {
     try {
-      const text = await this.disk.read();
+      const text = await this.needs.disk.read();
       if (text) this.patch({ ...NOBODY, ...(JSON.parse(text) as Partial<Session>) });
     } catch {
       // Signed out, then: signing in again sorts it out.
@@ -104,7 +109,7 @@ export class Account {
     this.patch(session);
     const { user, device, savedAt, print, version, keptFrom } = this.s;
     try {
-      await this.disk.write(JSON.stringify({ user, device, savedAt, print, version, keptFrom }));
+      await this.needs.disk.write(JSON.stringify({ user, device, savedAt, print, version, keptFrom }));
     } catch {
       // Remembered until the app closes.
     }
@@ -119,33 +124,33 @@ export class Account {
   private mark = (user: GoogleUser) => fingerprint(user.id.toLowerCase());
 
   private markIfKept(user: GoogleUser | null): string {
-    return user && !isEmpty(this.store.snapshot()) ? this.mark(user) : '';
+    return user && !isEmpty(this.needs.store.snapshot()) ? this.mark(user) : '';
   }
 
-  // MARK: Writing
+  // Writing
 
   private async write(to: SavedFile | null): Promise<void> {
-    const data = this.store.snapshot();
+    const data = this.needs.store.snapshot();
     // Drive must never know of data this phone could still lose: after a restart the older data here would look like the
     // newer, and be saved over it.
-    if (!(await this.store.flush())) throw new AccountError('storage');
-    const backup = makeBackup(data, this.s.device, this.now());
-    const written = await this.cloud.write(to, JSON.stringify(backup));
+    if (!(await this.needs.store.flush())) throw new AccountError('storage');
+    const backup = makeBackup(data, this.s.device, this.needs.now());
+    const written = await this.needs.cloud.write(to, JSON.stringify(backup));
     await this.remember({ savedAt: backup.savedAt, print: fingerprint(data), version: written.modifiedTime });
     this.patch({ problem: null });
   }
 
   private async putBack(saved: Backup, from: SavedFile): Promise<void> {
-    if (!(await this.store.restore(saved.data))) throw new AccountError('storage');
-    await this.remember({ savedAt: saved.savedAt, print: fingerprint(this.store.snapshot()), version: from.modifiedTime });
+    if (!(await this.needs.store.restore(saved.data))) throw new AccountError('storage');
+    await this.remember({ savedAt: saved.savedAt, print: fingerprint(this.needs.store.snapshot()), version: from.modifiedTime });
     this.patch({ problem: null });
-    this.onRestored();
+    this.needs.onRestored?.();
   }
 
   /** What is saved, or null if it can't be read. Other problems are thrown. */
   private async readable(found: SavedFile): Promise<Backup | null> {
     try {
-      return readBackup(await this.cloud.read(found));
+      return readBackup(await this.needs.cloud.read(found));
     } catch (error) {
       if (problemOf(error) === 'unreadable') return null;
       throw error;
@@ -154,10 +159,10 @@ export class Account {
 
   /** Into the app, with the Google name if there isn't one yet. */
   private enter(user: GoogleUser | null) {
-    this.store.set({ welcomed: true, name: this.store.data.settings.name || (user?.name ?? '') });
+    this.needs.store.set({ welcomed: true, name: this.needs.store.data.settings.name || (user?.name ?? '') });
   }
 
-  // MARK: Signing in
+  // Signing in
 
   /** Saved data comes back by itself on an empty phone; otherwise the person chooses. Null when all went well. */
   async signIn(): Promise<AccountProblem | null> {
@@ -166,7 +171,7 @@ export class Account {
     this.patch({ busy: 'signingIn' });
     try {
       // Google's screens can stay open for as long as they like: saving goes on meanwhile.
-      const user = await this.google.signIn();
+      const user = await this.needs.google.signIn();
       return await this.inTurn(() => this.signedIn(user));
     } catch (error) {
       return problemOf(error);
@@ -178,9 +183,9 @@ export class Account {
   private async signedIn(user: GoogleUser): Promise<AccountProblem | null> {
     const before = this.s.user;
     // Signing in again after the session ended: this phone's data already belongs to someone.
-    if (before && this.store.data.settings.welcomed) {
+    if (before && this.needs.store.data.settings.welcomed) {
       if (before.id !== user.id) {
-        await this.google.signOut();
+        await this.needs.google.signOut();
         return 'wrongAccount';
       }
       this.patch({ busy: null, problem: null });
@@ -192,18 +197,18 @@ export class Account {
       return null;
     } catch (error) {
       await this.forget();
-      await this.google.signOut();
+      await this.needs.google.signOut();
       return problemOf(error);
     }
   }
 
   private async begin(user: GoogleUser): Promise<void> {
-    const found = await this.cloud.find();
+    const found = await this.needs.cloud.find();
     const saved = found ? await this.readable(found) : null;
-    const here = this.store.snapshot();
+    const here = this.needs.store.snapshot();
     const { keptFrom } = this.s;
     // Only for now: closing the app before the question is answered is the same as not signing in.
-    this.patch({ ...NOBODY, user, device: this.newId(), keptFrom });
+    this.patch({ ...NOBODY, user, device: this.needs.newId(), keptFrom });
     const ask = (why: Why) => this.patch({ choice: { why, saved, file: found, signingIn: true } });
     if (found) {
       if (!saved) return ask('unreadable');
@@ -229,7 +234,7 @@ export class Account {
       if (keep === 'neither') {
         if (choice.signingIn) {
           await this.forget();
-          await this.google.signOut();
+          await this.needs.google.signOut();
         } else this.patch({ choice: null });
         return null;
       }
@@ -249,7 +254,7 @@ export class Account {
     });
   }
 
-  // MARK: Saving
+  // Saving
 
   /** Saves if anything changed. `check` also makes sure the saved file is really there. True when all is saved. */
   save(check = false): Promise<boolean> {
@@ -259,14 +264,14 @@ export class Account {
   private async saveNow(check: boolean): Promise<boolean> {
     const { user, choice, print: last, version, device, busy } = this.s;
     // Before the welcome screen is passed, what's here isn't this person's data.
-    if (!user || choice || this.store.state.getState().status !== 'ready' || !this.store.data.settings.welcomed) return false;
-    const print = fingerprint(this.store.snapshot());
+    if (!user || choice || this.needs.store.state.getState().status !== 'ready' || !this.needs.store.data.settings.welcomed) return false;
+    const print = fingerprint(this.needs.store.snapshot());
     if (print === last && !check) return true;
     // Logging out and signing in say so themselves.
     const mine = busy === null;
     if (mine) this.patch({ busy: 'saving' });
     try {
-      const found = await this.cloud.find();
+      const found = await this.needs.cloud.find();
       if (found && found.modifiedTime !== version) {
         const saved = await this.readable(found);
         if (!saved) return this.wait('unreadable', { why: 'unreadable', saved: null, file: found, signingIn: false });
@@ -292,8 +297,8 @@ export class Account {
 
   /** Saves a few seconds after the last change. Returns how to stop. */
   start(): () => void {
-    let last = this.store.data;
-    const stop = this.store.state.subscribe(({ data }) => {
+    let last = this.needs.store.data;
+    const stop = this.needs.store.state.subscribe(({ data }) => {
       // Prices come and go without anything worth saving having changed.
       const same = data.entries === last.entries && data.categories === last.categories && data.budgets === last.budgets && data.owned === last.owned && data.settings === last.settings;
       last = data;
@@ -311,12 +316,12 @@ export class Account {
   saveSoon() {
     const { user, keptFrom, problem } = this.s;
     // What someone left here is gone now.
-    if (!user && keptFrom && this.store.state.getState().status === 'ready' && isEmpty(this.store.snapshot())) void this.forget('');
+    if (!user && keptFrom && this.needs.store.state.getState().status === 'ready' && isEmpty(this.needs.store.snapshot())) void this.forget('');
     // What to do is the person's answer: it isn't asked again by itself.
     if (user && !WAITING.includes(problem)) void this.save();
   }
 
-  // MARK: Leaving
+  // Leaving
 
   /** Saves one last time, then removes everything from this phone. If it can't save, nothing is removed. */
   logOut(): Promise<boolean> {
@@ -324,11 +329,11 @@ export class Account {
       if (this.s.busy) return false;
       this.patch({ busy: 'leaving' });
       try {
-        if (!(await this.saveNow(true)) || fingerprint(this.store.snapshot()) !== this.s.print) return false;
+        if (!(await this.saveNow(true)) || fingerprint(this.needs.store.snapshot()) !== this.s.print) return false;
         // First the account, so the emptied phone is never saved.
         await this.forget('');
-        this.store.reset();
-        await this.google.signOut();
+        this.needs.store.reset();
+        await this.needs.google.signOut();
         return true;
       } finally {
         this.patch({ busy: null });
@@ -340,8 +345,8 @@ export class Account {
   logOutKeepingData(): Promise<void> {
     return this.inTurn(async () => {
       await this.forget(this.markIfKept(this.s.user));
-      this.store.set({ welcomed: false });
-      await this.google.signOut();
+      this.needs.store.set({ welcomed: false });
+      await this.needs.google.signOut();
     });
   }
 
@@ -350,7 +355,7 @@ export class Account {
     return this.inTurn(async () => {
       if (!this.s.user) return;
       await this.forget();
-      await this.google.signOut();
+      await this.needs.google.signOut();
     });
   }
 
@@ -361,9 +366,9 @@ export class Account {
       if (!user) return null;
       this.patch({ busy: 'deleting' });
       try {
-        await this.cloud.remove();
+        await this.needs.cloud.remove();
         await this.forget(this.markIfKept(user));
-        await this.google.revoke(user.email);
+        await this.needs.google.revoke(user.email);
         return null;
       } catch (error) {
         return problemOf(error);

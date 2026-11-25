@@ -1,7 +1,7 @@
-import { writeData } from '../data/store';
-import { Messages } from '../data/messages';
-import { Prices } from '../data/prices';
-import type { AppData } from '../domain/model';
+import { Messages } from '@/data/messages';
+import { Prices } from '@/data/prices';
+import type { AppData } from '@/domain/model';
+import { writeData } from '@/domain/saved';
 import { at, entry, FakeDisk, NOW, openStore, sample } from './fakes';
 
 const today = () => at(2026, 11, 25);
@@ -147,7 +147,7 @@ describe('prices', () => {
   test('each source is asked only once its next price is due', async () => {
     const { store } = await openStore(saved(), () => NOW);
     const page = jest.fn(async (url: string) => (url === 'metals' ? METALS : FUND));
-    const prices = new Prices(store, 'metals', () => NOW, page);
+    const prices = new Prices({ store, metalsUrl: 'metals', now: () => NOW, page });
     await prices.refresh();
     expect(page).toHaveBeenCalledTimes(3);
     expect(store.data.prices.gold?.days).toEqual({ '2026-11-24': 11715 });
@@ -161,7 +161,7 @@ describe('prices', () => {
     const page = jest.fn(async (): Promise<string> => {
       throw new Error('offline');
     });
-    const prices = new Prices(store, 'metals', () => NOW, page);
+    const prices = new Prices({ store, metalsUrl: 'metals', now: () => NOW, page });
     await prices.refresh();
     expect(store.data.priceError).toBe(true);
     await prices.refresh();

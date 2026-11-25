@@ -1,99 +1,87 @@
-import { GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold, useFonts } from '@expo-google-fonts/google-sans';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AccountChoice } from '../components/Account';
-import { Empty } from '../components/Empty';
-import { Button } from '../components/material';
-import { Snackbar } from '../components/Snackbar';
-import { messages, startApp, store } from '../data/app';
-import { useAppState } from '../data/hooks';
-import { useTheme } from '../theme/theme';
+import { AccountChoice } from '@/features/account/AccountChoice';
+import { LockedScreen } from '@/features/shell/LockedScreen';
+import { useBadNews } from '@/features/shell/useBadNews';
+import { useBrowserColours } from '@/features/shell/useBrowserColours';
+import { startApp } from '@/state/app';
+import { startClock } from '@/state/clock';
+import { useAppState, useSettings } from '@/state/hooks';
+import { useFontsReady } from '@/theme/fonts';
+import { useTheme } from '@/theme/theme';
+import { Snackbar } from '@/ui/Snackbar';
 
-/** Says it again this often while nothing can be saved. */
-const REMIND = 8000;
+export { ErrorScreen as ErrorBoundary } from '@/features/shell/ErrorScreen';
+
+// The splash screen stays until there is something to show.
+void SplashScreen.preventAutoHideAsync();
 
 /** The whole app: its data is opened first, then its pages. */
 export default function RootLayout() {
-  const { m3, dark } = useTheme();
-  const [fonts, fontError] = useFonts({ GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold });
+  const theme = useTheme();
+  const { m3, dark } = theme;
+  const fonts = useFontsReady();
   const status = useAppState((s) => s.status);
+  const ready = fonts && status !== 'loading';
 
-  useEffect(startApp, []);
+  useEffect(() => {
+    const stops = [startApp(), startClock()];
+    return () => stops.forEach((stop) => stop());
+  }, []);
+  useEffect(() => {
+    if (ready) SplashScreen.hide();
+  }, [ready]);
   useBadNews();
-  useBrowser(m3.surface, dark);
+  useBrowserColours(theme);
 
-  if (status === 'loading' || (!fonts && !fontError)) return <View style={[styles.fill, { backgroundColor: m3.surface }]} />;
-
-  const overlay = { presentation: 'transparentModal', contentStyle: styles.clear } as const;
+  if (!ready) return <View style={[styles.fill, { backgroundColor: m3.surface }]} />;
   return (
     <GestureHandlerRootView style={[styles.fill, styles.phone, { backgroundColor: m3.surface }]}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      {status === 'locked' ? (
-        <Locked />
-      ) : (
-        <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: m3.surface } }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="entry" options={overlay} />
-          <Stack.Screen name="edit-budget" options={overlay} />
-          <Stack.Screen name="edit-category" options={overlay} />
-          <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
-        </Stack>
-      )}
+      {status === 'locked' ? <LockedScreen /> : <Pages />}
       <AccountChoice />
       <Snackbar />
     </GestureHandlerRootView>
   );
 }
 
-/** In place of the app while its data can't be opened: carrying on without it would write over it. */
-function Locked() {
-  const retry = async () => {
-    if (!(await store.open())) messages.warn('Still couldn’t open it.');
-  };
+/** Pages that slide up over the one before. */
+const overlay = { presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } } as const;
+
+/** Every page but the welcome one needs it to be done. One that is in neither list could be opened without it. */
+function Pages() {
+  const { m3 } = useTheme();
+  const { welcomed } = useSettings();
   return (
-    <View style={[styles.fill, styles.centred]}>
-      <Empty icon="alert-circle" title="Couldn’t open your data" text="It’s still on this phone, and nothing has been changed. Try again, or restart your phone.">
-        <Button label="Try again" onPress={retry} />
-      </Empty>
-    </View>
+    <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: m3.surface } }}>
+      <Stack.Protected guard={welcomed}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="entry" options={overlay} />
+        <Stack.Screen name="edit-budget" options={overlay} />
+        <Stack.Screen name="edit-category" options={overlay} />
+        <Stack.Screen name="history" />
+        <Stack.Screen name="search" />
+        <Stack.Screen name="budget-page" />
+        <Stack.Screen name="insight-category" />
+        <Stack.Screen name="asset" />
+        <Stack.Screen name="categories" />
+        <Stack.Screen name="choose" />
+        <Stack.Screen name="currency" />
+        <Stack.Screen name="week-month" />
+      </Stack.Protected>
+      <Stack.Protected guard={!welcomed}>
+        <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+      </Stack.Protected>
+    </Stack>
   );
-}
-
-/** What has to be said about the data on this phone, for as long as it's true. */
-function useBadNews() {
-  const unsaved = useAppState((s) => s.unsaved);
-  const recovered = useAppState((s) => s.recovered);
-  useEffect(() => {
-    if (recovered) messages.warn('Your saved data couldn’t be read. A copy was kept on this phone.');
-  }, [recovered]);
-  useEffect(() => {
-    if (!unsaved) return;
-    const say = () => messages.warn('Couldn’t save on this phone. Free up some space.');
-    say();
-    const timer = setInterval(say, REMIND);
-    return () => clearInterval(timer);
-  }, [unsaved]);
-}
-
-/** On the web, what is around the app has its colours too. */
-function useBrowser(colour: string, dark: boolean) {
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const page = document.documentElement;
-    page.style.colorScheme = dark ? 'dark' : 'light';
-    page.style.backgroundColor = colour;
-    document.body.style.backgroundColor = colour;
-    for (const tag of document.querySelectorAll('meta[name="theme-color"]')) tag.setAttribute('content', colour);
-  }, [colour, dark]);
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  centred: { justifyContent: 'center' },
-  clear: { backgroundColor: 'transparent' },
   // A phone's width on a wide screen.
   phone: Platform.OS === 'web' ? { width: '100%', maxWidth: 480, alignSelf: 'center' } : {},
 });

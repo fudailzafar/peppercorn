@@ -98,7 +98,7 @@ export function periodStart(day: Day, period: BudgetPeriod, settings: Settings):
   }
 }
 
-// MARK: Words
+// Words
 
 /** "Nov" */
 export const monthName = (day: Day): string => MONTHS[parts(day).month - 1];

@@ -4,7 +4,7 @@
  * Reference: https://m3.material.io/styles
  */
 
-// MARK: Colour roles
+// Colour roles
 
 export interface M3Roles {
   primary: string;
@@ -108,7 +108,7 @@ export const m3Dark: M3Roles = {
   scrim: '#000000',
 };
 
-// MARK: Type scale (Google Sans)
+// Type scale (Google Sans)
 
 export interface TypeRole {
   size: number;
@@ -138,7 +138,7 @@ export const typeScale = {
 
 export type TypeName = keyof typeof typeScale;
 
-// MARK: Shape
+// Shape
 
 export const shape = {
   none: 0,
@@ -163,7 +163,7 @@ export const radius = {
   action: shape.full,
 } as const;
 
-// MARK: State layers and elevation
+// State layers and elevation
 
 /** Opacity of the overlay painted over a component for each interaction state. */
 export const stateLayer = { hover: 0.08, focus: 0.1, pressed: 0.1, dragged: 0.16 } as const;
@@ -180,7 +180,7 @@ export const elevation = (level: 0 | 1 | 2 | 3 | 4 | 5) => {
   };
 };
 
-// MARK: Motion
+// Motion
 
 /** Bezier control points for M3's easing curves (RN's Easing.bezier takes them as four numbers). */
 export const m3Easing = {

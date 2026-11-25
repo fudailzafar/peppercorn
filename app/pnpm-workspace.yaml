@@ -3,5 +3,5 @@ overrides:
   react-native-worklets: 0.13.0
   react-native-reanimated: 4.7.1
 # Nothing here needs it: it only speeds up file watching.
-ignoredBuiltDependencies:
-  - '@parcel/watcher'
+allowBuilds:
+  '@parcel/watcher': false

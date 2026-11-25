@@ -1,10 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { EntryRow } from '../components/EntryRow';
-import EditBudget from '../app/edit-budget';
-import EditCategory from '../app/edit-category';
-import EntryPage from '../app/entry';
-import { messages, store } from '../data/app';
-import type { AppData } from '../domain/model';
+import type { AppData } from '@/domain/model';
+import { EditBudgetScreen } from '@/features/budgets/EditBudgetScreen';
+import { EditCategoryScreen } from '@/features/categories/EditCategoryScreen';
+import { EntryRow } from '@/features/entries/EntryRow';
+import { EntryScreen } from '@/features/entries/EntryScreen';
+import { ErrorScreen } from '@/features/shell/ErrorScreen';
+import { messages, store } from '@/state/app';
 import { entry, sample } from './fakes';
 
 let mockParams: Record<string, string> = {};
@@ -41,11 +42,12 @@ jest.mock('react-native-reanimated', () => {
     withSequence: (...values: unknown[]) => values.at(-1),
   };
 });
+jest.mock('expo-splash-screen', () => ({ hide: () => undefined }));
 jest.mock('react-native-worklets', () => ({ scheduleOnRN: (f: (...args: unknown[]) => void, ...args: unknown[]) => f(...args) }));
 jest.mock('react-native-gesture-handler', () => ({ GestureDetector: ({ children }: { children: unknown }) => children, usePanGesture: () => ({}) }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
-jest.mock('@expo/vector-icons', () => ({ MaterialIcons: () => null }));
-jest.mock('../data/disk', () => ({ fileDisk: () => ({ read: async () => null, write: async () => undefined, setAside: async () => undefined }) }));
+jest.mock('@expo/vector-icons/MaterialIcons', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/data/disk', () => ({ fileDisk: () => ({ read: async () => null, write: async () => undefined, setAside: async () => undefined }) }));
 
 const show = (more: Partial<AppData> = {}) => store.state.setState({ data: { ...sample, ...more }, status: 'ready' });
 const said = () => messages.state.getState().current?.text;
@@ -59,7 +61,7 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 test('two quick taps on the check save once', async () => {
-  await render(<EntryPage />);
+  await render(<EntryScreen />);
   await press('1');
   await press('2');
   await press('Food category');
@@ -72,7 +74,7 @@ test('two quick taps on the check save once', async () => {
 });
 
 test('keys add up', async () => {
-  await render(<EntryPage />);
+  await render(<EntryScreen />);
   const five = screen.getByLabelText('5');
   await fireEvent.press(five);
   await fireEvent.press(five);
@@ -81,7 +83,7 @@ test('keys add up', async () => {
 
 test('a category deleted while editing isn’t saved', async () => {
   mockParams = { id: 't1' };
-  await render(<EntryPage />);
+  await render(<EntryScreen />);
   await act(async () => store.removeCategory('food'));
   await press('Save entry');
   expect(said()).toBe('Choose a category');
@@ -100,16 +102,26 @@ test('an upcoming row can’t be deleted, a past one can', async () => {
 
 test('a budget keeps its period when only its amount changes', async () => {
   mockParams = { id: 'o' };
-  await render(<EditBudget />);
+  await render(<EditBudgetScreen />);
   await press('0');
   await press('Save budget');
   expect(store.data.budgets.find((b) => b.id === 'o')).toMatchObject({ amount: 450000, start: '2026-11-01' });
 });
 
 test('a category can’t take another’s name', async () => {
-  await render(<EditCategory />);
+  await render(<EditCategoryScreen />);
   await fireEvent.changeText(screen.getByLabelText('Name'), ' food ');
   await press('Save');
   expect(said()).toBe('You already have a category with this name');
   expect(store.data.categories).toHaveLength(sample.categories.length);
+});
+
+test('a page that failed says the data is safe, and can be tried again', async () => {
+  const retry = jest.fn(async () => undefined);
+  const logged = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  await render(<ErrorScreen error={new Error('broken')} retry={retry} />);
+  expect(screen.getByText(/Your data is safe/)).toBeTruthy();
+  await press('Try again');
+  expect(retry).toHaveBeenCalledTimes(1);
+  logged.mockRestore();
 });

@@ -1,5 +1,5 @@
-import { groupDigits, money } from './money';
 import type { Typing } from './model';
+import { groupDigits, money } from './money';
 
 /**
  * What has been typed on the number pad. Typing with a point, the text is the number ("12.5"); filling in cents first,

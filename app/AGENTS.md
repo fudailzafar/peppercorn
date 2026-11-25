@@ -1,4 +1,7 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# The app
+
+Expo SDK 58, React Native 0.88, TypeScript, for Android first. The browser version is for trying it out. Read
+`../AGENTS.md` too, and `docs/architecture.md` before changing how anything is put together.
 
 ## Expo has changed — do not trust your training data
 
@@ -10,32 +13,60 @@ Expo ships breaking changes every SDK release. APIs you remember are likely rena
 
 ## Commands
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+Node 22.13 or later (`.nvmrc`), and pnpm.
 
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+pnpm install
+npx expo start --port 8082   # add `--tunnel ngrok` when the phone can't reach this computer
+pnpm check                   # lint, types, tests: must pass before anything is called done
+npx expo install <package>   # never `pnpm add`: this picks the version that fits the SDK
+npx expo-doctor              # after changing packages or app.json
+pnpm build:web               # the browser version, into ../website/public/app
 ```
 
-Run lint and typecheck before declaring any task done.
+## Where things go
 
-## Navigation & Routing
+| Folder         | What                                                                                  | May use              |
+| -------------- | ------------------------------------------------------------------------------------- | -------------------- |
+| `src/domain`   | What the app knows about money, days, budgets and assets. Plain functions, no React   | nothing else         |
+| `src/data`     | Saving to the phone, daily prices, messages                                           | domain               |
+| `src/account`  | Google sign-in and saving to Drive                                                    | those before it      |
+| `src/state`    | The app's one store, prices, account and clock, and the hooks that read them          | those before it      |
+| `src/theme`    | Colours, type, shapes, motion, fonts                                                  | those before it      |
+| `src/lib`      | Haptics, navigation, names of choices                                                 | those before it      |
+| `src/ui`       | What any screen is made of. `ui/material` has Material 3's components                 | those before it      |
+| `src/features` | The screens and their parts, one folder for each part of the app                      | those before it      |
+| `src/app`      | Routes only: each file names the screen it shows                                      | all                  |
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+The linter refuses an import that goes the other way, and one that goes round in a circle.
 
-## Building with EAS
+## How to write it
 
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
+- A new screen: `src/features/<feature>/<Name>Screen.tsx` with a named export, a route of one line in `src/app`, and its
+  name in the list in `src/app/_layout.tsx` (one that isn't there can be opened before the welcome screen is done).
+- Pages are told apart by query (`/asset?id=gold`), not by path: the website is plain files, so every address must be one.
+- Open pages with `openPage` and leave them with `goBack` (`src/lib/navigation`).
+- Import with `@/`, or `./` within a folder. Types with `type`. No default exports but in routes, no index files but
+  `ui/material`.
+- What is worked out goes into `domain`, with a test. A component shows; it doesn't calculate.
+- What is saved changes only through `store` (`src/state/app`). Never change a value in place: everything on screen tells
+  by identity whether it changed.
+- Read as little as it needs: `useSettings`, `useAppState(selector)`; `useData` only where most of it is used. `useNow`
+  draws again each minute.
+- The React Compiler remembers values and functions for you. `useMemo`, `useCallback` and `memo` are for long lists, or
+  when something outside React needs the same one.
+- Animate with Reanimated, with `.get()` and `.set()`. Nothing that moves may set React state on each frame.
+- Long lists are `FlatList` or `SectionList`, with their `renderItem` and `keyExtractor` kept the same between draws.
+- Words are `AppText`, icons are `Icon`. Colours and shapes come from `src/theme`, never written in place. Styles that
+  don't change go in `StyleSheet.create`.
+- Fonts and icon fonts are imported by their own path: their packages' indexes put all of them into the app (it was 14 MB).
+- Everything that can be pressed has a role and a name, and is at least 48 by 48.
+- What differs on the web goes in a `.web.ts` file beside it.
 
 ## Rules
 
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+- `android` and `ios` folders are generated. Never make or edit them: use `app.json` and config plugins.
+- Expo Go has only the native modules it comes with. Google sign-in isn't one: it is loaded only when it's there
+  (`src/account/google.android.ts`). Prefer Expo's own modules; ask before adding any package.
+- Never change the saved format without reading `docs/data.md`.
+- Design rules are the owner's, in `docs/design.md`. Don't restyle what wasn't asked about.

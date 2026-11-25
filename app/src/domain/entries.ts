@@ -1,3 +1,4 @@
+import { assetOf } from './assets';
 import { addDays, addMonths, clock24, monthStart, parts, startOf, toDay, weekStart, yearStart } from './dates';
 import type { AppData, Category, Day, Entry, HistorySpan, Repeat, RepeatUnit, Settings } from './model';
 import { exact, sum, symbolOf } from './money';
@@ -85,7 +86,7 @@ export function search(data: AppData, query: string): Entry[] {
   );
 }
 
-// MARK: Repeating entries
+// Repeating entries
 
 /** `steps` repeats after a day. Monthly ones keep to `keep`, or the month's last day if it is shorter. */
 function after(day: Day, steps: number, r: { unit: RepeatUnit; every: number }, keep: number): Day {
@@ -142,15 +143,13 @@ export function caughtUp(entries: Entry[], today: Day, newId: () => string): Ent
         date: startOf(nth(n)),
         series: true,
         // Each purchase of an asset is priced on its own day.
-        ...(entry.asset ? { rate: undefined, quantity: isFund(entry.asset) ? undefined : entry.quantity } : {}),
+        ...(entry.asset ? { rate: undefined, quantity: assetOf(entry.asset).metal ? entry.quantity : undefined } : {}),
         ...(n === due - 1 ? { repeat: { ...r, next: nth(due) } } : {}),
       });
     }
   }
   return changed ? out : entries;
 }
-
-const isFund = (id: string) => id === 'taurus' || id === 'tata';
 
 export interface Upcoming {
   entry: Entry;
@@ -161,7 +160,7 @@ export interface Upcoming {
 export const upcoming = (entries: readonly Entry[]): Upcoming[] =>
   entries.flatMap((entry) => (entry.repeat ? [{ entry, day: entry.repeat.next }] : [])).sort((a, b) => (a.day < b.day ? -1 : 1));
 
-// MARK: Adding and changing
+// Adding and changing
 
 /** Categories to choose from for an entry. Asset prices are in rupees, so assets are only offered with rupees. */
 export const choices = (data: AppData, income: boolean): Category[] =>
@@ -199,7 +198,7 @@ export function noteAfter(data: AppData, old: Entry | undefined, note: string, c
   return old && categoryId !== old.categoryId && note.trim() === was ? '' : note;
 }
 
-// MARK: Exporting
+// Exporting
 
 const quoted = (text: string) => (/[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text);
 

@@ -1,7 +1,7 @@
-import { addPeriod, startOf, toDay } from '../domain/dates';
-import { current, endOf } from '../domain/budgets';
-import { caughtUp, upcoming } from '../domain/entries';
-import type { Budget } from '../domain/model';
+import { current, endOf } from '@/domain/budgets';
+import { addPeriod, startOf, toDay } from '@/domain/dates';
+import { caughtUp, upcoming } from '@/domain/entries';
+import type { Budget } from '@/domain/model';
 import { entry, ids } from './fakes';
 
 const home = process.env.TZ;

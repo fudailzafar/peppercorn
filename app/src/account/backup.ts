@@ -1,5 +1,5 @@
-import type { Saved } from '../domain/model';
-import { isSaved } from '../data/store';
+import type { Saved } from '@/domain/model';
+import { isSaved } from '@/domain/saved';
 import { AccountError } from './types';
 
 /** The saved file. `device` tells which phone wrote it last. */

@@ -1,7 +1,7 @@
-import { ASSETS, fundOn, latest } from '../domain/assets';
-import { addDays, toDay } from '../domain/dates';
-import type { AssetId, Day } from '../domain/model';
-import { lastDue, parseFund, parseMetals, todayInIndia } from '../domain/priceSources';
+import { ASSETS, fundOn, latest } from '@/domain/assets';
+import { addDays, toDay } from '@/domain/dates';
+import type { AssetId, Day } from '@/domain/model';
+import { lastDue, parseFund, parseMetals, todayInIndia } from '@/domain/priceSources';
 import type { Store } from './store';
 
 const HOUR = 3_600_000;
@@ -10,6 +10,15 @@ const RETRY = 10 * 60_000;
 
 const oldestOf = (days: readonly Day[]): Day => [...days].sort()[0];
 
+export interface PricesNeeds {
+  store: Store;
+  /** Where the page with gold and silver rates is. */
+  metalsUrl: string;
+  now: () => number;
+  /** A page's text. Throws when it can't be had. */
+  page: (url: string) => Promise<string>;
+}
+
 /** Daily prices. Nothing is live: each source is asked again only once its next price is due. */
 export class Prices {
   private busy = false;
@@ -17,34 +26,29 @@ export class Prices {
   /** How far back each fund has been asked for, as a fund has no prices from before it began. */
   private readonly asked = new Map<AssetId, Day>();
 
-  constructor(
-    private readonly store: Store,
-    private readonly metalsUrl: string,
-    private readonly now: () => number,
-    private readonly page: (url: string) => Promise<string>,
-  ) {}
+  constructor(private readonly needs: PricesNeeds) {}
 
   /** Fetches whatever is due. Safe to call often. `force` skips the wait after a failure. */
   async refresh(force = false): Promise<void> {
-    if (this.busy || this.store.state.getState().status !== 'ready') return;
-    const now = this.now();
+    if (this.busy || this.needs.store.state.getState().status !== 'ready') return;
+    const now = this.needs.now();
     if (!force && now - this.lastTry < RETRY) return;
     this.busy = true;
     this.lastTry = now;
     try {
       const results = await Promise.allSettled(this.due(now).map((job) => job()));
       const worked = results.every((r) => r.status === 'fulfilled');
-      this.store.setPriceError(!worked);
+      this.needs.store.setPriceError(!worked);
       // Nothing failed, so the next call may check straight away.
       if (worked) this.lastTry = 0;
     } finally {
       this.busy = false;
-      this.store.priceWaiting();
+      this.needs.store.priceWaiting();
     }
   }
 
   private due(now: number): (() => Promise<void>)[] {
-    const { prices, entries } = this.store.data;
+    const { prices, entries } = this.needs.store.data;
     const today = todayInIndia(now);
     const jobs: (() => Promise<void>)[] = [];
 
@@ -79,16 +83,16 @@ export class Prices {
   }
 
   private async metals(now: number) {
-    const { gold, silver } = parseMetals(await this.page(this.metalsUrl), todayInIndia(now));
+    const { gold, silver } = parseMetals(await this.needs.page(this.needs.metalsUrl), todayInIndia(now));
     if (Object.keys(gold).length === 0 || Object.keys(silver).length === 0) throw new Error('No prices on the page');
-    this.store.savePrices('gold', gold, now);
-    this.store.savePrices('silver', silver, now);
+    this.needs.store.savePrices('gold', gold, now);
+    this.needs.store.savePrices('silver', silver, now);
   }
 
   private async fund(id: AssetId, scheme: number, from: Day, to: Day, fetchedAt?: number) {
-    const days = parseFund(await this.page(`https://api.mfapi.in/mf/${scheme}?startDate=${from}&endDate=${to}`), to);
+    const days = parseFund(await this.needs.page(`https://api.mfapi.in/mf/${scheme}?startDate=${from}&endDate=${to}`), to);
     if (Object.keys(days).length === 0) throw new Error('No prices');
-    this.store.savePrices(id, days, fetchedAt);
+    this.needs.store.savePrices(id, days, fetchedAt);
   }
 }
 

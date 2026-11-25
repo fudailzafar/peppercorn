@@ -30,12 +30,28 @@
       "expo-router",
       "expo-localization",
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#FFFFFF",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#131314"
+          }
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-sharing"
     ],
     "scheme": "peppercorn",
     "extra": {
       "googleWebClientId": ""
+    },
+    "experiments": {
+      "reactCompiler": true,
+      "typedRoutes": true
     }
   }
 }

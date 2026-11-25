@@ -1,8 +1,9 @@
-import { startOf } from '../domain/dates';
-import type { AppData, Entry } from '../domain/model';
-import type { Disk } from '../data/disk';
-import { defaultSettings, Store, writeData } from '../data/store';
-import { assetCategories } from '../domain/assets';
+import type { Disk } from '@/data/disk';
+import { Store } from '@/data/store';
+import { assetCategories } from '@/domain/assets';
+import { startOf } from '@/domain/dates';
+import type { AppData, Entry } from '@/domain/model';
+import { defaultSettings, writeData } from '@/domain/saved';
 
 export const at = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min).getTime();
 export const NOW = at(2026, 11, 24, 19, 20);

@@ -1,5 +1,5 @@
-import { addDays, addMonths, dayAndMonth, daysBetween, daysLabel, monthLabel, monthName, monthStart, parts, startOf, toDay, weekdayLabel, weekdayLetter, weekStart, yearStart } from './dates';
 import { overallOf } from './budgets';
+import { addDays, addMonths, dayAndMonth, daysBetween, daysLabel, monthLabel, monthName, monthStart, parts, startOf, toDay, weekdayLabel, weekdayLetter, weekStart, yearStart } from './dates';
 import { categoryOf } from './entries';
 import type { AppData, Category, Day, Entry, Settings } from './model';
 import { sum } from './money';
@@ -134,9 +134,21 @@ export interface CategoryLine {
   before: number;
 }
 
+/** Entries by a key. Those whose key is empty are left out. */
+function grouped(entries: readonly Entry[], keyOf: (e: Entry) => string | null): Map<string, Entry[]> {
+  const groups = new Map<string, Entry[]>();
+  for (const e of entries) {
+    const key = keyOf(e);
+    if (!key) continue;
+    const group = groups.get(key);
+    if (group) group.push(e);
+    else groups.set(key, [e]);
+  }
+  return groups;
+}
+
 function byCategory(entries: readonly Entry[]): Map<string, number> {
-  const all = new Map<string, Entry[]>();
-  for (const e of entries) if (e.categoryId) all.set(e.categoryId, [...(all.get(e.categoryId) ?? []), e]);
+  const all = grouped(entries, (e) => e.categoryId);
   return new Map([...all].map(([id, list]) => [id, amount(list)]));
 }
 
@@ -188,11 +200,10 @@ function changes(data: AppData, p: Period, everyday: number): Highlight[] {
 /** The note that comes up most, unless it is only a category's name. */
 function often(data: AppData, everyday: readonly Entry[]): Highlight | null {
   const names = new Set(data.categories.map((c) => c.name.toLowerCase()));
-  const notes = new Map<string, Entry[]>();
-  for (const e of everyday) {
+  const notes = grouped(everyday, (e) => {
     const note = e.note.trim().toLowerCase();
-    if (note !== '' && !names.has(note)) notes.set(note, [...(notes.get(note) ?? []), e]);
-  }
+    return names.has(note) ? null : note;
+  });
   const most = [...notes.values()].sort((a, b) => b.length - a.length).at(0);
   return most && most.length >= 3 ? { kind: 'often', note: most[0].note, times: most.length, amount: amount(most) } : null;
 }

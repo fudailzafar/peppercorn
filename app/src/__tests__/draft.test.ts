@@ -1,5 +1,5 @@
-import { draftOf, finished, newDraft, priceHint, problemWith, withCategory, withPast, withSuggestion } from '../domain/draft';
-import { padOf, padValue } from '../domain/keypad';
+import { draftOf, finished, newDraft, priceHint, problemWith, withCategory, withPast, withSuggestion } from '@/domain/draft';
+import { padOf, padValue } from '@/domain/keypad';
 import { at, entry, NOW, sample } from './fakes';
 
 const d = sample;
