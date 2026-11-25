@@ -73,6 +73,8 @@ try:
     # A phone that has just started is busy with itself.
     time.sleep(45)
     adb('install', '-r', sys.argv[1])
+    adb('logcat', '-G', '16M')
+    adb('logcat', '-c')
     start()
     wait('Skip', 180)
     picture('1-welcome')
@@ -108,5 +110,10 @@ try:
         raise SystemExit(log)
     print('All good')
 finally:
-    with open(f'{OUT}/log.txt', 'w') as f:
-        f.write(adb('logcat', '-d', check=False)[-400_000:])
+    for name, args in {
+        'log': ('logcat', '-d', '*:I', 'AccessibilityNodeInfoDumper:S'),
+        'crashes': ('logcat', '-d', '-b', 'crash'),
+        'ended': ('shell', 'dumpsys', 'activity', 'exit-info', APP),
+    }.items():
+        with open(f'{OUT}/{name}.txt', 'w') as f:
+            f.write(adb(*args, check=False))
