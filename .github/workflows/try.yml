@@ -14,6 +14,8 @@ jobs:
   try:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # These images run apps made for a phone's processor; not every version's do.
+    strategy: { fail-fast: false, matrix: { android: [30, 34] } }
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -26,7 +28,7 @@ jobs:
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: ${{ matrix.android }}
           target: google_apis
           arch: x86_64
           profile: pixel_6
@@ -37,4 +39,4 @@ jobs:
           script: python3 app/scripts/try-apk.py peppercorn.apk
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: try, path: try }
+        with: { name: "try-${{ matrix.android }}", path: try }

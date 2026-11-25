@@ -12,7 +12,9 @@ os.makedirs(OUT, exist_ok=True)
 
 
 def adb(*args, check=True, binary=False):
-    done = subprocess.run(['adb', *args], capture_output=True, check=check)
+    done = subprocess.run(['adb', *args], capture_output=True)
+    if check and done.returncode != 0:
+        raise SystemExit(f'adb {args[0]}: {done.stdout.decode(errors="replace")} {done.stderr.decode(errors="replace")}')
     return done.stdout if binary else done.stdout.decode(errors='replace')
 
 
