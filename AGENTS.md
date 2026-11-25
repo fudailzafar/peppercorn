@@ -6,7 +6,7 @@ version), `website` is the page about it (Next.js). Each has its own `AGENTS.md`
 ## Rules for everything here
 
 - **Simple wins.** When in doubt, leave a feature out, and prefer removing one to adding one. Build what was asked for.
-- **Commit only when asked.** Never push, and never rewrite history. No "Co-Authored-By" or other mention of an AI in
+- **Commit only when asked**, push only when asked, and never rewrite history. No "Co-Authored-By" or other mention of an AI in
   commits or pull requests.
 - **Never delete** people's data, branches, projects or files that aren't yours without a clear yes.
 - **Check before saying it works**: `pnpm check` in `app`, `pnpm build` in `website`. Say what you couldn't check (the
@@ -25,7 +25,7 @@ version), `website` is the page about it (Next.js). Each has its own `AGENTS.md`
 | What is saved, and how not to lose it       | `app/docs/data.md`          |
 | How it looks and behaves, and what it isn't | `app/docs/design.md`        |
 | Testing it                                  | `app/docs/testing.md`       |
-| Google Play, and the website                | `app/docs/releasing.md`     |
+| The download, and the website               | `app/docs/releasing.md`     |
 | Why things are as they are                  | `app/docs/decisions.md`     |
 
 When a change makes one of these wrong, correct it in the same change.

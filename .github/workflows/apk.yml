@@ -1,0 +1,69 @@
+# Builds the Android app to download. Started by hand; see app/docs/releasing.md.
+name: APK
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults: { run: { working-directory: app } }
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { package_json_file: app/package.json }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: app/.nvmrc, cache: pnpm, cache-dependency-path: app/pnpm-lock.yaml }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17, cache: gradle }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: npx expo prebuild --platform android --no-install
+      - name: Build
+        working-directory: app/android
+        run: ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+      - name: Sign
+        run: |
+          set -e
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          printf %s "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/key.p12"
+          mkdir -p "$RUNNER_TEMP/out"
+          "$TOOLS/zipalign" -P 16 -f 4 android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/aligned.apk"
+          "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/key.p12" --ks-type PKCS12 --ks-key-alias peppercorn \
+            --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEYSTORE_PASSWORD --out "$RUNNER_TEMP/out/peppercorn.apk" "$RUNNER_TEMP/aligned.apk"
+          rm "$RUNNER_TEMP/key.p12"
+          "$TOOLS/apksigner" verify --print-certs "$RUNNER_TEMP/out/peppercorn.apk"
+          "$TOOLS/aapt2" dump badging "$RUNNER_TEMP/out/peppercorn.apk" | grep -E "^package|sdkVersion|targetSdk|uses-permission|native-code|application-label:"
+          ls -l "$RUNNER_TEMP/out"
+      - uses: actions/upload-artifact@v4
+        with: { name: peppercorn-apk, path: "${{ runner.temp }}/out/peppercorn.apk", if-no-files-found: error }
+
+  # Adds an entry, stops the app and opens it again, as a person would.
+  try:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: peppercorn-apk }
+      - run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: python3 app/scripts/try-apk.py peppercorn.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: try, path: try }

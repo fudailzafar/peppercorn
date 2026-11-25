@@ -30,7 +30,7 @@ export function Pricing() {
     <Section
       id="pricing"
       title="Pricing"
-      subtitle="Free at launch"
+      subtitle="Free"
       className="container px-10 mx-auto max-w-[var(--max-container-width)]"
       ref={ref}
     >
@@ -61,7 +61,7 @@ export function Pricing() {
               ))}
             </div>
             <a
-              href="#cta"
+              href={siteConfig.ctaHref}
               className={cn(
                 buttonVariants({ variant: "default", size: "sm" }),
                 "rounded-full text-white"

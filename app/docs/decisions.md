@@ -2,13 +2,15 @@
 
 Newest first. Add to it when a choice would surprise someone later.
 
+- **An APK on the website instead of Google Play** (Nov 2026). Play's closed test needs 12 people for 14 days.
 - **Layers, features and one-line routes** (Nov 2026). Screens were in `src/app` and everything else in one flat folder.
 - **React Compiler on** (Nov 2026). Switching spans in Insights with 5,000 entries took about half the script time with it
   and the clock below, measured in a throttled browser.
 - **One clock** (Nov 2026). Each screen had its own timer, and they could disagree for a moment.
 - **One codebase and one address for app and website** (Nov 2026). The app is under `/app`, with query addresses, as it is
   plain files there.
-- **Swift and Kotlin versions dropped** (Nov 2026). One stack, tested by QR code in Expo Go and built on Expo's servers.
+- **Swift and Kotlin versions dropped** (Nov 2026). One stack, tested by QR code in Expo Go. APKs are built on GitHub, which needs no account
+  but the one the code is in.
   The Kotlin one is the `kotlin` branch, for reference.
 - **One file instead of a database.** A family's entries for years fit in memory, every change is whole or not at all, and
   the same text is what goes to Drive.

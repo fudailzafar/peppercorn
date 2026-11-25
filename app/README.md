@@ -36,5 +36,5 @@ That runs the linter, the type checker and the tests.
 - `data.md`: what is saved, where, and how it is kept safe
 - `design.md`: how it looks and behaves
 - `testing.md`: what is tested, and what to check by hand
-- `releasing.md`: builds for Google Play, and the website
+- `releasing.md`: the APK to download, and the website
 - `decisions.md`: why things are as they are

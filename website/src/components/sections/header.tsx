@@ -70,15 +70,15 @@ export function Header() {
               <span className="font-bold text-xl">{siteConfig.name}</span>
             </Link>
             <div className="hidden lg:block">
-              <Link
-                href="#cta"
+              <a
+                href={siteConfig.ctaHref}
                 className={cn(
                   buttonVariants({ variant: "default" }),
                   "h-8 text-white rounded-full group"
                 )}
               >
                 {siteConfig.cta}
-              </Link>
+              </a>
             </div>
             <div className="mt-2 cursor-pointer block lg:hidden">
               <MobileDrawer />

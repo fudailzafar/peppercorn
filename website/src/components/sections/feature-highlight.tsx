@@ -7,7 +7,6 @@ import { easeOutCubic } from "@/lib/animation";
 import { siteConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 interface FeatureProps {
@@ -78,8 +77,8 @@ function Feature({
             {description}
           </motion.p>
           <motion.div variants={itemVariants}>
-            <Link
-              href="#cta"
+            <a
+              href={siteConfig.ctaHref}
               className={cn(
                 buttonVariants({ variant: "default", size: "lg" }),
                 "text-white rounded-full group text-lg",
@@ -87,7 +86,7 @@ function Feature({
               )}
             >
               {siteConfig.cta}
-            </Link>
+            </a>
           </motion.div>
         </div>
       </motion.div>

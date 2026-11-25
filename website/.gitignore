@@ -38,3 +38,6 @@ next-env.d.ts
 
 # the app, built from ../app
 /public/app/
+
+# the app to download: too large for git
+/public/download/

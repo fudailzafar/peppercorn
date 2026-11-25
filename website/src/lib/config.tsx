@@ -7,6 +7,8 @@ import {
   WalletIcon,
 } from "lucide-react";
 
+import { download } from "@/lib/release";
+
 export const BLUR_FADE_DELAY = 0.15;
 
 export const siteConfig = {
@@ -14,7 +16,8 @@ export const siteConfig = {
   description: "Know where your money goes.",
   tagline:
     "A simple money tracker for Android. Add what you spend in seconds, stay on budget, and see what your gold, silver and funds are worth today.",
-  cta: "Coming to the Play Store",
+  cta: download ? "Download for Android" : "Coming soon for Android",
+  ctaHref: download?.href ?? "#cta",
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   keywords: [
     "Budget app",
@@ -151,7 +154,7 @@ export const siteConfig = {
     {
       name: "Peppercorn",
       price: "₹0",
-      period: "at launch",
+      period: "for everything",
       features: [
         "Unlimited entries and categories",
         "Budgets and insights",
@@ -165,23 +168,37 @@ export const siteConfig = {
     {
       name: "With your Google account",
       price: "₹0",
-      period: "at launch",
+      period: "for everything",
       features: [
         "Everything in Peppercorn",
         "Saved to your own Google Drive",
         "Comes back when you sign in again",
         "Delete it from the app whenever you like",
       ],
-      description: "Optional, and planned for the Play Store version",
+      description: "Optional, and planned for a later version",
     },
   ],
   faqs: [
     {
-      question: "When can I get Peppercorn?",
-      answer: (
+      question: "How do I install it?",
+      answer: download ? (
         <span>
-          Peppercorn is being prepared for the Google Play Store. It isn’t
-          available to download yet, but you can{" "}
+          <a
+            href={download.href}
+            download
+            className="text-primary underline underline-offset-4"
+          >
+            Download the file
+          </a>{" "}
+          on your Android phone and open it. If your phone asks, allow your
+          browser to install apps. Play Protect may offer to scan it first,
+          which is fine. Peppercorn isn’t on the Play Store, so come back here
+          for new versions. Install them over the old one and your entries
+          stay.
+        </span>
+      ) : (
+        <span>
+          The Android app isn’t ready to download yet, but you can{" "}
           <a href="/app" className="text-primary underline underline-offset-4">
             try it in your browser
           </a>
@@ -193,7 +210,7 @@ export const siteConfig = {
       question: "Is it free?",
       answer: (
         <span>
-          Yes. Peppercorn will be free when it launches, with no ads.
+          Yes, with no ads.
         </span>
       ),
     },
@@ -201,8 +218,8 @@ export const siteConfig = {
       question: "Do I need an account?",
       answer: (
         <span>
-          No. You can use everything without one. Signing in with Google will
-          be optional, only to keep a copy in your own Google Drive.
+          No. You can use everything without one. Signing in with Google is
+          planned, and will be optional, only to keep a copy in your own Google Drive.
         </span>
       ),
     },

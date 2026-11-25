@@ -32,15 +32,15 @@ export function MobileDrawer() {
           </div>
         </DrawerHeader>
         <DrawerFooter>
-          <Link
-            href="#cta"
+          <a
+            href={siteConfig.ctaHref}
             className={cn(
               buttonVariants({ variant: "default" }),
               "text-white rounded-full group"
             )}
           >
             {siteConfig.cta}
-          </Link>
+          </a>
         </DrawerFooter>
       </DrawerContent>
     </Drawer>

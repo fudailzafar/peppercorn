@@ -1,6 +1,6 @@
 import Marquee from "@/components/ui/marquee";
 import { Icons } from "@/components/icons";
-import { StoreBadge, TryIt } from "@/components/store-badge";
+import { DownloadBadge, TryIt } from "@/components/download";
 import { cn } from "@/lib/utils";
 
 /** Sample entries, as Peppercorn shows them. */
@@ -105,8 +105,8 @@ export function CTA() {
               <h2 className="text-3xl font-bold lg:text-4xl">
                 Know where your money goes.
               </h2>
-              <p className="mt-2">Free at launch. No account, no ads.</p>
-              <StoreBadge className="mt-4" />
+              <p className="mt-2">Free. No account, no ads.</p>
+              <DownloadBadge className="mt-4" />
               <TryIt className="mt-4" />
             </div>
             <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-b from-transparent to-white to-70% dark:to-black" />

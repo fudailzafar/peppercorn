@@ -1,26 +1,37 @@
 # Releasing
 
-## Google Play
+Peppercorn isn't on Google Play: its closed test needs 12 people for 14 days. People download an APK from the website.
 
-Builds are made on Expo's servers (`eas.json`), from `app`:
+## A new version
 
-```bash
-npx eas-cli@latest build --platform android --profile preview      # an APK to try
-npx eas-cli@latest build --platform android --profile production   # for Google Play
-npx eas-cli@latest submit --platform android --profile production  # to the internal track
-```
+1. Raise `version` in `app.json` (people see it, and it names the file). Commit and push.
+2. Build it on GitHub: `gh workflow run apk.yml --ref rewrite`. It takes about half an hour, signs the APK, and tries it on an
+   emulator (`scripts/try-apk.py`): an entry has to survive the app being stopped. Look at its pictures (`try`).
+3. `gh run download -n peppercorn-apk`, install it over the old one on a real phone, and check what `testing.md` says.
+4. `sh scripts/publish-apk.sh <file.apk>`, commit `website/src/lib/release.json`, and deploy with `sh ../deploy.sh`.
 
-Nothing has been built yet. Before the first one, by the owner: an Expo account, and `eas init` (it adds the project's id
-to `app.json`). Before Google Play:
+The APK is for real phones (arm64 and armv7). It is kept out of git, in `website/public/download`. The version code is the
+number of the build, so never replace `apk.yml` by a workflow of another name: its count would begin again, and phones
+refuse a lower one.
 
-1. Google sign-in: a Google Cloud project with the `drive.appdata` scope, an Android and a web client, and the web client's
-   ID in `app.json` (`extra.googleWebClientId`). Until then signing in says it isn't available.
-2. A privacy policy with its own address, and the Data safety form: `data.md` has the facts.
-3. A closed test with 12 people for 14 days, as it is a personal account.
-4. The listing. Its pictures are in `store/play`.
+## The signing key
 
-`package` (`app.peppercorn.money`) can never change after the first upload. `version` in `app.json` is what people see;
-Expo counts the version code.
+Every version has to be signed with the same key, or phones refuse it as an update and people would have to uninstall,
+which deletes their entries. It is in the repository's secrets (`ANDROID_KEYSTORE`, base64, and
+`ANDROID_KEYSTORE_PASSWORD`), which can't be read back, and the owner has the file. Never in git.
+
+`package` (`app.peppercorn.money`) can never change either, for the same reason.
+
+## Google's rules for apps outside the Play Store
+
+From 2027, certified Android phones ask for the developer to be verified and the app registered (package name and
+key). Elsewhere people can still install it after a longer setup of their own. Registering can be done in the Play Console,
+also for apps that aren't on Play. https://developer.android.com/developer-verification
+
+## Before signing in with Google can work
+
+A Google Cloud project with the `drive.appdata` scope, an Android client (package and the key's SHA-1) and a web client, and
+the web client's ID in `app.json` (`extra.googleWebClientId`). Until then signing in says it isn't available.
 
 ## The website and browser version
 
@@ -28,6 +39,7 @@ Expo counts the version code.
 sh ../deploy.sh
 ```
 
-This builds both and deploys them to the Vercel project `peppercorn-website`. `WEB_BASE=/app` is set for that build only
-(`scripts/build-web.sh`, `app.config.js`), so phone builds know nothing of it. Afterwards open `/`, `/app`, and a page inside
+This builds both and deploys them, with the APK, to the Vercel project `peppercorn-website`. `WEB_BASE=/app` is set for that build only
+(`scripts/build-web.sh`, `app.config.js`), so phone builds know nothing of it. Vercel's free plan
+takes 100 MB in one upload and is for things that don't earn money: move the download elsewhere before either changes. Afterwards open `/`, `/app`, and a page inside
 it by its address.

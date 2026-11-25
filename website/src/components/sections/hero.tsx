@@ -1,7 +1,7 @@
 "use client";
 
 import { Icons } from "@/components/icons";
-import { StoreBadge, TryIt } from "@/components/store-badge";
+import { DownloadBadge, TryIt } from "@/components/download";
 import { Section } from "@/components/section";
 import { easeInOutCubic } from "@/lib/animation";
 import { siteConfig } from "@/lib/config";
@@ -69,7 +69,7 @@ export function Hero() {
               transition={{ duration: 1, delay: 1 }}
               className="flex flex-col items-center"
             >
-              <StoreBadge />
+              <DownloadBadge />
               <TryIt className="mt-4" />
             </motion.div>
           </div>
