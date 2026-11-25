@@ -34,7 +34,8 @@ def screen():
 
 
 def find(words):
-    for node in screen():
+    # The last is on top: the page below an entry is still there.
+    for node in reversed(screen()):
         if words in (node.get('text'), node.get('content-desc')):
             return [int(n) for n in re.findall(r'\d+', node.get('bounds'))]
     return None
