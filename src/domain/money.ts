@@ -5,8 +5,8 @@ import { CURRENCIES, SYMBOLS } from './currencies';
 const LAKHS = new Set(['INR', 'PKR', 'BDT', 'NPR', 'LKR']);
 const RIGHT_TO_LEFT = /[\u0590-\u08FF\uFB50-\uFDFF]/;
 
-/** Without the dust that adding decimals leaves (0.1 + 0.2 is a hair over 0.3), which could tip a budget over by nothing. */
-export const exact = (n: number): number => (Math.abs(n) < 1e13 ? Math.round((n + Math.sign(n) * 1e-9) * 100) / 100 : n);
+/** Without the dust that adding decimals leaves (0.1 + 0.2 is a hair over 0.3), which could tip a budget over by nothing. Never minus zero. */
+export const exact = (n: number): number => (Math.abs(n) < 1e13 ? Math.round((n + Math.sign(n) * 1e-9) * 100) / 100 + 0 : n);
 
 export const sum = <T>(list: readonly T[], of: (item: T) => number): number => exact(list.reduce((all, item) => all + of(item), 0));
 
