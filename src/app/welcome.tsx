@@ -1,3 +1,4 @@
+import { Redirect } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, BackHandler, FlatList, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,10 +7,9 @@ import { GoogleButton, problemText } from '../components/Account';
 import { LogoMark, Logotype } from '../components/Logo';
 import { Button } from '../components/material';
 import { AddPreview, AssetsPreview, BudgetPreview, InsightsPreview } from '../components/OnboardingPreviews';
-import { continueWithoutAccount, signIn } from '../lib/account';
-import { Haptics } from '../lib/haptics';
-import { goBack } from '../lib/nav';
-import { useStore, useUi } from '../lib/store';
+import { account, messages, store } from '../data/app';
+import { useSettings } from '../data/hooks';
+import { haptics } from '../hooks/haptics';
 import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 
@@ -36,15 +36,13 @@ export default function Welcome() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const update = useStore((s) => s.updateSettings);
-  const showToast = useUi((s) => s.showToast);
   const list = useRef<FlatList>(null);
   const [width, setWidth] = useState(Math.min(window.width, 480));
   const [scrollX] = useState(() => new Animated.Value(0));
   const [page, setPage] = useState(0);
 
   const goTo = (next: number) => {
-    Haptics.selection();
+    haptics.select();
     list.current?.scrollToOffset({ offset: next * width, animated: true });
     setPage(next);
   };
@@ -64,25 +62,36 @@ export default function Welcome() {
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(Math.max(0, Math.min(LAST, Math.round(e.nativeEvent.contentOffset.x / width))));
 
   const enter = () => {
-    Haptics.light();
-    void continueWithoutAccount();
-    update({ welcomed: true });
+    haptics.tap();
+    void account.continueWithout();
+    store.set({ welcomed: true });
   };
 
   const withGoogle = async () => {
-    Haptics.selection();
-    const problem = await signIn();
-    if (problem && problem !== 'cancelled') showToast({ title: problemText(problem), icon: 'alert-circle', tone: 'error' });
+    haptics.select();
+    const problem = await account.signIn();
+    if (problem && problem !== 'cancelled') messages.warn(problemText(problem));
   };
 
   // Both ways in set this, also when it takes choosing between saved data and this phone's first.
-  const welcomed = useStore((s) => s.settings.welcomed);
-  const [arrivedNew] = useState(!welcomed);
-  useEffect(() => {
-    if (arrivedNew && welcomed) goBack();
-  }, [arrivedNew, welcomed]);
+  const { welcomed } = useSettings();
+  if (welcomed) return <Redirect href="/" />;
 
   const last = page === LAST;
+
+  const picture = ({ item }: { item: (typeof PAGES)[number] }) => (
+    <View style={{ width, height: '100%', paddingHorizontal: 16 }}>
+      <item.Preview />
+      <View style={styles.copy}>
+        <AppText variant="headlineMedium" accessibilityRole="header" style={{ textAlign: 'center' }}>
+          {item.title}
+        </AppText>
+        <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
+          {item.text}
+        </AppText>
+      </View>
+    </View>
+  );
 
   return (
     <View
@@ -113,19 +122,7 @@ export default function Welcome() {
         // A horizontal list doesn't stretch its pages by itself.
         contentContainerStyle={{ height: '100%' }}
         CellRendererComponent={Page}
-        renderItem={({ item }) => (
-          <View style={{ width, height: '100%', paddingHorizontal: 16 }}>
-            <item.Preview />
-            <View style={styles.copy}>
-              <AppText variant="headlineMedium" accessibilityRole="header" style={{ textAlign: 'center' }}>
-                {item.title}
-              </AppText>
-              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ textAlign: 'center' }}>
-                {item.text}
-              </AppText>
-            </View>
-          </View>
-        )}
+        renderItem={picture}
       />
 
       {/* Page indicator: the current dot is a pill in the primary colour. */}

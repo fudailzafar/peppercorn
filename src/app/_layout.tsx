@@ -1,90 +1,99 @@
 import { GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold, useFonts } from '@expo-google-fonts/google-sans';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useEffect, useSyncExternalStore } from 'react';
-import { AppState, Platform } from 'react-native';
 import { AccountChoice } from '../components/Account';
-import { ToastHost } from '../components/Overlays';
-import { startSaving } from '../lib/account';
-import { refreshPrices } from '../lib/prices';
-import { useStore } from '../lib/store';
+import { Empty } from '../components/Empty';
+import { Button } from '../components/material';
+import { Snackbar } from '../components/Snackbar';
+import { messages, startApp, store } from '../data/app';
+import { useAppState } from '../data/hooks';
 import { useTheme } from '../theme/theme';
 
-function useHydrated() {
-  return useSyncExternalStore(
-    (onChange) => useStore.persist.onFinishHydration(onChange),
-    () => useStore.persist.hasHydrated(),
-    () => false,
-  );
-}
+/** Says it again this often while nothing can be saved. */
+const REMIND = 8000;
 
+/** The whole app: its data is opened first, then its pages. */
 export default function RootLayout() {
-  const hydrated = useHydrated();
-  const [fontsLoaded, fontError] = useFonts({ GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold });
   const { m3, dark } = useTheme();
+  const [fonts, fontError] = useFonts({ GoogleSans_400Regular, GoogleSans_500Medium, GoogleSans_700Bold });
+  const status = useAppState((s) => s.status);
 
-  // Once the saved data is loaded: create default categories on first run, then
-  // log any recurring transactions that came due and roll budget periods forward.
-  useEffect(() => {
-    if (!hydrated) return;
-    const { seedDefaults, runRecurring, rollBudgets } = useStore.getState();
-    seedDefaults();
-    runRecurring();
-    rollBudgets();
-    void refreshPrices();
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        useStore.getState().runRecurring();
-        useStore.getState().rollBudgets();
-        void refreshPrices();
-      }
-    });
-    const stopSaving = startSaving();
-    return () => {
-      sub.remove();
-      stopSaving();
-    };
-  }, [hydrated]);
+  useEffect(startApp, []);
+  useBadNews();
+  useBrowser(m3.surface, dark);
 
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    // Keep the browser chrome and page background in step with the app's theme (system or manual).
-    document.documentElement.style.backgroundColor = m3.surface;
-    document.body.style.backgroundColor = m3.surface;
-    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', m3.surface));
-  }, [m3.surface, dark]);
+  if (status === 'loading' || (!fonts && !fontError)) return <View style={[styles.fill, { backgroundColor: m3.surface }]} />;
 
-  if (!hydrated || (!fontsLoaded && !fontError)) return null;
-
+  const overlay = { presentation: 'transparentModal', contentStyle: styles.clear } as const;
   return (
-    <GestureHandlerRootView style={webFrame(m3.surface)}>
+    <GestureHandlerRootView style={[styles.fill, styles.phone, { backgroundColor: m3.surface }]}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: m3.surface },
-          // Pages switch instantly.
-          animation: 'none',
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="transaction" options={{ presentation: 'transparentModal', animation: 'none', contentStyle: { backgroundColor: 'transparent' } }} />
-        <Stack.Screen name="search" options={{ presentation: 'fullScreenModal', animation: 'none' }} />
-        <Stack.Screen name="new-budget" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="category-edit" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="welcome" options={{ presentation: 'fullScreenModal', animation: 'none' }} />
-      </Stack>
+      {status === 'locked' ? (
+        <Locked />
+      ) : (
+        <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: m3.surface } }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="entry" options={overlay} />
+          <Stack.Screen name="edit-budget" options={overlay} />
+          <Stack.Screen name="edit-category" options={overlay} />
+          <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+        </Stack>
+      )}
       <AccountChoice />
-      <ToastHost />
+      <Snackbar />
     </GestureHandlerRootView>
   );
 }
 
-/** On desktop browsers keep the app a phone-width column instead of stretching edge to edge. */
-function webFrame(background: string) {
-  // On native too: without a background the window's own white shows through between screens in dark mode.
-  if (Platform.OS !== 'web') return { flex: 1, backgroundColor: background } as const;
-  return { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: background } as const;
+/** In place of the app while its data can't be opened: carrying on without it would write over it. */
+function Locked() {
+  const retry = async () => {
+    if (!(await store.open())) messages.warn('Still couldn’t open it.');
+  };
+  return (
+    <View style={[styles.fill, styles.centred]}>
+      <Empty icon="alert-circle" title="Couldn’t open your data" text="It’s still on this phone, and nothing has been changed. Try again, or restart your phone.">
+        <Button label="Try again" onPress={retry} />
+      </Empty>
+    </View>
+  );
 }
+
+/** What has to be said about the data on this phone, for as long as it's true. */
+function useBadNews() {
+  const unsaved = useAppState((s) => s.unsaved);
+  const recovered = useAppState((s) => s.recovered);
+  useEffect(() => {
+    if (recovered) messages.warn('Your saved data couldn’t be read. A copy was kept on this phone.');
+  }, [recovered]);
+  useEffect(() => {
+    if (!unsaved) return;
+    const say = () => messages.warn('Couldn’t save on this phone. Free up some space.');
+    say();
+    const timer = setInterval(say, REMIND);
+    return () => clearInterval(timer);
+  }, [unsaved]);
+}
+
+/** On the web, what is around the app has its colours too. */
+function useBrowser(colour: string, dark: boolean) {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const page = document.documentElement;
+    page.style.colorScheme = dark ? 'dark' : 'light';
+    page.style.backgroundColor = colour;
+    document.body.style.backgroundColor = colour;
+    for (const tag of document.querySelectorAll('meta[name="theme-color"]')) tag.setAttribute('content', colour);
+  }, [colour, dark]);
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  centred: { justifyContent: 'center' },
+  clear: { backgroundColor: 'transparent' },
+  // A phone's width on a wide screen.
+  phone: Platform.OS === 'web' ? { width: '100%', maxWidth: 480, alignSelf: 'center' } : {},
+});

@@ -1,26 +1,25 @@
-import { Tabs } from 'expo-router';
-import { View } from 'react-native';
+import { Redirect, Tabs } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 import { Fab } from '../../components/Fab';
-import { AppTabBar } from '../../components/TabBar';
+import { TabBar, TABS } from '../../components/TabBar';
+import { useSettings } from '../../data/hooks';
 
-// Open on the Home tab.
 export const unstable_settings = { anchor: 'index' };
 
-export default function TabLayout() {
+/** The five tabs, with the add button over them. Back leads to Home first. */
+export default function TabsLayout() {
+  const { welcomed } = useSettings();
+  if (!welcomed) return <Redirect href="/welcome" />;
   return (
-    <View style={{ flex: 1 }}>
-    <Tabs backBehavior="initialRoute" screenOptions={{
-        headerShown: false,
-        // Tabs switch instantly, like most apps.
-        animation: 'none',
-      }} tabBar={(props) => <AppTabBar {...props} />}>
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="insights" options={{ title: 'Insights' }} />
-      <Tabs.Screen name="portfolio" options={{ title: 'Assets' }} />
-      <Tabs.Screen name="budget" options={{ title: 'Budget' }} />
-      <Tabs.Screen name="settings" options={{ title: 'You' }} />
-    </Tabs>
-    <Fab />
+    <View style={styles.fill}>
+      <Tabs backBehavior="initialRoute" screenOptions={{ headerShown: false, animation: 'none' }} tabBar={(props) => <TabBar {...props} />}>
+        {Object.entries(TABS).map(([name, { label }]) => (
+          <Tabs.Screen key={name} name={name} options={{ title: label }} />
+        ))}
+      </Tabs>
+      <Fab />
     </View>
   );
 }
+
+const styles = StyleSheet.create({ fill: { flex: 1 } });

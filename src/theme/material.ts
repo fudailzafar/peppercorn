@@ -18,7 +18,7 @@ export interface M3Roles {
   onError: string;
   errorContainer: string;
   onErrorContainer: string;
-  /** Income, kept as Dime's green. */
+  /** Income. */
   success: string;
   successContainer: string;
   /** Spending ahead of the time elapsed, but not over budget yet. */

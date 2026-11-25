@@ -4,8 +4,8 @@ import { Icon, type IconName } from './Icon';
 import { scheduleOnRN } from 'react-native-worklets';
 import Animated, { Easing, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { m3Duration, m3Easing, radius, shape, stateLayer, typeScale } from '../theme/material';
-import { useKeyboardLift } from '../lib/useKeyboardLift';
-import { useTheme, withAlpha } from '../theme/theme';
+import { useKeyboardLift } from '../hooks/useKeyboardLift';
+import { FONTS, useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
 
 /** Material 3 building blocks used across the app. Reference: https://m3.material.io/components */
@@ -69,6 +69,7 @@ function Segment({ label, selected, divider, onPress, fullWidth }: { label: stri
       accessibilityRole="button"
       accessibilityState={{ selected }}
       android_ripple={{ color: `${m3.onSurface}1F` }}
+      hitSlop={4}
       style={[styles.segment, fullWidth && { flex: 1, width: undefined }, divider && { borderLeftWidth: 1, borderLeftColor: m3.outline }]}
     >
       {({ pressed }) => (
@@ -137,7 +138,7 @@ export function SearchBar({
         style={[styles.searchInput, { color: m3.onSurface }]}
       />
       {value ? (
-        <Pressable onPress={() => onChangeText('')} accessibilityLabel="Clear" style={styles.touch}>
+        <Pressable onPress={() => onChangeText('')} accessibilityRole="button" accessibilityLabel="Clear" style={styles.touch}>
           <Icon name="close" size={24} color={m3.onSurfaceVariant} />
         </Pressable>
       ) : null}
@@ -220,7 +221,7 @@ export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { v
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: withAlpha(m3.scrim, 0.32) }, scrimStyle]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Dismiss" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Dismiss" />
       </Animated.View>
       <Animated.View onLayout={onLayout} style={[styles.sheetWrap, raiseStyle]} pointerEvents="box-none">
         <Animated.View style={[styles.sheet, { backgroundColor: m3.surfaceContainerLow, paddingBottom: Math.max(bottomInset, 16) + 8 }, sheetStyle]}>
@@ -234,8 +235,8 @@ export function BottomSheet({ visible, onClose, children, bottomInset = 0 }: { v
 
 // MARK: Switch
 
-/** M3 switch: 52x32 track; a small outlined thumb when off, a larger one with a check when on. */
-export function M3Switch({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+/** M3 switch: 52x32 track; a small outlined thumb when off, a larger one with a check when on. Its row is what's tapped. */
+export function M3Switch({ value }: { value: boolean }) {
   const { m3 } = useTheme();
   const p = useSharedValue(value ? 1 : 0);
   useEffect(() => {
@@ -254,15 +255,13 @@ export function M3Switch({ value, onChange }: { value: boolean; onChange: (v: bo
   });
   const check = useAnimatedStyle(() => ({ opacity: p.get() }));
   return (
-    <Pressable onPress={() => onChange(!value)} hitSlop={8} accessibilityRole="switch" accessibilityState={{ checked: value }}>
-      <Animated.View style={[styles.switchTrack, track]}>
-        <Animated.View style={[styles.switchThumb, thumb]}>
-          <Animated.View style={check}>
-            <Icon name="checkmark" size={16} color={m3.primary} />
-          </Animated.View>
+    <Animated.View style={[styles.switchTrack, track]} aria-hidden>
+      <Animated.View style={[styles.switchThumb, thumb]}>
+        <Animated.View style={check}>
+          <Icon name="checkmark" size={16} color={m3.primary} />
         </Animated.View>
       </Animated.View>
-    </Pressable>
+    </Animated.View>
   );
 }
 
@@ -322,7 +321,7 @@ export function OutlinedField({ label, value, onFocus, onBlur, inputRef, width =
       {/* The floating label sits on the outline, with a surface-coloured plate that "cuts" the border. */}
       <Animated.View pointerEvents="none" style={[styles.fieldLabel, labelStyle]}>
         <View style={[styles.labelPlate, { backgroundColor: raised ? m3.surface : 'transparent' }]}>
-          <Animated.Text style={[{ fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking }, labelColor]}>{label}</Animated.Text>
+          <Animated.Text style={[{ fontFamily: FONTS.regular, fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking }, labelColor]}>{label}</Animated.Text>
         </View>
       </Animated.View>
     </View>
@@ -334,7 +333,7 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: shape.extraLarge, borderTopRightRadius: shape.extraLarge, paddingHorizontal: 24, paddingTop: 12 },
   handle: { width: 32, height: 4, borderRadius: 2, alignSelf: 'center', opacity: 0.4, marginBottom: 16 },
   searchBar: { height: SEARCH_HEIGHT, flexDirection: 'row', alignItems: 'center', borderRadius: shape.full, marginLeft: 16, overflow: 'hidden' },
-  searchInput: { flex: 1, fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, height: SEARCH_HEIGHT, paddingVertical: 0, paddingHorizontal: 0, includeFontPadding: false, textAlignVertical: 'center', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  searchInput: { flex: 1, fontFamily: FONTS.regular, fontSize: typeScale.bodyLarge.size, height: SEARCH_HEIGHT, paddingVertical: 0, paddingHorizontal: 0, includeFontPadding: false, textAlignVertical: 'center', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   switchTrack: { width: 52, height: 32, borderRadius: 16, borderWidth: 2, justifyContent: 'center' },
   switchThumb: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   touch: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
@@ -342,10 +341,10 @@ const styles = StyleSheet.create({
   segmented: { flexDirection: 'row', height: 40, borderWidth: 1, borderRadius: shape.full, overflow: 'hidden' },
   segment: { width: 108, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
   pillField: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, borderRadius: radius.action, borderWidth: 2 },
-  pillInput: { flex: 1, height: 52, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center', fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  pillInput: { flex: 1, height: 52, paddingVertical: 0, includeFontPadding: false, textAlignVertical: 'center', fontFamily: FONTS.regular, fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   field: { height: 52, justifyContent: 'center', paddingHorizontal: 14 },
   outline: { borderRadius: radius.field },
-  fieldInput: { fontFamily: 'GoogleSans_400Regular', fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, paddingVertical: 0, flex: 1, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
+  fieldInput: { fontFamily: FONTS.regular, fontSize: typeScale.bodyLarge.size, letterSpacing: typeScale.bodyLarge.tracking, paddingVertical: 0, flex: 1, backgroundColor: 'transparent', outlineWidth: 0, outlineColor: 'transparent', boxShadow: 'none' },
   fieldLabel: { position: 'absolute', left: 12, top: 13 },
   labelPlate: { paddingHorizontal: 4 },
 });

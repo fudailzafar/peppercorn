@@ -1,61 +1,56 @@
-import { router } from 'expo-router';
 import { View } from 'react-native';
 import { Icon } from '../components/Icon';
 import { EmojiAvatar, IconAvatar, IconButton, ListItem, Subheader } from '../components/material';
-import { PageScaffold } from '../components/SettingsBits';
-import { Haptics } from '../lib/haptics';
-import { useStore } from '../lib/store';
+import { Page } from '../components/Page';
+import { store } from '../data/app';
+import { useData } from '../data/hooks';
+import { ownCategories } from '../domain/entries';
+import type { Category } from '../domain/model';
+import { haptics } from '../hooks/haptics';
+import { openPage } from '../hooks/nav';
 import { useTheme } from '../theme/theme';
 
-/** Every category as a list: tap to edit, arrows to reorder. The asset categories are fixed. */
+/** Every category: tap to edit, arrows to reorder. The ones behind the assets are fixed. */
 export default function Categories() {
-  const categories = useStore((s) => s.categories);
-  const reorder = useStore((s) => s.reorderCategories);
   const { m3 } = useTheme();
-
-  const section = (income: boolean) => {
-    const list = categories.filter((x) => x.income === income && !x.asset).sort((a, b) => a.order - b.order);
-    const move = (index: number, delta: number) => {
-      const ids = list.map((x) => x.id);
-      const target = index + delta;
-      if (target < 0 || target >= ids.length) return;
-      [ids[index], ids[target]] = [ids[target], ids[index]];
-      Haptics.selection();
-      reorder(income, ids);
-    };
-    return (
-      <View>
-        <Subheader text={income ? 'Income' : 'Expense'} />
-        {list.map((cat, i) => (
-          <ListItem
-            key={cat.id}
-            headline={cat.name}
-            accessibilityLabel={`Edit ${cat.name}`}
-            leading={<EmojiAvatar emoji={cat.emoji} colour={cat.colour} />}
-            onPress={() => router.push({ pathname: '/category-edit', params: { id: cat.id } })}
-            actions={
-              <View style={{ flexDirection: 'row' }}>
-                <IconButton icon="chevron-up" onPress={() => move(i, -1)} disabled={i === 0} label={`Move ${cat.name} up`} />
-                <IconButton icon="chevron-down" onPress={() => move(i, 1)} disabled={i === list.length - 1} label={`Move ${cat.name} down`} />
-              </View>
-            }
-          />
-        ))}
-        <ListItem headline="New category" leading={<IconAvatar icon="add" />} onPress={() => router.push({ pathname: '/category-edit', params: { income: income ? '1' : '0' } })} />
-      </View>
-    );
-  };
-
+  const data = useData();
   return (
-    <PageScaffold title="Categories">
-      {section(false)}
-      {section(true)}
+    <Page title="Categories">
+      <Kind title="Expense" income={false} list={ownCategories(data, false)} />
+      <Kind title="Income" income list={ownCategories(data, true)} />
       <Subheader text="Assets (fixed)" />
-      {categories
-        .filter((x) => x.asset)
-        .map((cat) => (
-          <ListItem key={cat.id} headline={cat.name} leading={<EmojiAvatar emoji={cat.emoji} colour={cat.colour} />} trailing={<Icon name="lock" size={24} color={m3.onSurfaceVariant} />} />
+      {data.categories
+        .filter((c) => c.asset)
+        .map((c) => (
+          <ListItem key={c.id} headline={c.name} leading={<EmojiAvatar emoji={c.emoji} colour={c.colour} />} trailing={<Icon name="lock" color={m3.onSurfaceVariant} />} />
         ))}
-    </PageScaffold>
+    </Page>
+  );
+}
+
+function Kind({ title, income, list }: { title: string; income: boolean; list: readonly Category[] }) {
+  const move = (c: Category, by: number) => {
+    haptics.select();
+    store.moveCategory(c.id, by);
+  };
+  return (
+    <>
+      <Subheader text={title} />
+      {list.map((c, i) => (
+        <ListItem
+          key={c.id}
+          headline={c.name}
+          leading={<EmojiAvatar emoji={c.emoji} colour={c.colour} />}
+          onPress={() => openPage({ pathname: '/edit-category', params: { id: c.id } })}
+          actions={
+            <View style={{ flexDirection: 'row' }}>
+              <IconButton icon="chevron-up" label={`Move ${c.name} up`} disabled={i === 0} onPress={() => move(c, -1)} />
+              <IconButton icon="chevron-down" label={`Move ${c.name} down`} disabled={i === list.length - 1} onPress={() => move(c, 1)} />
+            </View>
+          }
+        />
+      ))}
+      <ListItem headline="New category" leading={<IconAvatar icon="add" />} onPress={() => openPage({ pathname: '/edit-category', params: income ? { income: '1' } : {} })} />
+    </>
   );
 }

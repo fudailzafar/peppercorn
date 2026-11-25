@@ -1,27 +1,20 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Icon } from './Icon';
-import { currencySymbol, fmtSmart } from '../lib/format';
-import type { CategoryLine } from '../lib/insights';
-import { useStore } from '../lib/store';
+import { useMoney } from '../data/hooks';
+import type { CategoryLine, Compared } from '../domain/insights';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
 import { EmojiAvatar } from './material/List';
 import { LinearProgress } from './material/Progress';
 import { StateLayer } from './m3';
 
-/** Money the way Insights writes it: the symbol, and cents only on small amounts. */
-export function useMoney(): (n: number) => string {
-  const settings = useStore((s) => s.settings);
-  return (n) => `${currencySymbol(settings.currency)}${fmtSmart(Math.abs(n), settings.showCents)}`;
-}
-
 /**
  * How this compares, in words with an icon. Spending less (or earning more) is green; the other way stays neutral:
  * it is information, not a telling-off.
  */
-export function Comparison({ now, before, income, against }: { now: number; before: number; income: boolean; against: string }) {
+export function Comparison({ now, before, income, against }: Compared & { income: boolean; against: string }) {
   const { m3 } = useTheme();
-  const money = useMoney();
+  const { brief: money } = useMoney();
   if (before <= 0) {
     return (
       <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
@@ -46,7 +39,7 @@ export function Comparison({ now, before, income, against }: { now: number; befo
 /** A category with its bar, drawn against the biggest one so lengths can be compared down the list. */
 export function CategoryRow({ line, biggest, compare, income, onPress }: { line: CategoryLine; biggest: number; compare: boolean; income: boolean; onPress: () => void }) {
   const { m3 } = useTheme();
-  const money = useMoney();
+  const { brief: money } = useMoney();
   const change = line.amount - line.before;
   const note = !compare ? '' : line.before <= 0 ? ' · new' : Math.abs(change) < line.before * 0.01 ? ' · about the same' : ` · ${money(change)} ${change > 0 ? 'more' : 'less'}`;
   const percent = Math.round(line.share * 100);

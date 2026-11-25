@@ -1,188 +1,187 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { Avatar } from '../../components/Avatar';
-import { BigAmount } from '../../components/Bits';
-import { useDeleteFlow } from '../../components/DeleteFlow';
+import { BigAmount } from '../../components/BigAmount';
+import { EntryRow } from '../../components/EntryRow';
 import { Icon, type IconName } from '../../components/Icon';
-import { Button, Card, LinearProgress, SEARCH_HEIGHT, StateLayer } from '../../components/material';
-import { TransactionRow } from '../../components/TransactionRow';
-import { budgetPace, budgetProgress, mainBudgetSpent, totalsSince } from '../../lib/calc';
-import { startOfCustomMonth } from '../../lib/dates';
-import { currencySymbol, fmtSmart } from '../../lib/format';
-import { Haptics } from '../../lib/haptics';
-import { useStore } from '../../lib/store';
-import { BUDGET_LABELS } from '../../lib/types';
-import { useFabScroll } from '../../lib/useFabScroll';
-import { useNow } from '../../lib/useNow';
+import { Button, Card, IconAvatar, LinearProgress, SEARCH_HEIGHT } from '../../components/material';
+import { Touch } from '../../components/Touch';
+import { useData, useMoney, useNow } from '../../data/hooks';
+import { overallOf, progress } from '../../domain/budgets';
+import { monthStart, toDay } from '../../domain/dates';
+import { newestFirst, since, totals } from '../../domain/entries';
+import { haptics } from '../../hooks/haptics';
+import { openPage } from '../../hooks/nav';
+import { useDeleter } from '../../hooks/useDeleter';
+import { useFabScroll } from '../../hooks/useFabScroll';
 import { shape } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
+/** Home's latest entries. */
 const RECENT = 6;
 
-/** Home: search, this month at a glance, four shortcuts, and the latest entries. */
-export default function HomeScreen() {
+/** Search, this month at a glance, four shortcuts, and the latest entries. */
+export default function Home() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
-  const fabScroll = useFabScroll();
-  const transactions = useStore((s) => s.transactions);
-  const mainBudget = useStore((s) => s.mainBudget);
-  const settings = useStore((s) => s.settings);
+  const data = useData();
   const now = useNow();
-  const { ask, remove, element } = useDeleteFlow();
-
-  // First launch: show the welcome screen.
-  useEffect(() => {
-    if (!settings.welcomed) router.push('/welcome');
-  }, [settings.welcomed]);
-
-  const month = useMemo(() => totalsSince(transactions, startOfCustomMonth(new Date(now), settings.firstDayOfMonth)), [transactions, settings.firstDayOfMonth, now]);
-  const recent = useMemo(() => [...transactions].sort((a, b) => b.date - a.date).slice(0, RECENT), [transactions]);
-
-  const sym = currencySymbol(settings.currency);
-  const money = (n: number) => `${sym}${fmtSmart(Math.abs(n), settings.showCents)}`;
-  const budget = mainBudget ? budgetProgress(mainBudget, mainBudgetSpent(mainBudget, transactions)) : null;
-
-  const shortcuts: { icon: IconName; label: string; go: () => void }[] = [
-    { icon: 'expense', label: 'Add\nexpense', go: () => router.push('/transaction') },
-    settings.incomeTracking
-      ? { icon: 'income', label: 'Add\nincome', go: () => router.push({ pathname: '/transaction', params: { income: '1' } }) }
-      : { icon: 'wallet', label: 'New\nbudget', go: () => router.push('/new-budget') },
-    { icon: 'history', label: 'See\nhistory', go: () => router.push('/history') },
-    { icon: 'grid', label: 'Edit\ncategories', go: () => router.push('/categories') },
-  ];
+  const scroll = useFabScroll();
+  const { deleter, question } = useDeleter();
+  const recent = useMemo(() => newestFirst(data.entries).slice(0, RECENT), [data.entries]);
+  const { income, name } = data.settings;
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        {/* Search and profile */}
-        <View style={styles.searchRow}>
-          <Pressable
-            onPress={() => router.push('/search')}
-            accessibilityRole="search"
-            accessibilityLabel="Search entries"
-            android_ripple={{ color: `${m3.onSurface}1F` }}
-            style={[styles.search, { backgroundColor: m3.surfaceContainerHigh }]}
-          >
+    <View style={[styles.fill, { backgroundColor: m3.surface }]}>
+      <ScrollView {...scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 160 }}>
+        <View style={styles.top}>
+          <Touch ink={m3.onSurface} label="Search entries" accessibilityRole="search" onPress={() => openPage('/search')} style={[styles.search, { backgroundColor: m3.surfaceContainerHigh }]}>
             <Icon name="search" size={22} color={m3.onSurface} />
-            <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ includeFontPadding: false }}>
+            <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={styles.searchText}>
               Search entries
             </AppText>
-          </Pressable>
-          <Pressable onPress={() => router.navigate('/settings')} accessibilityRole="button" accessibilityLabel="Your profile" hitSlop={6}>
-            <Avatar name={settings.profileName} size={40} />
-          </Pressable>
+          </Touch>
+          <Touch ink={m3.onSurface} radius={shape.full} label="Your profile" hitSlop={4} onPress={() => router.navigate('/settings')} style={styles.avatar}>
+            <Avatar name={name} />
+          </Touch>
         </View>
 
-        {/* This month */}
-        <Card hero style={styles.card}>
-          <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
-            Spent this month
-          </AppText>
-          <View style={{ marginTop: 4 }}>
-            <BigAmount value={fmtSmart(month.spent, settings.showCents)} currency={settings.currency} size={48} align="flex-start" />
-          </View>
-          {settings.incomeTracking ? (
-            <View style={styles.split}>
-              <Stat label="Income" value={money(month.income)} color={month.income > 0 ? m3.success : m3.onSurface} />
-              <Stat label={month.net < 0 ? 'Overspent' : 'Balance'} value={money(month.net)} color={m3.onSurface} />
-            </View>
-          ) : null}
-          <Pressable
-            onPress={() => (mainBudget ? router.navigate('/budget') : router.push('/new-budget'))}
-            accessibilityRole="button"
-            style={[styles.budget, { borderTopColor: m3.outlineVariant }]}
-          >
-            {budget && mainBudget ? (
-              <View style={{ flex: 1, gap: 8 }}>
-                <AppText variant="bodyMedium" color={budget.over ? m3.error : m3.onSurface}>
-                  {money(budget.left)} {budget.over ? 'over your' : 'left in your'} {BUDGET_LABELS[mainBudget.type].toLowerCase()} budget
-                </AppText>
-                <LinearProgress fraction={budget.fraction} color={budgetPace(budget) === 'over' ? m3.error : budgetPace(budget) === 'fast' ? m3.warning : m3.primary} />
-              </View>
-            ) : (
-              <AppText variant="labelLarge" color={m3.primary} style={{ flex: 1 }}>
-                Set a monthly budget
-              </AppText>
-            )}
-            <Icon name="chevron-forward" size={20} color={m3.onSurfaceVariant} />
-          </Pressable>
-        </Card>
+        <MonthCard />
 
-        {/* Shortcuts */}
-        <View style={styles.grid}>
-          {shortcuts.map((s) => (
-            <Pressable
-              key={s.label}
-              onPress={() => {
-                Haptics.selection();
-                s.go();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={s.label.replace('\n', ' ')}
-              style={styles.shortcut}
-            >
-              {({ pressed }) => (
-                <>
-                  <View style={[styles.shortcutIcon, { backgroundColor: m3.secondaryContainer }]}>
-                    <StateLayer pressed={pressed} color={m3.onSecondaryContainer} radius={shape.full} />
-                    <Icon name={s.icon} size={24} color={m3.onSecondaryContainer} />
-                  </View>
-                  <AppText variant="labelMedium" color={m3.onSurface} style={{ textAlign: 'center' }}>
-                    {s.label}
-                  </AppText>
-                </>
-              )}
-            </Pressable>
-          ))}
+        <View style={styles.shortcuts}>
+          <Shortcut icon="expense" label={'Add\nexpense'} onPress={() => openPage('/entry')} />
+          {income ? <Shortcut icon="income" label={'Add\nincome'} onPress={() => openPage('/entry?income=1')} /> : <Shortcut icon="wallet" label={'New\nbudget'} onPress={() => openPage('/edit-budget')} />}
+          <Shortcut icon="history" label={'See\nhistory'} onPress={() => openPage('/history')} />
+          <Shortcut icon="grid" label={'Edit\ncategories'} onPress={() => openPage('/categories')} />
         </View>
 
-        {/* Latest entries */}
-        <View style={styles.sectionTitle}>
-          <AppText variant="titleLarge" color={m3.onSurface} accessibilityRole="header">
+        <View style={styles.heading}>
+          <AppText variant="titleLarge" accessibilityRole="header" style={styles.fill}>
             Recent
           </AppText>
-          {transactions.length > 0 ? (
-            <Button variant="text" label="See all" onPress={() => router.push('/history')} />
-          ) : null}
+          {recent.length > 0 ? <Button variant="text" label="See all" onPress={() => openPage('/history')} /> : null}
         </View>
         {recent.length === 0 ? (
-          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ paddingHorizontal: 16, paddingTop: 4 }}>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={styles.none}>
             No entries yet. Tap Add entry to add your first one.
           </AppText>
-        ) : (
-          recent.map((t) => <TransactionRow key={t.id} showDate transaction={t} onDelete={ask} onQuickDelete={remove} />)
-        )}
+        ) : null}
+        {recent.map((entry) => (
+          <EntryRow key={entry.id} entry={entry} deleter={deleter} today={toDay(now)} />
+        ))}
       </ScrollView>
-      {element}
+      {question}
     </View>
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+/** What was spent this month, what came in, and how the overall budget is going. */
+function MonthCard() {
+  const { m3 } = useTheme();
+  const data = useData();
+  const now = useNow();
+  const { code, brief, briefDigits } = useMoney();
+  const month = useMemo(() => totals(since(data.entries, monthStart(toDay(now), data.settings), now)), [data, now]);
+  const overall = overallOf(data);
+  const p = overall && progress(data, overall, now);
+  const pace = { over: m3.error, fast: m3.warning, onTrack: m3.primary };
+  return (
+    <Card hero style={styles.card}>
+      <View style={styles.month}>
+        <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
+          Spent this month
+        </AppText>
+        <View style={styles.amount}>
+          <BigAmount digits={briefDigits(month.spent)} currency={code} size={48} />
+        </View>
+        {data.settings.income ? (
+          <View style={styles.stats}>
+            <Stat label="Income" value={brief(month.earned)} color={month.earned > 0 ? m3.success : undefined} />
+            <Stat label={month.net < 0 ? 'Overspent' : 'Balance'} value={brief(month.net)} />
+          </View>
+        ) : null}
+        <View style={[styles.line, { backgroundColor: m3.outlineVariant }]} />
+      </View>
+      <Touch
+        ink={m3.onSurface}
+        label={p ? `${brief(p.left)} ${p.over ? 'over' : 'left in'} your ${PERIOD[overall.period]} budget` : 'Set a monthly budget'}
+        onPress={() => (overall ? router.navigate('/budget') : openPage('/edit-budget'))}
+        style={styles.budget}
+      >
+        {p ? (
+          <View style={[styles.fill, styles.budgetText]}>
+            <AppText variant="bodyMedium" color={p.over ? m3.error : m3.onSurface}>
+              {brief(p.left)} {p.over ? 'over' : 'left in'} your {PERIOD[overall.period]} budget
+            </AppText>
+            <LinearProgress fraction={p.used} color={pace[p.pace]} />
+          </View>
+        ) : (
+          <AppText variant="labelLarge" color={m3.primary} style={styles.fill}>
+            Set a monthly budget
+          </AppText>
+        )}
+        <Icon name="chevron-forward" size={20} color={m3.onSurfaceVariant} />
+      </Touch>
+    </Card>
+  );
+}
+
+const PERIOD = { day: 'daily', week: 'weekly', month: 'monthly', year: 'yearly' } as const;
+
+function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
   const { m3 } = useTheme();
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.fill}>
       <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
         {label}
       </AppText>
-      <AppText variant="titleMedium" color={color} numberOfLines={1}>
+      <AppText variant="bodyLarge" weight="medium" color={color} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
         {value}
       </AppText>
     </View>
   );
 }
 
+function Shortcut({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  const { m3 } = useTheme();
+  return (
+    <Touch
+      ink={m3.onSurface}
+      radius={shape.large}
+      label={label.replace('\n', ' ')}
+      onPress={() => {
+        haptics.select();
+        onPress();
+      }}
+      style={styles.shortcut}
+    >
+      <IconAvatar icon={icon} size={56} />
+      <AppText variant="labelMedium" maxFontSizeMultiplier={1.3} style={styles.shortcutText}>
+        {label}
+      </AppText>
+    </Touch>
+  );
+}
+
 const styles = StyleSheet.create({
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-  search: { flex: 1, height: SEARCH_HEIGHT, borderRadius: shape.full, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-  card: { marginHorizontal: 16, marginTop: 20, padding: 20, paddingBottom: 12 },
-  split: { flexDirection: 'row', gap: 16, marginTop: 12 },
-  budget: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 12, minHeight: 52, borderTopWidth: StyleSheet.hairlineWidth },
-  grid: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 12 },
-  shortcut: { width: '25%', alignItems: 'center', gap: 8, paddingVertical: 12 },
-  shortcutIcon: { width: 56, height: 56, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 16, paddingRight: 4, marginTop: 8 },
+  fill: { flex: 1 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
+  search: { flex: 1, height: SEARCH_HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderRadius: shape.full, overflow: 'hidden' },
+  searchText: { letterSpacing: 0 },
+  avatar: { borderRadius: shape.full, overflow: 'hidden' },
+  card: { marginHorizontal: 16, marginTop: 20 },
+  month: { paddingHorizontal: 20, paddingTop: 20 },
+  amount: { marginTop: 4 },
+  stats: { flexDirection: 'row', gap: 16, marginTop: 12 },
+  line: { height: StyleSheet.hairlineWidth, marginTop: 16 },
+  budget: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
+  budgetText: { gap: 8 },
+  shortcuts: { flexDirection: 'row', paddingHorizontal: 8, marginTop: 12 },
+  shortcut: { flex: 1, alignItems: 'center', gap: 8, paddingVertical: 12, borderRadius: shape.large, overflow: 'hidden' },
+  shortcutText: { textAlign: 'center' },
+  heading: { minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4, marginTop: 8 },
+  none: { paddingHorizontal: 16, paddingVertical: 4 },
 });

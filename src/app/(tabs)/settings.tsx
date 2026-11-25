@@ -1,170 +1,142 @@
-import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Pressable, ScrollView, Share, View } from 'react-native';
-import { useFabScroll } from '../../lib/useFabScroll';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountSection } from '../../components/Account';
 import { AppText } from '../../components/AppText';
 import { Avatar } from '../../components/Avatar';
+import { Confirm } from '../../components/Confirm';
+import { countOf, HAPTICS, labelIn, THEMES } from '../../components/labels';
 import { Logotype } from '../../components/Logo';
-import { BottomSheet, Button, PillField } from '../../components/material';
-import { ConfirmSheet } from '../../components/Overlays';
-import { SettingsRow, SettingsSection } from '../../components/SettingsBits';
-import { currencySymbol } from '../../lib/format';
-import { useAccount } from '../../lib/account';
-import { exportCsv } from '../../lib/csv';
-import { useStore, useUi } from '../../lib/store';
+import { BottomSheet, Button, PillField, Subheader } from '../../components/material';
+import { LinkRow, ToggleRow } from '../../components/SettingsRows';
+import { Touch } from '../../components/Touch';
+import { messages, store } from '../../data/app';
+import { shareCsv } from '../../data/exporting';
+import { useAccount, useAppState, useSettings } from '../../data/hooks';
+import { toDay } from '../../domain/dates';
+import { toCsv } from '../../domain/entries';
+import { symbolOf } from '../../domain/money';
+import { haptics } from '../../hooks/haptics';
+import { openPage } from '../../hooks/nav';
+import { useFabScroll } from '../../hooks/useFabScroll';
+import { shape } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
-const THEME_LABEL = { system: 'System', light: 'Light', dark: 'Dark' } as const;
-const ENTRY_LABEL = { 1: 'Cents first', 2: 'Decimal point' } as const;
-const HAPTIC_LABEL = ['Off', 'Subtle', 'Heavy'] as const;
+async function exportData() {
+  if (store.data.entries.length === 0) return messages.show('Nothing to export yet');
+  try {
+    if (!(await shareCsv(`Peppercorn ${toDay(Date.now())}.csv`, toCsv(store.data)))) messages.warn('No app can open the file.');
+  } catch {
+    messages.warn('Couldn’t make the file. Free up some space and try again.');
+  }
+}
 
-export default function SettingsScreen() {
+/** The You tab: who you are, how the app works, and your data. */
+export default function You() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
-  const fabScroll = useFabScroll();
-  const settings = useStore((s) => s.settings);
-  const updateSettings = useStore((s) => s.updateSettings);
-  const eraseAll = useStore((s) => s.eraseAll);
-  const showToast = useUi((s) => s.showToast);
-  const [erasing, setErasing] = useState(false);
+  const scroll = useFabScroll();
+  const s = useSettings();
+  const entries = useAppState((state) => state.data.entries.length);
+  const user = useAccount((a) => a.user);
   const [naming, setNaming] = useState(false);
-  const [name, setName] = useState('');
-  const email = useAccount((s) => s.user?.email);
-  const entryCount = useStore((s) => s.transactions.length);
-  const openName = () => {
-    setName(settings.profileName);
-    setNaming(true);
-  };
-
-  const share = async () => {
-    const { transactions, categories } = useStore.getState();
-    if (transactions.length === 0) {
-      showToast({ title: 'Nothing to export yet', subtitle: 'Add an entry first', icon: 'information-circle', tone: 'info' }, 2200);
-      return;
-    }
-    try {
-      await Share.share({ title: 'Peppercorn export', message: exportCsv(transactions, categories) });
-    } catch {
-      showToast({ title: 'Couldn’t export your data. Try again.', icon: 'alert-circle', tone: 'error' }, 2200);
-    }
-  };
+  const [erasing, setErasing] = useState(false);
+  const symbol = symbolOf(s.currency);
+  const choose = (what: string) => openPage({ pathname: '/choose', params: { what } });
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      <ScrollView {...fabScroll} contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
-        {/* Profile */}
-        <View style={{ alignItems: 'center', paddingTop: 24, paddingHorizontal: 24 }}>
-          <Pressable onPress={openName} accessibilityRole="button" accessibilityLabel={settings.profileName ? 'Edit your name' : 'Add your name'} style={{ alignItems: 'center' }}>
-            <Avatar name={settings.profileName} size={88} />
-            <AppText variant="titleLarge" color={settings.profileName ? m3.onSurface : m3.primary} style={{ marginTop: 12 }}>
-              {settings.profileName || 'Add your name'}
+    <View style={[styles.fill, { backgroundColor: m3.surface }]}>
+      <ScrollView {...scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: 160 }}>
+        <View style={styles.who}>
+          <Touch ink={m3.onSurface} radius={shape.large} label={s.name ? `${s.name}, edit your name` : 'Add your name'} onPress={() => setNaming(true)} style={styles.name}>
+            <Avatar name={s.name} size={88} />
+            <AppText variant="titleLarge" color={s.name ? m3.onSurface : m3.primary} numberOfLines={1}>
+              {s.name || 'Add your name'}
             </AppText>
-          </Pressable>
-          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 2 }}>
-            {email || `${entryCount} ${entryCount === 1 ? 'entry' : 'entries'} on this phone`}
+          </Touch>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
+            {user?.email ?? `${countOf(entries, 'entry', 'entries')} on this phone`}
           </AppText>
         </View>
 
-        <SettingsSection title="General">
-          <SettingsRow icon="pricetags" label="Categories" onPress={() => router.push('/categories')} />
-          <SettingsRow icon="cash" label="Currency" value={currencySymbol(settings.currency) === settings.currency ? settings.currency : `${currencySymbol(settings.currency)} ${settings.currency}`} onPress={() => router.push('/settings-currency')} />
-          <SettingsRow
-            icon="keypad"
-            label="Number entry"
-            value={ENTRY_LABEL[settings.numberEntryType]}
-            onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'entry' } })}
-          />
-          <SettingsRow
-            icon="wallet"
-            label="Income tracking"
-            toggle={{ value: settings.incomeTracking, onChange: (v) => updateSettings({ incomeTracking: v }) }}
-          />
-          <SettingsRow icon="calendar" label="Week and month start" onPress={() => router.push('/settings-timeframes')} />
-          <SettingsRow
-            icon="finger-print"
-            label="Haptics"
-            value={HAPTIC_LABEL[settings.haptics]}
-            onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'haptics' } })}
-          />
-        </SettingsSection>
+        <Subheader text="General" />
+        <LinkRow icon="pricetags" label="Categories" onPress={() => openPage('/categories')} />
+        <LinkRow icon="cash" label="Currency" value={symbol === s.currency ? symbol : `${symbol} ${s.currency}`} onPress={() => openPage('/currency')} />
+        <LinkRow icon="keypad" label="Number entry" value={s.typing === 'cents' ? 'Cents first' : 'Decimal point'} onPress={() => choose('typing')} />
+        <ToggleRow icon="wallet" label="Income tracking" on={s.income} onChange={(income) => store.set({ income })} />
+        <LinkRow icon="calendar" label="Week and month start" onPress={() => openPage('/week-month')} />
+        <LinkRow icon="finger-print" label="Haptics" value={labelIn(HAPTICS, s.haptics)} onPress={() => choose('haptics')} />
 
-        <SettingsSection title="Appearance">
-          <SettingsRow
-            icon="contrast"
-            label="Theme"
-            value={THEME_LABEL[settings.theme]}
-            onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'theme' } })}
-          />
-          <SettingsRow
-            icon="logo-usd"
-            label="Show cents"
-            toggle={{ value: settings.showCents, onChange: (v) => updateSettings({ showCents: v }) }}
-          />
-          <SettingsRow
-            icon="sunny"
-            label="Upcoming entries"
-            value={settings.showUpcoming ? 'Shown' : 'Hidden'}
-            onPress={() => router.push({ pathname: '/settings-choice', params: { key: 'upcoming' } })}
-          />
-          <SettingsRow
-            icon="remove-circle"
-            label="Show + and − signs"
-            toggle={{ value: settings.showSign, onChange: (v) => updateSettings({ showSign: v }) }}
-          />
-          <SettingsRow
-            icon="flash"
-            label="Animated charts"
-            toggle={{ value: settings.animatedCharts, onChange: (v) => updateSettings({ animatedCharts: v }) }}
-          />
-        </SettingsSection>
+        <Subheader text="Appearance" />
+        <LinkRow icon="contrast" label="Theme" value={labelIn(THEMES, s.theme)} onPress={() => choose('theme')} />
+        <ToggleRow icon="logo-usd" label="Show cents" on={s.cents} onChange={(cents) => store.set({ cents })} />
+        <LinkRow icon="sunny" label="Upcoming entries" value={s.upcoming ? 'Shown' : 'Hidden'} onPress={() => choose('upcoming')} />
+        <ToggleRow icon="remove-circle" label="Show + and − signs" on={s.signs} onChange={(signs) => store.set({ signs })} />
+        <ToggleRow icon="flash" label="Animated charts" on={s.animated} onChange={(animated) => store.set({ animated })} />
 
-        <SettingsSection title="Data">
-          <SettingsRow icon="share" label="Export data" onPress={share} />
-          <SettingsRow icon="trash-bin" label="Erase data" destructive onPress={() => setErasing(true)} />
-        </SettingsSection>
+        <Subheader text="Data" />
+        <LinkRow icon="share" label="Export data" onPress={exportData} />
+        <LinkRow icon="trash-bin" label="Erase data" destructive onPress={() => setErasing(true)} />
 
         <AccountSection />
 
-        <View style={{ alignItems: 'center', marginTop: 28, gap: 2 }}>
-          <View style={{ marginBottom: 8 }}>
-            <Logotype height={26} />
-          </View>
+        <View style={styles.about}>
+          <Logotype height={26} />
           <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
-            Version 1.0.0
+            Version {Constants.expoConfig?.version ?? ''}
           </AppText>
         </View>
       </ScrollView>
 
-      <BottomSheet visible={naming} onClose={() => setNaming(false)} bottomInset={insets.bottom}>
-        <AppText variant="titleLarge" color={m3.onSurface} style={{ marginBottom: 20 }}>
-          Your name
-        </AppText>
-        <View style={{ gap: 20 }}>
-          <PillField icon="person" placeholder="Name" value={name} onChangeText={setName} maxLength={40} autoFocus autoCapitalize="words" returnKeyType="done" />
-          <Button
-            large
-            label="Save name"
-            onPress={() => {
-              updateSettings({ profileName: name.trim() });
-              setNaming(false);
-            }}
-          />
-        </View>
-      </BottomSheet>
-      <ConfirmSheet
+      <NameSheet visible={naming} onClose={() => setNaming(false)} />
+      <Confirm
         visible={erasing}
         title="Erase all entries, assets and budgets?"
-        message={`Your categories are kept. ${email ? 'The copy in your Google Drive is erased too. ' : ''}You can’t undo this.`}
-        confirmLabel="Erase data"
+        message={user ? 'Your categories are kept. They’re erased from your Google Drive too. You can’t undo this.' : 'Your categories are kept. You can’t undo this.'}
+        confirm="Erase data"
         onCancel={() => setErasing(false)}
         onConfirm={() => {
-          eraseAll();
           setErasing(false);
-          showToast({ title: 'Data erased', icon: 'checkmark-circle', tone: 'success' }, 2200);
+          store.erase();
+          haptics.done();
+          messages.show('Data erased');
         }}
       />
     </View>
   );
 }
+
+function NameSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const { name } = useSettings();
+  return (
+    <BottomSheet visible={visible} onClose={onClose} bottomInset={insets.bottom}>
+      {/* Starts from the saved name each time it opens. */}
+      <NameField key={String(visible)} name={name} onClose={onClose} />
+    </BottomSheet>
+  );
+}
+
+function NameField({ name, onClose }: { name: string; onClose: () => void }) {
+  const [typed, setTyped] = useState(name);
+  const save = () => {
+    store.set({ name: typed.trim() });
+    onClose();
+  };
+  return (
+    <View style={styles.sheet}>
+      <AppText variant="titleLarge">Your name</AppText>
+      <PillField icon="person" placeholder="Name" accessibilityLabel="Name" value={typed} onChangeText={setTyped} maxLength={40} autoCapitalize="words" autoFocus returnKeyType="done" onSubmitEditing={save} />
+      <Button large label="Save" onPress={save} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  who: { alignItems: 'center', paddingHorizontal: 24 },
+  name: { alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 2, borderRadius: shape.large, overflow: 'hidden' },
+  about: { alignItems: 'center', gap: 8, marginTop: 28 },
+  sheet: { gap: 20 },
+});

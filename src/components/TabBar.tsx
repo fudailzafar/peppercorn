@@ -1,53 +1,61 @@
-import { Tabs } from 'expo-router';
-import { useEffect } from 'react';
+import type { Tabs } from 'expo-router';
+import { useEffect, type ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import type { ComponentProps } from 'react';
-import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { useUi } from '../lib/store';
-import { m3Duration, m3Easing, shape } from '../theme/material';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { m3Duration, shape, stateLayer } from '../theme/material';
+import { standardEasing } from '../theme/motion';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 
-type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
-type TabKey = 'home' | 'insights' | 'assets' | 'budget' | 'person';
-const ROUTE_ICON: Record<string, TabKey> = { index: 'home', insights: 'insights', portfolio: 'assets', budget: 'budget', settings: 'person' };
-const ROUTE_LABEL: Record<string, string> = { index: 'Home', insights: 'Insights', portfolio: 'Assets', budget: 'Budget', settings: 'You' };
+type Props = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-/** Height of the bar's content, from the M3 navigation bar spec (80dp), excluding the system inset. */
 export const NAV_BAR_HEIGHT = 80;
 
-/** One destination: icon in a pill-shaped active indicator, with the label below (M3 navigation bar item). */
-function Destination({ focused, icon, label, onPress }: { focused: boolean; icon: TabKey; label: string; onPress: () => void }) {
-  const { m3 } = useTheme();
-  const progress = useSharedValue(focused ? 1 : 0);
-  useEffect(() => {
-    // The indicator grows outward from its centre with M3's emphasized easing.
-    progress.set(withTiming(focused ? 1 : 0, { duration: m3Duration.medium2, easing: Easing.bezier(...m3Easing.emphasized) }));
-  }, [focused, progress]);
-  const indicator = useAnimatedStyle(() => ({
-    opacity: progress.get(),
-    transform: [{ scaleX: interpolate(progress.get(), [0, 1], [0.4, 1]) }],
-  }));
+/** Each tab's route, icon and name. */
+export const TABS: Record<string, { icon: IconName; label: string }> = {
+  index: { icon: 'home', label: 'Home' },
+  insights: { icon: 'insights', label: 'Insights' },
+  portfolio: { icon: 'assets', label: 'Assets' },
+  budget: { icon: 'budget', label: 'Budget' },
+  settings: { icon: 'person', label: 'You' },
+};
 
+/** Material's navigation bar. */
+export function TabBar({ state, navigateToTab, emitter, insets }: Props) {
+  const { m3 } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} style={styles.item}>
+    <View style={[styles.bar, { height: NAV_BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom, backgroundColor: m3.surfaceContainer }]} accessibilityRole="tablist">
+      {state.routes.map(({ key, name }, i) => {
+        const press = () => {
+          if (!emitter.emit({ type: 'tabPress', target: key, canPreventDefault: true }).defaultPrevented) navigateToTab(key);
+        };
+        return TABS[name] ? <TabButton key={key} {...TABS[name]} selected={state.index === i} onPress={press} /> : null;
+      })}
+    </View>
+  );
+}
+
+function TabButton({ icon, label, selected, onPress }: { icon: IconName; label: string; selected: boolean; onPress: () => void }) {
+  const { m3 } = useTheme();
+  const on = useSharedValue(selected ? 1 : 0);
+  useEffect(() => {
+    on.set(withTiming(selected ? 1 : 0, { duration: m3Duration.medium2, easing: standardEasing }));
+  }, [on, selected]);
+  // The pill behind the icon grows out from the middle.
+  const pill = useAnimatedStyle(() => ({ opacity: on.get(), transform: [{ scaleX: 0.4 + 0.6 * on.get() }] }));
+  return (
+    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }} style={styles.tab}>
       {({ pressed }) => (
         <>
-          <View style={styles.indicatorBox}>
-            <Animated.View style={[styles.indicator, { backgroundColor: m3.secondaryContainer }, indicator]} />
-            {/* The pressed state layer: a 10% overlay in the content colour. */}
-            <View style={[styles.indicator, { backgroundColor: m3.onSurface, opacity: pressed ? 0.1 : 0 }]} />
-            <View style={styles.iconLayer}>
-              <Icon name={icon} size={24} color={focused ? m3.onSecondaryContainer : m3.onSurfaceVariant} />
+          <View style={styles.icon}>
+            <Animated.View style={[styles.pill, { backgroundColor: m3.secondaryContainer }, pill]} />
+            <View style={[styles.pill, { backgroundColor: m3.onSurface, opacity: pressed ? stateLayer.pressed : 0 }]} />
+            <View style={styles.front}>
+              <Icon name={icon} size={24} color={selected ? m3.onSecondaryContainer : m3.onSurfaceVariant} />
             </View>
           </View>
-          <AppText
-            variant="labelMedium"
-            weight={focused ? 'semibold' : 'medium'}
-            color={focused ? m3.onSurface : m3.onSurfaceVariant}
-           
-          >
+          <AppText variant="labelMedium" weight={selected ? 'medium' : 'regular'} color={selected ? m3.onSurface : m3.onSurfaceVariant} numberOfLines={1} maxFontSizeMultiplier={1.2}>
             {label}
           </AppText>
         </>
@@ -56,35 +64,11 @@ function Destination({ focused, icon, label, onPress }: { focused: boolean; icon
   );
 }
 
-/** The five destinations in a Material 3 navigation bar. The add action is a floating action button (see Fab). */
-export function AppTabBar({ state, navigateToTab, emitter, insets }: BottomTabBarProps) {
-  const { m3 } = useTheme();
-  const hidden = useUi((s) => s.hideTabBar);
-  if (hidden) return null;
-
-  return (
-    <View style={[styles.bar, { backgroundColor: m3.surfaceContainer, paddingBottom: insets.bottom, height: NAV_BAR_HEIGHT + insets.bottom }]}>
-      {state.routes.map((route, index) => (
-        <Destination
-          key={route.key}
-          focused={state.index === index}
-          icon={ROUTE_ICON[route.name] ?? 'home'}
-          label={ROUTE_LABEL[route.name] ?? route.name}
-          onPress={() => {
-            const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!event.defaultPrevented) navigateToTab(route.key);
-          }}
-        />
-      ))}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  bar: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 12 },
-  item: { flex: 1, alignItems: 'center', gap: 4 },
-  indicatorBox: { width: 64, height: 32, alignItems: 'center', justifyContent: 'center' },
-  indicator: { ...StyleSheet.absoluteFill, borderRadius: shape.full },
-  // Above the indicator even where absolutely positioned views would otherwise paint on top (web).
-  iconLayer: { zIndex: 1 },
+  bar: { flexDirection: 'row', paddingTop: 12 },
+  tab: { flex: 1, alignItems: 'center', gap: 4 },
+  icon: { width: 64, height: 32, alignItems: 'center', justifyContent: 'center' },
+  pill: { ...StyleSheet.absoluteFill, borderRadius: shape.full },
+  // On the web, views placed absolutely would cover it.
+  front: { zIndex: 1 },
 });

@@ -1,17 +1,19 @@
-import { format, isToday, isYesterday } from 'date-fns';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { choose, deleteAccountData, logOut, logOutKeepingData, save, signIn, useAccount } from '../lib/account';
-import type { AccountProblem } from '../lib/googleSignInTypes';
-import { Haptics } from '../lib/haptics';
-import { useStore, useUi } from '../lib/store';
+import type { Choice, Keep } from '../account/account';
+import type { AccountProblem } from '../account/types';
+import { account, messages, store } from '../data/app';
+import { useAccount, useAppState, useNow } from '../data/hooks';
+import { addDays, shortLabel, timeLabel, toDay } from '../domain/dates';
+import { haptics } from '../hooks/haptics';
 import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
-import { BottomSheet, Button, IconAvatar, ListItem, StateLayer } from './material';
-import { ConfirmSheet } from './Overlays';
-import { SettingsRow, SettingsSection } from './SettingsBits';
+import { Confirm } from './Confirm';
+import { countOf } from './labels';
+import { BottomSheet, Button, IconAvatar, ListItem, StateLayer, Subheader } from './material';
+import { LinkRow } from './SettingsRows';
 
 const PROBLEM: Record<AccountProblem, string> = {
   unavailable: 'Google sign-in isn’t available in this version.',
@@ -22,6 +24,8 @@ const PROBLEM: Record<AccountProblem, string> = {
   conflict: 'Newer data was saved on another phone.',
   offline: 'You’re offline. Try again when you’re connected.',
   full: 'Your Google storage is full.',
+  storage: 'Couldn’t save on this phone. Free up some space and try again.',
+  gone: 'Your saved data was deleted from Google Drive.',
   newerVersion: 'Update Peppercorn to open your saved data.',
   unreadable: 'Your saved data couldn’t be read.',
   failed: 'Couldn’t reach Google. Try again.',
@@ -30,18 +34,14 @@ const PROBLEM: Record<AccountProblem, string> = {
 export const problemText = (p: AccountProblem) => PROBLEM[p];
 
 /** "today, 10:42 am" */
-function when(ms: number) {
-  const time = format(ms, 'h:mm aaa');
-  if (isToday(ms)) return `today, ${time}`;
-  if (isYesterday(ms)) return `yesterday, ${time}`;
-  return `${format(ms, 'd MMM yyyy')}, ${time}`;
+function when(ms: number, today: string): string {
+  const day = toDay(ms);
+  const on = day === today ? 'today' : day === addDays(today, -1) ? 'yesterday' : shortLabel(day, today);
+  return `${on}, ${timeLabel(ms).toLowerCase()}`;
 }
 
-const useProblemToast = () => {
-  const showToast = useUi((s) => s.showToast);
-  return (p: AccountProblem | null) => {
-    if (p && p !== 'cancelled') showToast({ title: PROBLEM[p], icon: 'alert-circle', tone: 'error' });
-  };
+const tell = (p: AccountProblem | null) => {
+  if (p && p !== 'cancelled') messages.warn(PROBLEM[p]);
 };
 
 // Google's own button colours and "G": https://developers.google.com/identity/branding-guidelines
@@ -79,157 +79,203 @@ export function GoogleButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+const signIn = async () => {
+  haptics.select();
+  tell(await account.signIn());
+};
+
+const deleteSaved = async () => {
+  const problem = await account.deleteSaved();
+  if (problem) tell(problem);
+  else messages.show('Saved data deleted');
+};
+
+const BUSY = { saving: 'Saving…', leaving: 'Saving…', signingIn: 'Signing in…', deleting: 'Deleting…' } as const;
+
 /** The account part of the You tab: signing in, or what is saved and the ways to leave. */
 export function AccountSection() {
-  const { m3 } = useTheme();
-  const { user, busy, problem, savedAt } = useAccount();
-  const showToast = useUi((s) => s.showToast);
-  const toast = useProblemToast();
-  const [leaving, setLeaving] = useState(false);
-  const [stuck, setStuck] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const signedIn = useAccount((s) => s.user !== null);
+  return (
+    <>
+      <Subheader text="Account" />
+      {signedIn ? <SignedIn /> : <SignedOut />}
+    </>
+  );
+}
 
-  const connect = async () => {
-    Haptics.selection();
-    toast(await signIn());
-  };
+function SignedOut() {
+  const { m3 } = useTheme();
+  const [leaving, setLeaving] = useState(false);
+  return (
+    <>
+      <View style={styles.invite}>
+        <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
+          Save your data to your Google Drive, and get it back when you sign in again.
+        </AppText>
+        <GoogleButton onPress={signIn} />
+      </View>
+      <LinkRow icon="log-out" label="Log out" onPress={() => setLeaving(true)} />
+      {/* Without an account nothing is saved elsewhere, so nothing is removed. */}
+      <Confirm
+        visible={leaving}
+        title="Log out?"
+        message="You’ll return to the welcome screen. Your data stays on this phone."
+        confirm="Log out"
+        destructive={false}
+        onCancel={() => setLeaving(false)}
+        onConfirm={() => {
+          setLeaving(false);
+          store.set({ welcomed: false });
+        }}
+      />
+    </>
+  );
+}
+
+function SignedIn() {
+  const { m3 } = useTheme();
+  const today = toDay(useNow());
+  const busy = useAccount((s) => s.busy);
+  const problem = useAccount((s) => s.problem);
+  const savedAt = useAccount((s) => s.savedAt);
+  const [asking, setAsking] = useState<'leave' | 'stuck' | 'delete' | null>(null);
+  const close = () => setAsking(null);
 
   const leave = async () => {
-    setLeaving(false);
+    close();
     // A conflict opens its own question instead.
-    if (!(await logOut()) && !useAccount.getState().choice) setStuck(true);
+    if (!(await account.logOut()) && !account.state.getState().choice) setAsking('stuck');
   };
 
-  if (!user) {
-    return (
-      <SettingsSection title="Account">
-        <View style={{ paddingHorizontal: 16, gap: 12 }}>
-          <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
-            Save your data to your Google Drive, and get it back when you sign in again.
-          </AppText>
-          <GoogleButton onPress={connect} />
-        </View>
-        <View style={{ marginTop: 8 }}>
-          <SettingsRow icon="log-out" label="Log out" onPress={() => setLeaving(true)} />
-        </View>
-        <ConfirmSheet
-          visible={leaving}
-          title="Log out?"
-          message="You’ll return to the welcome screen. Your data stays on this phone."
-          confirmLabel="Log out"
-          destructive={false}
-          onCancel={() => setLeaving(false)}
-          onConfirm={() => {
-            setLeaving(false);
-            // Without an account nothing is saved elsewhere, so nothing is removed. Home opens the welcome screen.
-            useStore.getState().updateSettings({ welcomed: false });
-          }}
-        />
-      </SettingsSection>
-    );
-  }
-
   const again = problem === 'signedOut' || problem === 'permission';
-  const status =
-    busy === 'saving' || busy === 'leaving'
-      ? 'Saving…'
-      : busy === 'signingIn'
-        ? 'Signing in…'
-        : busy === 'deleting'
-          ? 'Deleting…'
-          : problem
-            ? PROBLEM[problem]
-            : savedAt
-              ? `Saved ${when(savedAt)}`
-              : 'Not saved yet';
-
+  const action = again ? 'Sign in' : problem === 'conflict' || problem === 'unreadable' ? 'Choose' : problem === 'gone' ? 'Save again' : problem ? 'Try again' : 'Save now';
+  const status = busy ? BUSY[busy] : problem ? PROBLEM[problem] : savedAt ? `Saved ${when(savedAt, today)}` : 'Not saved yet';
   return (
-    <SettingsSection title="Account">
+    <>
       <ListItem
         icon={busy ? 'sync' : problem || !savedAt ? 'cloud-off' : 'cloud'}
         headline="Google Drive"
         supporting={status}
-        onPress={again ? connect : () => void save(true)}
+        accessibilityLabel={`Google Drive, ${status}${busy ? '' : `, ${action}`}`}
+        onPress={again ? signIn : () => void account.save(true)}
         trailing={
           busy ? undefined : (
             <AppText variant="labelLarge" color={m3.primary}>
-              {again ? 'Sign in' : problem === 'conflict' ? 'Choose' : problem ? 'Try again' : 'Save now'}
+              {action}
             </AppText>
           )
         }
       />
-      <SettingsRow icon="log-out" label="Log out" onPress={() => setLeaving(true)} />
-      <SettingsRow icon="trash-bin" label="Delete saved data" destructive onPress={() => setDeleting(true)} />
+      <LinkRow icon="log-out" label="Log out" onPress={() => setAsking('leave')} />
+      <LinkRow icon="trash-bin" label="Delete saved data" destructive onPress={() => setAsking('delete')} />
 
-      <ConfirmSheet
-        visible={leaving}
+      <Confirm
+        visible={asking === 'leave'}
         title="Log out?"
         message="Your data is saved to your Google Drive, then removed from this phone. Sign in again to get it back."
-        confirmLabel="Log out"
+        confirm="Log out"
         destructive={false}
-        onCancel={() => setLeaving(false)}
+        onCancel={close}
         onConfirm={leave}
       />
-      <ConfirmSheet
-        visible={stuck}
+      <Confirm
+        visible={asking === 'stuck'}
         title="Your data isn’t saved"
-        message={`${problem ? PROBLEM[problem] : 'Couldn’t reach Google.'} You can log out and leave your data on this phone.`}
-        confirmLabel="Log out, keep data"
-        cancelLabel="Stay"
+        message={`${PROBLEM[problem ?? 'failed']} You can log out and leave your data on this phone.`}
+        confirm="Log out, keep data"
+        cancel="Stay"
         destructive={false}
-        onCancel={() => setStuck(false)}
+        onCancel={close}
         onConfirm={() => {
-          setStuck(false);
-          void logOutKeepingData();
+          close();
+          void account.logOutKeepingData();
         }}
       />
-      <ConfirmSheet
-        visible={deleting}
+      <Confirm
+        visible={asking === 'delete'}
         title="Delete your saved data?"
         message="It’s deleted from your Google Drive and you’re signed out. Your data on this phone stays. You can’t undo this."
-        onCancel={() => setDeleting(false)}
-        onConfirm={async () => {
-          setDeleting(false);
-          const p = await deleteAccountData();
-          if (p) toast(p);
-          else showToast({ title: 'Saved data deleted', icon: 'checkmark-circle', tone: 'success' }, 2200);
+        onCancel={close}
+        onConfirm={() => {
+          close();
+          void deleteSaved();
         }}
       />
-    </SettingsSection>
+    </>
   );
 }
 
-const entries = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`;
+const TITLE: Record<Choice['why'], string> = {
+  differs: 'Which data do you want to keep?',
+  unreadable: 'Your saved data can’t be read',
+  someoneElses: 'Keep this phone’s data?',
+};
 
-/** Asks which data to keep when the phone and the saved data differ. */
+const THIS_PHONE: Record<Choice['why'], string> = { differs: 'This phone', unreadable: 'Replace with this phone’s data', someoneElses: 'Keep it' };
+
+function explain({ why, signingIn }: Choice): string {
+  switch (why) {
+    case 'differs':
+      return `${signingIn ? 'This phone and your Google Drive both have data.' : 'Another phone saved to this account.'} The other is replaced, and you can’t undo this.`;
+    case 'unreadable':
+      return 'What’s in your Google Drive is damaged. You can replace it with what’s on this phone, and you can’t undo this.';
+    case 'someoneElses':
+      return 'It was saved to a different Google account. If you keep it, it’s saved to yours too. To start empty, cancel, then erase the data in You first.';
+  }
+}
+
+/** Asks which data to keep. */
 export function AccountChoice() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
+  const today = toDay(useNow());
   const asked = useAccount((s) => s.choice);
+  const busy = useAccount((s) => s.busy !== null);
+  const here = useAppState((s) => s.data.entries.length);
   // Keeps its words while the sheet slides away.
   const [choice, setChoice] = useState(asked);
-  if (asked && asked !== choice) setChoice(asked);
-  const busy = useAccount((s) => s.busy !== null);
-  const here = useStore((s) => s.transactions.length);
-  const toast = useProblemToast();
-  const pick = async (keep: Parameters<typeof choose>[0]) => {
-    Haptics.selection();
-    toast(await choose(keep));
+  // Said in the sheet, which covers the line at the bottom of the screen.
+  const [failed, setFailed] = useState<AccountProblem | null>(null);
+  if (asked && asked !== choice) {
+    setChoice(asked);
+    setFailed(null);
+  }
+  const pick = async (keep: Keep) => {
+    haptics.select();
+    setFailed(await account.choose(keep));
   };
   return (
     <BottomSheet visible={asked !== null} onClose={() => void pick('neither')} bottomInset={insets.bottom}>
-      <AppText variant="titleLarge">Which data do you want to keep?</AppText>
-      <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ marginTop: 8, marginBottom: 12 }}>
-        {choice?.signingIn === false ? 'Another phone saved to this account. ' : 'This phone and your Google Drive both have data. '}
-        The other is replaced, and you can’t undo this.
-      </AppText>
-      <View style={{ marginHorizontal: -16 }}>
-        <ListItem leading={<IconAvatar icon="cloud" />} headline="Google Drive" supporting={choice ? `${entries(choice.saved.data.transactions.length)}, saved ${when(choice.saved.savedAt)}` : undefined} chevron onPress={busy ? undefined : () => void pick('saved')} />
-        <ListItem leading={<IconAvatar icon="phone-portrait-outline" />} headline="This phone" supporting={entries(here)} chevron onPress={busy ? undefined : () => void pick('phone')} />
-      </View>
-      <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
-        <Button variant="text" label={choice?.signingIn === false ? 'Not now' : 'Cancel sign-in'} onPress={() => void pick('neither')} />
-      </View>
+      {choice ? (
+        <>
+          <AppText variant="titleLarge" accessibilityRole="header">
+            {TITLE[choice.why]}
+          </AppText>
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={styles.explain}>
+            {explain(choice)}
+          </AppText>
+          <View style={styles.answers}>
+            {choice.saved ? (
+              <ListItem
+                leading={<IconAvatar icon="cloud" />}
+                headline="Google Drive"
+                supporting={`${countOf(choice.saved.data.entries.length, 'entry', 'entries')}, saved ${when(choice.saved.savedAt, today)}`}
+                chevron
+                onPress={busy ? undefined : () => void pick('saved')}
+              />
+            ) : null}
+            <ListItem leading={<IconAvatar icon="phone-portrait-outline" />} headline={THIS_PHONE[choice.why]} supporting={countOf(here, 'entry', 'entries')} chevron onPress={busy ? undefined : () => void pick('phone')} />
+          </View>
+          {failed ? (
+            <AppText variant="bodyMedium" color={m3.error} accessibilityLiveRegion="polite" accessibilityRole="alert">
+              {PROBLEM[failed]}
+            </AppText>
+          ) : null}
+          <View style={styles.cancel}>
+            <Button variant="text" label={choice.signingIn ? 'Cancel sign-in' : 'Not now'} onPress={() => void pick('neither')} />
+          </View>
+        </>
+      ) : null}
     </BottomSheet>
   );
 }
@@ -237,4 +283,8 @@ export function AccountChoice() {
 const styles = StyleSheet.create({
   google: { height: 56, borderRadius: shape.full, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24, overflow: 'hidden' },
   g: { width: 24, height: 24 },
+  invite: { paddingHorizontal: 16, paddingBottom: 8, gap: 12 },
+  explain: { marginTop: 8, marginBottom: 12 },
+  answers: { marginHorizontal: -16 },
+  cancel: { alignItems: 'flex-end', marginTop: 8 },
 });

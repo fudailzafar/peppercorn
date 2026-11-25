@@ -1,83 +1,91 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
-import { FlatList, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BigAmount } from '../components/Bits';
 import { AppText } from '../components/AppText';
-import { ColumnChart } from '../components/Charts';
-import { useDeleteFlow } from '../components/DeleteFlow';
-import { Comparison, useMoney } from '../components/InsightBits';
-import { Card, Subheader, TopAppBar } from '../components/material';
-import { TransactionRow } from '../components/TransactionRow';
-import type { InsightsType } from '../lib/calc';
-import { fmtSmart } from '../lib/format';
-import { categoryLines, period, periodPhrase, trend, UNIT } from '../lib/insights';
-import { goBack } from '../lib/nav';
-import { useStore } from '../lib/store';
-import { useNow } from '../lib/useNow';
+import { BigAmount } from '../components/BigAmount';
+import { ColumnChart } from '../components/ColumnChart';
+import { EntryRow } from '../components/EntryRow';
+import { Comparison } from '../components/InsightBits';
+import { countOf } from '../components/labels';
+import { Card, Subheader } from '../components/material';
+import { Page } from '../components/Page';
+import { useData, useMoney, useNow } from '../data/hooks';
+import { toDay } from '../domain/dates';
+import { categoryOf, newestFirst } from '../domain/entries';
+import { against, categoryLines, compared, periodOf, phrase, trend, type Span } from '../domain/insights';
+import type { Entry } from '../domain/model';
+import { useDeleter } from '../hooks/useDeleter';
 import { useTheme } from '../theme/theme';
+
+const SPANS: readonly Span[] = ['week', 'month', 'year'];
+const keyOf = (e: Entry) => e.id;
 
 /** One category in one period: the total, how it compares, the last six periods, and the entries behind it. */
 export default function InsightCategory() {
-  const params = useLocalSearchParams<{ id: string; type?: string; offset?: string; income?: string }>();
-  const type = (['1', '2', '3'].includes(params.type ?? '') ? Number(params.type) : 2) as InsightsType;
+  const params = useLocalSearchParams<{ id: string; span?: string; offset?: string; income?: string }>();
+  const { id } = params;
+  const span = SPANS.find((s) => s === params.span) ?? 'month';
   const offset = Math.min(0, Number(params.offset) || 0);
   const income = params.income === '1';
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
-  const money = useMoney();
-  const settings = useStore((s) => s.settings);
-  const transactions = useStore((s) => s.transactions);
-  const categories = useStore((s) => s.categories);
-  const category = categories.find((c) => c.id === params.id);
-  const nowMs = useNow();
-  const now = useMemo(() => new Date(nowMs), [nowMs]);
-  const { ask, remove, element } = useDeleteFlow();
+  const data = useData();
+  const now = useNow();
+  const { code, brief, briefDigits } = useMoney();
+  const { deleter, question } = useDeleter();
 
-  const p = period(type, offset, settings, now);
-  const mine = transactions.filter((t) => t.categoryId === params.id && t.income === income);
-  const entries = mine.filter((t) => t.date >= p.start.getTime() && t.date < p.until).sort((a, b) => b.date - a.date);
-  const amount = entries.reduce((n, t) => n + t.amount, 0);
-  const before = mine.filter((t) => t.date >= p.before.start && t.date < p.before.until).reduce((n, t) => n + t.amount, 0);
-  const share = categoryLines(transactions, categories, p, income).find((l) => l.category.id === params.id)?.share ?? 0;
-  const history = trend(transactions, params.id, type, offset, income, settings, now);
+  const p = useMemo(() => periodOf(span, offset, now, data.settings), [span, offset, now, data.settings]);
+  const mine = useMemo(() => data.entries.filter((e) => e.categoryId === id && e.income === income), [data.entries, id, income]);
+  const entries = useMemo(() => newestFirst(mine.filter((e) => e.date >= p.from && e.date < p.until)), [mine, p]);
+  const sums = compared(mine, p, income);
+  const share = categoryLines(data, data.entries, p, income).find((l) => l.category.id === id)?.share ?? 0;
+  const category = categoryOf(data, id);
+  const today = toDay(now);
+  const row = useCallback(({ item }: { item: Entry }) => <EntryRow entry={item} deleter={deleter} today={today} />, [deleter, today]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface }}>
-      <TopAppBar title={category ? `${category.emoji} ${category.name}` : 'Category'} onBack={() => goBack()} />
+    <Page title={category ? `${category.emoji} ${category.name}` : 'Category'} scroll={false}>
       <FlatList
         data={entries}
-        keyExtractor={(t) => t.id}
+        keyExtractor={keyOf}
+        renderItem={row}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        renderItem={({ item }) => <TransactionRow showDate transaction={item} onDelete={ask} onQuickDelete={remove} />}
         ListHeaderComponent={
           <>
-            <Card hero style={{ marginHorizontal: 16, padding: 20 }}>
+            <Card hero style={styles.card}>
               <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
-                {income ? 'Earned' : 'Spent'} {periodPhrase(type, offset, p.start)}
-                {share > 0 ? ` · ${Math.max(Math.round(share * 100), 1)}% of the total` : ''}
+                {income ? 'Earned' : 'Spent'} {phrase(p)}
+                {share > 0 ? ` · ${Math.max(1, Math.round(share * 100))}% of the total` : ''}
               </AppText>
-              <View style={{ marginTop: 4 }}>
-                <BigAmount value={fmtSmart(amount, settings.showCents)} currency={settings.currency} size={44} align="flex-start" income={income && amount > 0} />
+              <View style={styles.gap}>
+                <BigAmount digits={briefDigits(sums.now)} currency={code} size={44} income={income && sums.now > 0} />
               </View>
-              <View style={{ marginTop: 4, marginBottom: 16 }}>
-                <Comparison now={amount} before={before} income={income} against={offset === 0 ? `this time last ${UNIT[type]}` : `the ${UNIT[type]} before`} />
+              <View style={styles.comparison}>
+                <Comparison {...sums} income={income} against={against(p)} />
               </View>
               <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
-                Last six {UNIT[type]}s
+                Last six {span}s
               </AppText>
-              <ColumnChart columns={history} height={112} format={money} replayKey={params.id} />
+              <ColumnChart bars={trend(data, id, p, income, now)} height={112} format={brief} />
             </Card>
-            <Subheader text={entries.length === 1 ? '1 entry' : `${entries.length} entries`} />
+            <Subheader text={countOf(entries.length, 'entry', 'entries')} />
           </>
         }
         ListEmptyComponent={
-          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={{ paddingHorizontal: 16 }}>
-            No entries {periodPhrase(type, offset, p.start)}.
+          <AppText variant="bodyMedium" color={m3.onSurfaceVariant} style={styles.none}>
+            No entries {phrase(p)}.
           </AppText>
         }
       />
-      {element}
-    </View>
+      {question}
+    </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  card: { marginHorizontal: 16, padding: 20 },
+  gap: { marginTop: 4 },
+  comparison: { marginTop: 4, marginBottom: 16 },
+  none: { paddingHorizontal: 16 },
+});

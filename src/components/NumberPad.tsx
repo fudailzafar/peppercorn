@@ -1,89 +1,86 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Icon } from './Icon';
-import { Haptics } from '../lib/haptics';
-import { pressDelete, pressDigit, pressDot, type EntryType } from '../lib/amount';
+import type { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useMoney } from '../data/hooks';
+import { backKey, digitKey, padShown, pointKey, type Key, type Keypad } from '../domain/keypad';
+import { haptics } from '../hooks/haptics';
 import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
-import { StateLayer } from './m3';
+import { BigAmount } from './BigAmount';
+import { Icon } from './Icon';
+import { IconButton } from './material';
+import { Touch } from './Touch';
+
+export const PAD_HEIGHT = 4 * 64 + 3 * 8;
 
 interface Props {
-  raw: string;
-  onChange: (raw: string) => void;
-  entryType: EntryType;
+  pad: Keypad;
+  onKey: (key: Key) => void;
   onSubmit: () => void;
-  /** What the check key does, for screen readers. */
+  /** What the check does, spoken. */
   submitLabel: string;
-  /** Digits allowed after the point (3 for grams). */
-  decimals?: number;
 }
 
-const ROWS = [
-  [1, 2, 3],
-  [4, 5, 6],
-  [7, 8, 9],
-];
-
-/** A Material 3 keypad: tonal 16dp keys with ripples, and a filled primary confirm key. */
-export function NumberPad({ raw, onChange, entryType, onSubmit, submitLabel, decimals = 2 }: Props) {
+/** Digits, the point and the check, and nothing else. (Filling in cents first needs no point: there it deletes.) */
+export function NumberPad({ pad, onKey, onSubmit, submitLabel }: Props) {
   const { m3 } = useTheme();
-
-  const key = (content: React.ReactNode, onPress: () => void, tone: 'tonal' | 'primary', label: string) => {
-    const bg = tone === 'primary' ? m3.primary : m3.surfaceContainerHigh;
-    const ink = tone === 'primary' ? m3.onPrimary : m3.onSurface;
-    return (
-      <Pressable
-        key={label}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        android_ripple={{ color: `${ink}1F` }}
-        onPress={() => {
-          Haptics.light();
-          onPress();
-        }}
-        style={[styles.key, { backgroundColor: bg }]}
-      >
-        {({ pressed }) => (
-          <>
-            <StateLayer pressed={pressed} color={ink} />
-            {content}
-          </>
-        )}
-      </Pressable>
-    );
-  };
-
-  const digit = (n: number) =>
+  const key = (label: string, onPress: () => void, face: ReactNode, strong = false) => (
+    <Touch
+      key={label}
+      label={label}
+      ink={strong ? m3.onPrimary : m3.onSurface}
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
+      style={[styles.key, { backgroundColor: strong ? m3.primary : m3.surfaceContainerHigh }]}
+    >
+      {face}
+    </Touch>
+  );
+  const character = (text: string, label: string, pressed: Key) =>
     key(
-      <AppText variant="headlineLarge" color={m3.onSurface}>
-        {n}
+      label,
+      () => onKey(pressed),
+      <AppText variant="headlineLarge" maxFontSizeMultiplier={1.2}>
+        {text}
       </AppText>,
-      () => onChange(pressDigit(raw, n, entryType, decimals)),
-      'tonal',
-      String(n),
     );
-
+  const digit = (n: number) => character(String(n), String(n), digitKey(n));
   return (
     <View style={styles.pad}>
-      {ROWS.map((row, i) => (
-        <View key={i} style={styles.row}>
-          {row.map(digit)}
+      {[1, 4, 7].map((first) => (
+        <View key={first} style={styles.row}>
+          {[first, first + 1, first + 2].map(digit)}
         </View>
       ))}
       <View style={styles.row}>
-        {entryType === 1
-          ? key(<Icon name="backspace-outline" size={28} color={m3.onSurface} />, () => onChange(pressDelete(raw)), 'tonal', 'Delete')
-          : key(
-              <AppText variant="headlineLarge" color={m3.onSurface}>
-                .
-              </AppText>,
-              () => onChange(pressDot(raw, entryType)),
-              'tonal',
-              'Decimal point',
-            )}
+        {pad.typing === 'cents' ? key('Delete digit', () => onKey(backKey), <Icon name="backspace-outline" size={28} color={m3.onSurface} />) : character('.', 'Decimal point', pointKey)}
         {digit(0)}
-        {key(<Icon name="checkmark" size={30} color={m3.onPrimary} />, onSubmit, 'primary', submitLabel)}
+        {key(submitLabel, onSubmit, <Icon name="checkmark" size={30} color={m3.onPrimary} />, true)}
       </View>
+    </View>
+  );
+}
+
+/** The amount being typed, with backspace at the edge, level with it. */
+export function TypedAmount({ pad, onKey, income = false, unit }: { pad: Keypad; onKey: (key: Key) => void; income?: boolean; unit?: string }) {
+  const { code } = useMoney();
+  return (
+    <View style={styles.amount}>
+      <BigAmount digits={padShown(pad, code)} currency={code} size={57} centred income={income} unit={unit} />
+      {pad.typing === 'point' && pad.text !== '' ? (
+        <View style={styles.back}>
+          <IconButton
+            icon="backspace-outline"
+            label="Delete digit"
+            onPress={() => {
+              haptics.tap();
+              onKey(backKey);
+            }}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -92,4 +89,6 @@ const styles = StyleSheet.create({
   pad: { gap: 8, paddingHorizontal: 16 },
   row: { flexDirection: 'row', gap: 8 },
   key: { flex: 1, height: 64, borderRadius: shape.large, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  amount: { alignSelf: 'stretch', justifyContent: 'center', paddingHorizontal: 60 },
+  back: { position: 'absolute', right: 8, top: 0, bottom: 0, justifyContent: 'center' },
 });

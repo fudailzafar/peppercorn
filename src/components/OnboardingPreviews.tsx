@@ -1,18 +1,17 @@
 import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { assetById } from '../lib/assets';
-import type { BudgetProgress } from '../lib/calc';
-import { fmtSmart } from '../lib/format';
-import { useStore } from '../lib/store';
+import { useMoney, useSettings } from '../data/hooks';
+import { assetOf, gainText, isUp, percentOf } from '../domain/assets';
+import { progressFrom } from '../domain/budgets';
+import { money as moneyOf, rupees } from '../domain/money';
 import { shape } from '../theme/material';
 import { useTheme } from '../theme/theme';
 import { AppText } from './AppText';
-import { gainText, inr } from './AssetBits';
-import { BigAmount } from './Bits';
+import { BigAmount } from './BigAmount';
 import { PaceLabel, usePace } from './BudgetBits';
-import { ColumnChart } from './Charts';
+import { ColumnChart } from './ColumnChart';
 import { Icon } from './Icon';
-import { Comparison, useMoney } from './InsightBits';
+import { Comparison } from './InsightBits';
 import { Card, EmojiAvatar, FilterChip, IconAvatar, LinearProgress, ListItem, ProgressRing, SegmentedButton } from './material';
 
 /*
@@ -56,13 +55,13 @@ function Surface({ children, hero = false, padded = true }: { children: ReactNod
 /** The entry screen: type, amount, note and category, and the message after saving. */
 export function AddPreview() {
   const { m3 } = useTheme();
-  const currency = useStore((s) => s.settings.currency);
+  const { currency } = useSettings();
   return (
     <Frame>
       <Surface hero>
         <View style={{ gap: 16 }}>
           <SegmentedButton fullWidth options={['Expense', 'Income']} index={0} onChange={nothing} />
-          <BigAmount value="180" currency={currency} size={52} />
+          <BigAmount digits="180" currency={currency} size={52} centred />
           <View style={[styles.note, { backgroundColor: m3.surfaceContainerHigh }]}>
             <Icon name="create-outline" size={20} color={m3.onSurfaceVariant} />
             <AppText variant="bodyLarge">Lunch with Sara</AppText>
@@ -85,30 +84,27 @@ export function AddPreview() {
   );
 }
 
-const sample = (amount: number, spent: number, elapsed: number, daysLeft: number): BudgetProgress => ({ amount, spent, left: amount - spent, fraction: spent / amount, elapsed, daysLeft, over: spent > amount });
-
 /** The budget ring with its status and safe amount per day, and a category that needs a look. */
 export function BudgetPreview() {
   const { m3 } = useTheme();
-  const money = useMoney();
-  const settings = useStore((s) => s.settings);
-  const all = sample(15000, 6600, 0.6, 12);
-  const food = sample(3000, 2460, 0.6, 12);
+  const { code, brief: money, briefDigits } = useMoney();
+  const all = progressFrom(15000, 6600, 0.6, 12);
+  const food = progressFrom(3000, 2460, 0.6, 12);
   const pace = usePace(all);
   const fast = usePace(food);
   return (
     <Frame>
       <Surface hero>
         <View style={{ alignItems: 'center', gap: 12 }}>
-          <ProgressRing fraction={all.fraction} color={pace.color} size={152} stroke={13}>
-            <BigAmount value={fmtSmart(all.left, settings.showCents)} currency={settings.currency} size={30} />
+          <ProgressRing fraction={all.used} color={pace.color} size={152} stroke={13}>
+            <BigAmount digits={briefDigits(all.left)} currency={code} size={30} centred />
             <AppText variant="bodySmall" color={m3.onSurfaceVariant}>
-              left of {money(all.amount)}
+              left of {money(all.limit)}
             </AppText>
           </ProgressRing>
           <PaceLabel p={all} />
           <AppText variant="bodyMedium" color={m3.onSurfaceVariant}>
-            {money(all.left / all.daysLeft)} safe per day, {all.daysLeft} days left
+            {money(all.safePerDay)} safe per day, {all.daysLeft} days left
           </AppText>
         </View>
       </Surface>
@@ -122,7 +118,7 @@ export function BudgetPreview() {
               </AppText>
               <PaceLabel p={food} />
             </View>
-            <LinearProgress fraction={food.fraction} color={fast.color} />
+            <LinearProgress fraction={food.used} color={fast.color} />
           </View>
         </View>
       </Surface>
@@ -133,8 +129,7 @@ export function BudgetPreview() {
 /** A month compared with the last, its weeks, and something that stands out. */
 export function InsightsPreview() {
   const { m3 } = useTheme();
-  const money = useMoney();
-  const settings = useStore((s) => s.settings);
+  const { code, brief: money, briefDigits } = useMoney();
   const weeks = [
     { label: '1-7', value: 3150 },
     { label: '8-14', value: 1420 },
@@ -148,11 +143,11 @@ export function InsightsPreview() {
         <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
           Spent this month
         </AppText>
-        <BigAmount value={fmtSmart(6650, settings.showCents)} currency={settings.currency} size={36} align="flex-start" />
+        <BigAmount digits={briefDigits(6650)} currency={code} size={36} />
         <View style={{ marginTop: 4, marginBottom: 8 }}>
           <Comparison now={6650} before={7090} income={false} against="this time last month" />
         </View>
-        <ColumnChart columns={weeks.map((w) => ({ ...w, name: '' }))} height={96} />
+        <ColumnChart bars={weeks.map((w) => ({ ...w, name: '' }))} height={96} />
       </Surface>
       <Surface padded={false}>
         <ListItem leading={<IconAvatar icon="calendar" />} headline={`On pace for ${money(9500)}`} supporting={`${money(5500)} inside your budget`} />
@@ -164,7 +159,8 @@ export function InsightsPreview() {
 /** What gold, silver and a fund are worth together, and each on its own. */
 export function AssetsPreview() {
   const { m3 } = useTheme();
-  const settings = useStore((s) => s.settings);
+  const { cents } = useSettings();
+  const inr = (n: number) => rupees(false).brief(n);
   const rows = [
     { id: 'gold', qty: '10 g, 22K', invested: 112430, value: 117150 },
     { id: 'silver', qty: '250 g', invested: 44550, value: 43750 },
@@ -178,15 +174,14 @@ export function AssetsPreview() {
         <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
           Current value
         </AppText>
-        <BigAmount value={fmtSmart(value, settings.showCents)} currency="INR" size={36} align="flex-start" />
+        <BigAmount digits={rupees(cents).briefDigits(value)} currency="INR" size={36} />
         <AppText variant="bodyMedium" color={m3.success} style={{ marginTop: 4 }}>
-          {gainText({ value, invested }).replace('.00', '')}
+          {gainText({ value, invested }, { ...moneyOf('INR', false), full: inr })}
         </AppText>
       </Surface>
       <Surface padded={false}>
         {rows.map((r) => {
-          const a = assetById(r.id);
-          const percent = ((r.value - r.invested) / r.invested) * 100;
+          const a = assetOf(r.id);
           return (
             <ListItem
               key={r.id}
@@ -195,10 +190,10 @@ export function AssetsPreview() {
               leading={<EmojiAvatar emoji={a.emoji} colour={a.colour} />}
               trailing={
                 <View style={{ alignItems: 'flex-end' }}>
-                  <AppText variant="titleSmall">{inr(r.value).replace('.00', '')}</AppText>
-                  <AppText variant="bodySmall" color={percent > 0 ? m3.success : m3.onSurfaceVariant}>
-                    {percent > 0 ? '+' : '-'}
-                    {Math.abs(percent).toFixed(1)}%
+                  <AppText variant="titleSmall">{inr(r.value)}</AppText>
+                  <AppText variant="bodySmall" color={isUp(r) ? m3.success : m3.onSurfaceVariant}>
+                    {isUp(r) ? '+' : '-'}
+                    {percentOf(r)}
                   </AppText>
                 </View>
               }

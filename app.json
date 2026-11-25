@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Peppercorn",
-    "slug": "dime-rn-material",
+    "slug": "peppercorn",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

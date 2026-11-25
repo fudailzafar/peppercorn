@@ -1,11 +1,12 @@
-import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Icon } from './Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Haptics } from '../lib/haptics';
-import { useStore, useUi } from '../lib/store';
+import { useAppState } from '../data/hooks';
+import { haptics } from '../hooks/haptics';
+import { openPage } from '../hooks/nav';
+import { useFab } from '../hooks/useFab';
 import { elevation, m3Duration, m3Easing, shape, stateLayer } from '../theme/material';
 import { useTheme, withAlpha } from '../theme/theme';
 import { AppText } from './AppText';
@@ -18,28 +19,26 @@ import { NAV_BAR_HEIGHT } from './TabBar';
 export function Fab() {
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
-  const hidden = useUi((s) => s.hideTabBar);
-  const empty = useStore((s) => s.transactions.length === 0);
-  const tucked = useUi((s) => s.fabHidden);
+  const empty = useAppState((s) => s.data.entries.length === 0);
+  const tucked = useFab((s) => s.tucked);
   // 0 = showing, 1 = tucked away below the screen edge (slides down and fades, emphasized easing).
   const away = useSharedValue(0);
   useEffect(() => {
     away.set(withTiming(tucked ? 1 : 0, { duration: m3Duration.short4, easing: Easing.bezier(...m3Easing.emphasized) }));
   }, [tucked, away]);
   const slide = useAnimatedStyle(() => ({ opacity: 1 - away.get(), transform: [{ translateY: away.get() * 96 }] }));
-  if (hidden) return null;
 
   return (
     <Animated.View pointerEvents={tucked ? 'none' : 'box-none'} style={[styles.wrap, { bottom: NAV_BAR_HEIGHT + insets.bottom + 16 }, slide]}>
       <Pressable
         onPress={() => {
-          Haptics.light();
-          router.push('/transaction');
+          haptics.tap();
+          openPage('/entry');
         }}
         accessibilityRole="button"
         accessibilityLabel="Add entry"
         android_ripple={{ color: withAlpha(m3.onPrimary, 0.18) }}
-        style={({ pressed }) => [styles.fab, { backgroundColor: m3.primary }, elevation(3), empty && styles.extended]}
+        style={[styles.fab, { backgroundColor: m3.primary }, elevation(3), empty && styles.extended]}
       >
         {({ pressed }) => (
           <>

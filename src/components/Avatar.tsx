@@ -10,7 +10,7 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: letter ? m3.primary : m3.primaryContainer }}>
       {letter ? (
-        <AppText size={size * 0.42} weight="semibold" color={m3.onPrimary} style={{ includeFontPadding: false }}>
+        <AppText size={size * 0.42} weight="medium" color={m3.onPrimary} style={{ includeFontPadding: false }}>
           {letter}
         </AppText>
       ) : (

@@ -3,7 +3,7 @@ import type { StyleProp, TextStyle } from 'react-native';
 
 /**
  * The app's icons, drawn with Google's Material Icons. Screens refer to icons by a short semantic name
- * (the names Dime's screens already used) and this table picks the Material glyph for each.
+ * and this table picks the Material glyph for each.
  * Reference: https://fonts.google.com/icons
  */
 const MATERIAL = {

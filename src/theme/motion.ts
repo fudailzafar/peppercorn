@@ -1,24 +1,11 @@
-/**
- * Material 3 motion, ready to use with Reanimated and Animated.
- * Easing and duration tokens live in material.ts; this file holds the M3 Expressive spring tokens.
- * Reference: https://m3.material.io/styles/motion/overview/specs
- */
+import { Easing } from 'react-native-reanimated';
+import { m3Easing } from './material';
 
-/** A spring from M3's (stiffness, damping ratio) pair, as the mass-1 config Reanimated expects. */
-function spring(stiffness: number, dampingRatio: number) {
-  return { stiffness, damping: 2 * dampingRatio * Math.sqrt(stiffness), mass: 1 };
-}
+/* Material's easing curves and one spring, for Reanimated. https://m3.material.io/styles/motion */
 
-export const springs = {
-  /** Spatial springs move things across the screen (position, size, shape). */
-  smooth: spring(700, 0.9), // default spatial
-  snappy: spring(1400, 0.9), // fast spatial
-  slow: spring(300, 0.9), // slow spatial
-  /** Effects springs change colour or opacity and never overshoot. */
-  effects: spring(1600, 1),
-} as const;
+export const standardEasing = Easing.bezier(...m3Easing.emphasized);
+export const arriving = Easing.bezier(...m3Easing.emphasizedDecelerate);
+export const leaving = Easing.bezier(...m3Easing.emphasizedAccelerate);
 
-export const motion = {
-  /** Delay between neighbouring bars when a chart grows in. */
-  barStagger: 30,
-} as const;
+/** Back to rest after a drag that was let go early. Material's default spatial spring. */
+export const settle = { mass: 1, stiffness: 700, damping: 48 } as const;

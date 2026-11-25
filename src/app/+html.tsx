@@ -1,35 +1,33 @@
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
-// Web-only document shell: PWA manifest, mobile viewport, and no body scrolling.
-export default function Root({ children }: PropsWithChildren) {
-  const { headNodes, bodyNodes, htmlAttributes, bodyAttributes } = useServerDocumentContext();
+const LIGHT = '#FFFFFF';
+const DARK = '#131314';
+
+/** The web page around the app. Its background is the app's own, so nothing flashes before the app is there. */
+export default function Html({ children }: PropsWithChildren) {
+  const page = useServerDocumentContext();
   return (
-    <html lang="en" {...htmlAttributes}>
+    <html {...page.htmlAttributes} lang="en">
       <head>
         <meta charSet="utf-8" />
-        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <title>Peppercorn</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#131314" media="(prefers-color-scheme: dark)" />
+        <title>Peppercorn</title>
         <meta name="color-scheme" content="light dark" />
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content={LIGHT} />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content={DARK} />
         <meta name="apple-mobile-web-app-title" content="Peppercorn" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <style dangerouslySetInnerHTML={{ __html: PAGE_BACKGROUND }} />
+        <style>{`html, body { background: ${LIGHT} } @media (prefers-color-scheme: dark) { html, body { background: ${DARK} } }`}</style>
         <ScrollViewStyleReset />
-        {headNodes}
+        {page.headNodes}
       </head>
-      <body {...bodyAttributes}>
+      <body {...page.bodyAttributes}>
         {children}
-        {bodyNodes}
+        {page.bodyNodes}
       </body>
     </html>
   );
 }
-
-// Match the app's background before JS loads, so there is no white flash in dark mode.
-const PAGE_BACKGROUND = `html,body{background-color:#FFFFFF}@media (prefers-color-scheme: dark){html,body{background-color:#131314}}`;

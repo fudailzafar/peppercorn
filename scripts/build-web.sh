@@ -12,7 +12,7 @@ done
 rm -rf dist/assets/vendor/.pnpm
 grep -rlE "assets/node_modules" dist | xargs sed -i '' -E 's#assets/node_modules/\.pnpm/([^/"]+)/node_modules/#assets/vendor/\1/#g; s#assets/node_modules#assets/vendor#g'
 if find dist -path '*node_modules*' | grep -q .; then echo "dist still has a node_modules path" >&2; exit 1; fi
-# /metals passes on the gold and silver rate page, which browsers may not read from another site (src/lib/prices.ts).
+# /metals passes on the gold and silver rate page, which browsers may not read from another site (src/data/app.ts).
 # Its headers stop that page's scripts from running here, where people's entries are stored, if someone opens it directly.
 cat > dist/vercel.json <<'JSON'
 {

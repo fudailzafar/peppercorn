@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { useStore } from '../../lib/store';
-import { useAnimatedNumber } from '../../lib/useAnimatedNumber';
+import { useGrowing } from '../../hooks/useGrowing';
 import { shape } from '../../theme/material';
 import { useTheme } from '../../theme/theme';
 
@@ -11,8 +10,7 @@ const clamp = (n: number) => Math.min(Math.max(n, 0), 1);
 /** M3 linear progress: the indicator, a 4dp gap, the track, and a stop dot at the end. */
 export function LinearProgress({ fraction, color, height = 8, track, stop = true }: { fraction: number; color: string; height?: number; track?: string; /** The dot at the end of the track. */ stop?: boolean }) {
   const { m3 } = useTheme();
-  const animated = useStore((s) => s.settings.animatedCharts);
-  const value = useAnimatedNumber(clamp(fraction), animated);
+  const value = useGrowing(fraction);
   const rest = 1 - value;
   return (
     <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(clamp(fraction) * 100) }} style={[styles.line, { height }]}>
@@ -29,8 +27,7 @@ export function LinearProgress({ fraction, color, height = 8, track, stop = true
 /** M3 circular progress with rounded ends and a gap between the indicator and its track. Children sit in the middle. */
 export function ProgressRing({ fraction, color, size, stroke, track, children }: { fraction: number; color: string; size: number; stroke: number; track?: string; children?: ReactNode }) {
   const { m3 } = useTheme();
-  const animated = useStore((s) => s.settings.animatedCharts);
-  const value = useAnimatedNumber(clamp(fraction), animated);
+  const value = useGrowing(fraction);
   const r = (size - stroke) / 2;
   const around = 2 * Math.PI * r;
   // Round ends stick out by half the stroke on each side, so the visible gap needs that much more room.

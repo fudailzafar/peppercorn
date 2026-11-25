@@ -1,108 +1,61 @@
 import { useLocalSearchParams } from 'expo-router';
-import { goBack } from '../lib/nav';
-import { useMemo, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { SectionList, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../components/AppText';
-import { useDeleteFlow } from '../components/DeleteFlow';
-import { Icon } from '../components/Icon';
+import { EntryRow } from '../components/EntryRow';
 import { IconButton, SearchBar } from '../components/material';
-import { TransactionRow } from '../components/TransactionRow';
-import { groupByDay } from '../lib/calc';
-import { dayLabel, isSameDay } from '../lib/dates';
-import { currencySymbol, fmtFull } from '../lib/format';
-import { useStore } from '../lib/store';
-import { useNow } from '../lib/useNow';
-import type { Transaction } from '../lib/types';
-import { shape } from '../theme/material';
+import { TotalHeading } from '../components/TotalHeading';
+import { useData, useNow } from '../data/hooks';
+import { toDay, weekdayLabel } from '../domain/dates';
+import { byDay, search } from '../domain/entries';
+import type { Entry } from '../domain/model';
+import { goBack } from '../hooks/nav';
+import { useDeleter } from '../hooks/useDeleter';
 import { useTheme } from '../theme/theme';
 
-type Row = { kind: 'header'; key: string; label: string; net: number } | { kind: 'item'; key: string; t: Transaction };
+const keyOf = (e: Entry) => e.id;
 
-/** Full-screen search over notes, category names and amounts, as an M3 search view. */
-export default function SearchScreen() {
+/** Search over notes, categories and amounts. */
+export default function Search() {
+  const { q: first = '' } = useLocalSearchParams<{ q?: string }>();
   const { m3 } = useTheme();
   const insets = useSafeAreaInsets();
-  const transactions = useStore((s) => s.transactions);
-  const categories = useStore((s) => s.categories);
-  const currency = useStore((s) => s.settings.currency);
-  const showSign = useStore((s) => s.settings.showSign);
-  const { ask, remove, element } = useDeleteFlow();
-  const { q: startQuery } = useLocalSearchParams<{ q?: string }>();
-  const [query, setQuery] = useState(startQuery ?? '');
-  const now = useNow();
-
-  const rows = useMemo<Row[]>(() => {
-    const q = query.trim().toLowerCase();
-    if (q === '') return [];
-    const hits = transactions.filter((t) => {
-      const cat = categories.find((x) => x.id === t.categoryId)?.name.toLowerCase() ?? '';
-      return t.note.toLowerCase().includes(q) || cat.includes(q) || String(t.amount).startsWith(q);
-    });
-    const out: Row[] = [];
-    for (const g of groupByDay(hits)) {
-      out.push({ kind: 'header', key: `h-${g.day}`, label: isSameDay(g.day, now) ? 'Today' : dayLabel(new Date(g.day)), net: g.net });
-      g.items.forEach((t) => out.push({ kind: 'item', key: t.id, t }));
-    }
-    return out;
-  }, [query, transactions, categories, now]);
+  const data = useData();
+  const today = toDay(useNow());
+  const { deleter, question } = useDeleter();
+  const [query, setQuery] = useState(first);
+  const sections = useMemo(() => byDay(search(data, query)).map((g) => ({ title: weekdayLabel(g.day, today), net: g.net, data: g.entries })), [data, query, today]);
+  const row = useCallback(({ item }: { item: Entry }) => <EntryRow entry={item} deleter={deleter} today={today} timeOnly />, [deleter, today]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: m3.surface, paddingTop: insets.top + 12 }}>
-      <SearchBar
-        autoFocus
-        grow
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search entries"
-        leading={<IconButton icon="arrow-back" onPress={() => goBack()} label="Back" tint={m3.onSurface} />}
-      />
-
-      <FlatList
-        data={rows}
-        keyExtractor={(r) => r.key}
+    <View style={[styles.fill, { backgroundColor: m3.surface, paddingTop: insets.top + 12 }]}>
+      <SearchBar grow autoFocus={first === ''} value={query} onChangeText={setQuery} placeholder="Search entries" leading={<IconButton icon="arrow-back" label="Back" tint={m3.onSurface} onPress={goBack} />} />
+      <SectionList
+        sections={sections}
+        keyExtractor={keyOf}
+        renderItem={row}
+        renderSectionHeader={heading}
+        stickySectionHeadersEnabled={false}
         keyboardShouldPersistTaps="handled"
-        style={{ marginTop: 8 }}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 24 }}
         ListEmptyComponent={
-          query.trim() !== '' ? (
-            <View style={styles.empty}>
-              <View style={[styles.emptyIcon, { backgroundColor: m3.surfaceContainerHigh }]}>
-                <Icon name="search" size={40} color={m3.onSurfaceVariant} />
-              </View>
-              <AppText variant="headlineSmall" color={m3.onSurface} style={{ marginTop: 20 }}>
-                No entries found
-              </AppText>
-              <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={{ marginTop: 8 }}>
-                Try another note, category or amount.
-              </AppText>
-            </View>
-          ) : undefined
-        }
-        renderItem={({ item }) =>
-          item.kind === 'header' ? (
-            <View style={styles.subheader}>
-              <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
-                {item.label}
-              </AppText>
-              <AppText variant="titleSmall" color={m3.onSurfaceVariant}>
-                {showSign ? (item.net >= 0 ? '+' : '-') : ''}
-                {currencySymbol(currency)}
-                {fmtFull(Math.abs(item.net))}
-              </AppText>
-            </View>
-          ) : (
-            <TransactionRow transaction={item.t} onDelete={ask} onQuickDelete={remove} />
+          query.trim() === '' ? undefined : (
+            <AppText variant="bodyLarge" color={m3.onSurfaceVariant} style={styles.none}>
+              No entries match “{query.trim()}”
+            </AppText>
           )
         }
       />
-      {element}
+      {question}
     </View>
   );
 }
 
+const heading = ({ section }: { section: { title: string; net: number } }) => <TotalHeading label={section.title} net={section.net} />;
+
 const styles = StyleSheet.create({
-  empty: { alignItems: 'center', paddingTop: 90, paddingHorizontal: 32 },
-  emptyIcon: { width: 88, height: 88, borderRadius: shape.full, alignItems: 'center', justifyContent: 'center' },
-  subheader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8 },
+  fill: { flex: 1 },
+  none: { textAlign: 'center', marginTop: 48, paddingHorizontal: 16 },
 });
