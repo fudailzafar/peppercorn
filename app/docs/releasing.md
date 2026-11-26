@@ -32,8 +32,9 @@ also for apps that aren't on Play. https://developer.android.com/developer-verif
 
 Google Cloud project `peppercorn-515903` (owner's account): the `drive.appdata` scope, an Android client for
 `app.peppercorn.money` with the release key's SHA-1, and a web client whose ID is in `app.json`
-(`extra.googleWebClientId`; it isn't a secret). The consent screen is in testing: only the test users listed under
-Audience can sign in, up to 100, until it is published. A new signing key needs its SHA-1 added to the Android client.
+(`extra.googleWebClientId`; it isn't a secret). The consent screen is published (anyone can sign in) with no logo, as
+a logo needs Google's review. Its home page and privacy links are the website's `/` and `/privacy`: keep both working,
+and keep `/privacy` true to `data.md`. A new signing key needs its SHA-1 added to the Android client.
 
 ## The website and browser version
 

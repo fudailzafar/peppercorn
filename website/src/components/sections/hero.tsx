@@ -6,8 +6,15 @@ import { Section } from "@/components/section";
 import { easeInOutCubic } from "@/lib/animation";
 import { siteConfig } from "@/lib/config";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useState } from "react";
+
+/** The launch page is hidden until then, so the badge waits for it instead of needing a deploy. */
+const LAUNCH = Date.parse("2026-11-29T08:00:00Z");
 
 export function Hero() {
+  // After mounting, so the page built before launch and the one shown after it agree.
+  const [launched, setLaunched] = useState(false);
+  useEffect(() => setLaunched(Date.now() >= LAUNCH), []);
   const { scrollY } = useScroll({
     offset: ["start start", "end start"],
   });
@@ -71,6 +78,29 @@ export function Hero() {
             >
               <DownloadBadge />
               <TryIt className="mt-4" />
+              {launched && (
+                <a
+                  href={siteConfig.productHunt}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 rounded-[10px] focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  <img
+                    src="/product-hunt.svg"
+                    alt="Find us on Product Hunt"
+                    width={170}
+                    height={46}
+                    className="dark:hidden"
+                  />
+                  <img
+                    src="/product-hunt-dark.svg"
+                    alt="Find us on Product Hunt"
+                    width={170}
+                    height={46}
+                    className="hidden dark:block"
+                  />
+                </a>
+              )}
             </motion.div>
           </div>
         </div>

@@ -16,6 +16,8 @@ export const siteConfig = {
   description: "Know where your money goes.",
   tagline:
     "A simple money tracker for Android. Add what you spend in seconds, stay on budget, and see what your gold, silver and funds are worth today.",
+  // Peppercorn's launch page. The badge is a copy kept here, so visitors reach Product Hunt only if they click it.
+  productHunt: "https://www.producthunt.com/posts/peppercorn-2",
   cta: download ? "Download for Android" : "Coming soon for Android",
   ctaHref: download?.href ?? "#cta",
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
@@ -66,7 +68,7 @@ export const siteConfig = {
     {
       name: "Private by design",
       description:
-        "No account needed. Your entries stay on your phone, and there are no ads.",
+        "No account needed, and no ads. Sign in with Google only if you want a copy in your own Drive.",
       icon: <LockIcon className="h-6 w-6" />,
       href: "#faq",
     },
@@ -175,7 +177,7 @@ export const siteConfig = {
         "Comes back when you sign in again",
         "Delete it from the app whenever you like",
       ],
-      description: "Optional, and planned for a later version",
+      description: "Optional: sign in to keep a copy",
     },
   ],
   faqs: [
@@ -219,7 +221,8 @@ export const siteConfig = {
       answer: (
         <span>
           No. You can use everything without one. Signing in with Google is
-          planned, and will be optional, only to keep a copy in your own Google Drive.
+          optional, and only keeps a copy in a hidden folder of your own Google
+          Drive, so your entries come back on a new phone.
         </span>
       ),
     },
@@ -270,6 +273,7 @@ export const siteConfig = {
     { href: "#feature-highlight", text: "Features" },
     { href: "#pricing", text: "Pricing" },
     { href: "#faq", text: "FAQ" },
+    { href: "/privacy", text: "Privacy" },
   ],
 };
 

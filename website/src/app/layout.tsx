@@ -3,7 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { siteConfig } from "@/lib/config";
 import { fontSans } from "@/lib/fonts";
-import { cn, constructMetadata } from "@/lib/utils";
+import { absoluteUrl, cn, constructMetadata } from "@/lib/utils";
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
@@ -33,6 +33,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${GeistSans.variable} ${GeistMono.variable} ${fontSans.variable}`}
     >
+      <head>
+        {/* Next's metadata has no og:logo; Product Hunt and others read it for the logo. */}
+        <meta property="og:logo" content={absoluteUrl("/logo.png")} />
+      </head>
       <body
         className={cn(
           "min-h-screen bg-background antialiased w-full mx-auto scroll-smooth font-sans"
