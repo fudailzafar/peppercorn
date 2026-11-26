@@ -2,7 +2,7 @@
   "expo": {
     "name": "Peppercorn",
     "slug": "peppercorn",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -52,7 +52,7 @@
     ],
     "scheme": "peppercorn",
     "extra": {
-      "googleWebClientId": ""
+      "googleWebClientId": "557167467694-s8cs19magvb3l9q88usj2p6f248ock5n.apps.googleusercontent.com"
     },
     "experiments": {
       "reactCompiler": true,

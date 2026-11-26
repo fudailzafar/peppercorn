@@ -1,6 +1,6 @@
 {
   "name": "peppercorn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/google-sans": "^0.4.4",

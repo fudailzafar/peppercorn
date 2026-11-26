@@ -28,10 +28,12 @@ From 2027, certified Android phones ask for the developer to be verified and the
 key). Elsewhere people can still install it after a longer setup of their own. Registering can be done in the Play Console,
 also for apps that aren't on Play. https://developer.android.com/developer-verification
 
-## Before signing in with Google can work
+## Signing in with Google
 
-A Google Cloud project with the `drive.appdata` scope, an Android client (package and the key's SHA-1) and a web client, and
-the web client's ID in `app.json` (`extra.googleWebClientId`). Until then signing in says it isn't available.
+Google Cloud project `peppercorn-515903` (owner's account): the `drive.appdata` scope, an Android client for
+`app.peppercorn.money` with the release key's SHA-1, and a web client whose ID is in `app.json`
+(`extra.googleWebClientId`; it isn't a secret). The consent screen is in testing: only the test users listed under
+Audience can sign in, up to 100, until it is published. A new signing key needs its SHA-1 added to the Android client.
 
 ## The website and browser version
 
